@@ -444,7 +444,7 @@ void main() {
       await tester.tap(find.text('Mulatschak'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(Switch));
+      await tester.tap(find.widgetWithText(SwitchListTile, 'Mulatschak reset'));
       await tester.pumpAndSettle();
 
       await tester.enterText(

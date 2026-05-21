@@ -81,9 +81,9 @@ jobs:
             echo "- Android APK"
             echo "- Android App Bundle"
             echo "- Windows ZIP"
+            echo "- macOS ZIP"
             echo "- iOS unsigned app ZIP"
             echo
-            echo "_macOS release artifacts are currently disabled because the macOS target is not buildable in this project._"
             echo "_The iOS artifact is built without code signing. For TestFlight or App Store distribution you still need Apple signing credentials and an export step._"
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
@@ -252,6 +252,54 @@ jobs:
           name: ios-release-assets
           path: release-assets/*
 
+  build_macos:
+    name: Build macOS
+    runs-on: macos-latest
+    needs: prepare_release
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.prepare_release.outputs.tag_name }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate launcher icons
+        run: dart run flutter_launcher_icons
+
+      - name: Build macOS app
+        run: flutter build macos --release
+
+      - name: Archive macOS app
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/macos/Build/Products/Release/Counter.app \
+            "release-assets/counter-macos-${{ needs.prepare_release.outputs.tag_name }}.zip"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release-assets
+          path: release-assets/*
+
   publish_release:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
@@ -259,6 +307,7 @@ jobs:
       - prepare_release
       - build_android
       - build_windows
+      - build_macos
       - build_ios
     steps:
       - name: Download all artifacts
