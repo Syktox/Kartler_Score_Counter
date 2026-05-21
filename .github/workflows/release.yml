@@ -78,6 +78,13 @@ jobs:
             echo
             echo "## Artifacts"
             echo
+            echo "Artifacts are published in platform bundles:"
+            echo
+            echo "- Windows/Android is published when both the Windows and Android builds succeed."
+            echo "- macOS/iOS is published when both the macOS and iOS builds succeed."
+            echo
+            echo "Possible artifacts:"
+            echo
             echo "- Android APK"
             echo "- Android App Bundle"
             echo "- Windows ZIP"
@@ -303,6 +310,12 @@ jobs:
   publish_release:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
+    if: |
+      always() &&
+      (
+        (needs.build_android.result == 'success' && needs.build_windows.result == 'success') ||
+        (needs.build_macos.result == 'success' && needs.build_ios.result == 'success')
+      )
     needs:
       - prepare_release
       - build_android
@@ -310,11 +323,33 @@ jobs:
       - build_macos
       - build_ios
     steps:
-      - name: Download all artifacts
+      - name: Download Android artifacts
+        if: needs.build_android.result == 'success' && needs.build_windows.result == 'success'
         uses: actions/download-artifact@v4
         with:
+          name: android-release-assets
           path: release-assets
-          merge-multiple: true
+
+      - name: Download Windows artifacts
+        if: needs.build_android.result == 'success' && needs.build_windows.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release-assets
+          path: release-assets
+
+      - name: Download macOS artifacts
+        if: needs.build_macos.result == 'success' && needs.build_ios.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-release-assets
+          path: release-assets
+
+      - name: Download iOS artifacts
+        if: needs.build_macos.result == 'success' && needs.build_ios.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-release-assets
+          path: release-assets
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
