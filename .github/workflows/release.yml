@@ -116,6 +116,27 @@ jobs:
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
 
+      - name: Configure Android release signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          : "${ANDROID_KEYSTORE_BASE64:?Missing ANDROID_KEYSTORE_BASE64 secret}"
+          : "${ANDROID_KEYSTORE_PASSWORD:?Missing ANDROID_KEYSTORE_PASSWORD secret}"
+          : "${ANDROID_KEY_ALIAS:?Missing ANDROID_KEY_ALIAS secret}"
+          : "${ANDROID_KEY_PASSWORD:?Missing ANDROID_KEY_PASSWORD secret}"
+
+          echo "${ANDROID_KEYSTORE_BASE64}" | base64 --decode > android/app/upload-keystore.jks
+          {
+            echo "storeFile=upload-keystore.jks"
+            echo "storePassword=${ANDROID_KEYSTORE_PASSWORD}"
+            echo "keyAlias=${ANDROID_KEY_ALIAS}"
+            echo "keyPassword=${ANDROID_KEY_PASSWORD}"
+          } > android/key.properties
+
       - name: Build Android APK
         run: flutter build apk --release
 

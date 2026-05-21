@@ -1,4 +1,4 @@
-package com.example.counter_app
+package com.raysix.kartler
 
 import io.flutter.embedding.android.FlutterActivity
 
