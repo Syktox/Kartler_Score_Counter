@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/app_mode.dart';
+import 'bug_report_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final ThemeMode currentThemeMode;
@@ -283,6 +284,19 @@ class _SettingsPageState extends State<SettingsPage> {
                     value: ThemeMode.system,
                   ),
                 ],
+              ),
+            ),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const BugReportPage()),
+                  );
+                },
+                icon: const Icon(Icons.bug_report_outlined),
+                label: const Text('Report a bug'),
               ),
             ),
           ],

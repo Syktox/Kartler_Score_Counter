@@ -181,6 +181,21 @@ void main() {
       expect(find.text('0'), findsOneWidget);
       expect(find.text('Workout streak'), findsOneWidget);
     });
+
+    testWidgets('opens bug report page from settings', (tester) async {
+      await _pumpApp(tester);
+
+      await _openSettings(tester);
+      final reportButton = find.text('Report a bug');
+      await tester.ensureVisible(reportButton);
+      await tester.tap(reportButton);
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(AppBar, 'Report a bug'), findsOneWidget);
+      expect(_textFieldWithLabel('Title'), findsOneWidget);
+      expect(_textFieldWithLabel('Description'), findsOneWidget);
+      expect(find.text('Device information'), findsOneWidget);
+    });
   });
 
   group('Watten mode', () {
