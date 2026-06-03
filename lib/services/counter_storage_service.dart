@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_mode.dart';
+import '../models/game_rules.dart';
 import '../models/watten_game.dart';
 
 class CounterStorageData {
@@ -84,13 +85,13 @@ class CounterStorageService {
   };
   static const String defaultCurrentWattenGame = 'Game 1';
   static const Map<String, int> defaultMulatschakPlayers = {
-    'Player 1': 21,
-    'Player 2': 21,
+    'Player 1': GameRules.mulatschakStartingScore,
+    'Player 2': GameRules.mulatschakStartingScore,
   };
   static const String defaultCurrentMulatschakPlayer = 'Player 1';
   static const Map<String, int> defaultHosnObePlayers = {
-    'Player 1': 4,
-    'Player 2': 4,
+    'Player 1': GameRules.hosnObeStartingLives,
+    'Player 2': GameRules.hosnObeStartingLives,
   };
   static const String defaultCurrentHosnObePlayer = 'Player 1';
   static const int defaultMulatschakMultiplier = 1;

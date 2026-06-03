@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'score_button.dart';
+
 class CounterControls extends StatelessWidget {
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
@@ -17,22 +19,23 @@ class CounterControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
+        ScoreButton(
+          label: '-',
           onPressed: onDecrement,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(80, 80)),
-          child: const Text('-', style: TextStyle(fontSize: 32)),
+          minimumSize: const Size(80, 80),
+          fontSize: 32,
         ),
         const SizedBox(width: 20),
-        ElevatedButton(
+        ScoreButton(
+          label: 'Reset',
           onPressed: onReset,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(100, 80)),
-          child: const Text('Reset', style: TextStyle(fontSize: 24)),
         ),
         const SizedBox(width: 20),
-        ElevatedButton(
+        ScoreButton(
+          label: '+',
           onPressed: onIncrement,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(80, 80)),
-          child: const Text('+', style: TextStyle(fontSize: 32)),
+          minimumSize: const Size(80, 80),
+          fontSize: 32,
         ),
       ],
     );

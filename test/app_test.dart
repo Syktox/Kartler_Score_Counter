@@ -143,6 +143,21 @@ void main() {
       expect(find.text('Reading streak'), findsOneWidget);
     });
 
+    testWidgets('normalizes counter names before saving', (tester) async {
+      await _pumpApp(tester);
+
+      await _openDrawer(tester);
+      await tester.tap(find.text('New Counter'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '  Reading   streak  ');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reading streak'), findsOneWidget);
+      expect(find.text('  Reading   streak  '), findsNothing);
+    });
+
     testWidgets('keeps undo history separate per mode', (tester) async {
       await _pumpApp(tester);
 
@@ -266,6 +281,23 @@ void main() {
         find.descendant(of: find.byType(Drawer), matching: find.text('Finale')),
         findsNothing,
       );
+    });
+
+    testWidgets('keeps add field focused for normalized duplicate game names', (
+      tester,
+    ) async {
+      await _pumpApp(tester, sharedPreferences: {'app_mode': 'watten'});
+
+      await _openDrawer(tester);
+      await tester.tap(find.text('Add Game'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '  game   1 ');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(AlertDialog, 'Add Game'), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isTrue);
     });
   });
 
@@ -430,6 +462,21 @@ void main() {
       expect(find.text('Chris'), findsWidgets);
     });
 
+    testWidgets('normalizes new player names before saving', (tester) async {
+      await _pumpApp(tester, sharedPreferences: {'app_mode': 'mulatschak'});
+
+      await _openDrawer(tester);
+      await tester.tap(find.text('Add Player'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '  Alex   Meyer ');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Alex Meyer'), findsWidgets);
+      expect(find.text('  Alex   Meyer '), findsNothing);
+    });
+
     testWidgets('applies muleqack reset settings to scoring', (tester) async {
       await _pumpApp(
         tester,
@@ -529,6 +576,25 @@ void main() {
 
       expect(find.text('Alex'), findsNothing);
       expect(find.text('Player 1'), findsOneWidget);
+    });
+
+    testWidgets('supports undo after losing a life', (tester) async {
+      await _pumpApp(
+        tester,
+        sharedPreferences: {
+          'app_mode': 'hosnObe',
+          'hosn_obe_players': jsonEncode({'Player 1': 4, 'Player 2': 4}),
+          'current_hosn_obe_player': 'Player 1',
+        },
+      );
+
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+      expect(find.text('3'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Undo'));
+      await tester.pumpAndSettle();
+      expect(find.text('4'), findsNWidgets(2));
     });
   });
 }

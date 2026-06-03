@@ -3,10 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:collection';
 import '../models/app_mode.dart';
+import '../models/game_rules.dart';
 import '../models/watten_game.dart';
 import '../services/counter_storage_service.dart';
 import '../widgets/counter_controls.dart';
 import '../widgets/counter_drawer.dart';
+import '../widgets/score_button.dart';
+import '../widgets/score_card.dart';
+import '../widgets/winner_banner.dart';
 import 'settings_page.dart';
 
 enum WattenSide { me, you }
@@ -90,6 +94,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const int _maxUndoSnapshots = 40;
+
   Map<String, int> counters = Map<String, int>.from(
     CounterStorageService.defaultCounters,
   );
@@ -224,7 +230,11 @@ class _HomePageState extends State<HomePage> {
   List<_HomePageSnapshot> get _currentUndoStack => _undoStacks[widget.appMode]!;
 
   void _pushUndoSnapshot() {
-    _currentUndoStack.add(_createSnapshot());
+    final undoStack = _currentUndoStack;
+    undoStack.add(_createSnapshot());
+    if (undoStack.length > _maxUndoSnapshots) {
+      undoStack.removeAt(0);
+    }
   }
 
   void _undoLastAction() {
@@ -417,6 +427,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _selectCounter(String counter) {
+    if (currentCounter == counter) {
+      return;
+    }
+
     setState(() {
       currentCounter = counter;
     });
@@ -424,48 +438,61 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _isCounterNameValid(String counterName) {
-    return counterName.isNotEmpty && !counters.containsKey(counterName);
+    return _isUniqueName(counterName, counters.keys);
   }
 
   bool _isWattenGameNameValid(String gameName) {
-    return gameName.isNotEmpty && !wattenGames.containsKey(gameName);
+    return _isUniqueName(gameName, wattenGames.keys);
   }
 
   bool _isMulatschakPlayerNameValid(String playerName) {
-    return playerName.isNotEmpty && !mulatschakPlayers.containsKey(playerName);
+    return _isUniqueName(playerName, mulatschakPlayers.keys);
   }
 
   bool _isHosnObePlayerNameValid(String playerName) {
-    return playerName.isNotEmpty && !hosnObePlayers.containsKey(playerName);
+    return _isUniqueName(playerName, hosnObePlayers.keys);
+  }
+
+  bool _isUniqueName(String name, Iterable<String> existingNames) {
+    final normalizedName = _normalizeName(name);
+    return normalizedName.isNotEmpty &&
+        !existingNames.map(_normalizeName).contains(normalizedName);
+  }
+
+  bool _isUniqueNameExcept(
+    String name,
+    Iterable<String> existingNames,
+    String ignoredName,
+  ) {
+    final normalizedName = _normalizeName(name);
+    final normalizedIgnoredName = _normalizeName(ignoredName);
+    return normalizedName.isNotEmpty &&
+        !existingNames
+            .where((existingName) {
+              return _normalizeName(existingName) != normalizedIgnoredName;
+            })
+            .map(_normalizeName)
+            .contains(normalizedName);
+  }
+
+  String _normalizeName(String name) {
+    return _cleanName(name).toLowerCase();
+  }
+
+  String _cleanName(String name) {
+    return name.trim().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   String? _wattenWinner(WattenGame game) {
-    if (game.me > 10 && game.me > game.you) {
-      return 'Me';
-    }
-    if (game.you > 10 && game.you > game.me) {
-      return 'You';
-    }
-    return null;
+    return GameRules.wattenWinner(game);
   }
 
   String? _mulatschakWinner() {
-    for (final entry in mulatschakPlayers.entries) {
-      if (entry.value == 0) {
-        return entry.key;
-      }
-    }
-    return null;
+    return GameRules.firstZeroScoreWinner(mulatschakPlayers);
   }
 
   String? _hosnObeWinner() {
-    final alivePlayers = hosnObePlayers.entries
-        .where((entry) => entry.value > 0)
-        .toList();
-    if (alivePlayers.length == 1) {
-      return alivePlayers.single.key;
-    }
-    return null;
+    return GameRules.lastPlayerWithLives(hosnObePlayers);
   }
 
   void _addCounterToList(String counterName) {
@@ -510,6 +537,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _selectWattenGame(String gameName) {
+    if (currentWattenGame == gameName) {
+      return;
+    }
+
     setState(() {
       currentWattenGame = gameName;
     });
@@ -595,59 +626,80 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _reorderCounters(int oldIndex, int newIndex) {
+    final reordered = _reorderEntries(counters, oldIndex, newIndex);
+    if (reordered == null) {
+      return;
+    }
+
     _pushUndoSnapshot();
     setState(() {
-      final entries = counters.entries.toList();
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
-      final movedEntry = entries.removeAt(oldIndex);
-      entries.insert(newIndex, movedEntry);
-      counters = LinkedHashMap<String, int>.fromEntries(entries);
+      counters = reordered;
     });
     _saveCounters();
   }
 
   void _reorderMulatschakPlayers(int oldIndex, int newIndex) {
+    final reordered = _reorderEntries(mulatschakPlayers, oldIndex, newIndex);
+    if (reordered == null) {
+      return;
+    }
+
     _pushUndoSnapshot();
     setState(() {
-      final entries = mulatschakPlayers.entries.toList();
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
-      final movedEntry = entries.removeAt(oldIndex);
-      entries.insert(newIndex, movedEntry);
-      mulatschakPlayers = LinkedHashMap<String, int>.fromEntries(entries);
+      mulatschakPlayers = reordered;
     });
     _saveCounters();
   }
 
   void _reorderHosnObePlayers(int oldIndex, int newIndex) {
+    final reordered = _reorderEntries(hosnObePlayers, oldIndex, newIndex);
+    if (reordered == null) {
+      return;
+    }
+
     _pushUndoSnapshot();
     setState(() {
-      final entries = hosnObePlayers.entries.toList();
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
-      final movedEntry = entries.removeAt(oldIndex);
-      entries.insert(newIndex, movedEntry);
-      hosnObePlayers = LinkedHashMap<String, int>.fromEntries(entries);
+      hosnObePlayers = reordered;
     });
     _saveCounters();
   }
 
   void _reorderWattenGames(int oldIndex, int newIndex) {
+    final reordered = _reorderEntries(wattenGames, oldIndex, newIndex);
+    if (reordered == null) {
+      return;
+    }
+
     _pushUndoSnapshot();
     setState(() {
-      final entries = wattenGames.entries.toList();
-      if (newIndex > oldIndex) {
-        newIndex -= 1;
-      }
-      final movedEntry = entries.removeAt(oldIndex);
-      entries.insert(newIndex, movedEntry);
-      wattenGames = LinkedHashMap<String, WattenGame>.fromEntries(entries);
+      wattenGames = reordered;
     });
     _saveCounters();
+  }
+
+  LinkedHashMap<String, T>? _reorderEntries<T>(
+    Map<String, T> values,
+    int oldIndex,
+    int newIndex,
+  ) {
+    final entries = values.entries.toList();
+    if (oldIndex < 0 || oldIndex >= entries.length) {
+      return null;
+    }
+
+    var targetIndex = newIndex;
+    if (targetIndex > oldIndex) {
+      targetIndex -= 1;
+    }
+    if (targetIndex < 0 ||
+        targetIndex >= entries.length ||
+        targetIndex == oldIndex) {
+      return null;
+    }
+
+    final movedEntry = entries.removeAt(oldIndex);
+    entries.insert(targetIndex, movedEntry);
+    return LinkedHashMap<String, T>.fromEntries(entries);
   }
 
   void _addWattenGame(String gameName) {
@@ -679,6 +731,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _selectMulatschakPlayer(String playerName) {
+    if (currentMulatschakPlayer == playerName) {
+      return;
+    }
+
     setState(() {
       currentMulatschakPlayer = playerName;
     });
@@ -686,6 +742,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _selectHosnObePlayer(String playerName) {
+    if (currentHosnObePlayer == playerName) {
+      return;
+    }
+
     setState(() {
       currentHosnObePlayer = playerName;
     });
@@ -695,7 +755,7 @@ class _HomePageState extends State<HomePage> {
   void _addMulatschakPlayer(String playerName) {
     _pushUndoSnapshot();
     setState(() {
-      mulatschakPlayers[playerName] = 21;
+      mulatschakPlayers[playerName] = GameRules.mulatschakStartingScore;
       currentMulatschakPlayer = playerName;
       mulatschakRoundPlayers.remove(playerName);
     });
@@ -705,8 +765,7 @@ class _HomePageState extends State<HomePage> {
   void _addHosnObePlayer(String playerName) {
     _pushUndoSnapshot();
     setState(() {
-      hosnObePlayers[playerName] =
-          CounterStorageService.defaultHosnObePlayers.values.first;
+      hosnObePlayers[playerName] = GameRules.hosnObeStartingLives;
       currentHosnObePlayer = playerName;
     });
     _saveCounters();
@@ -769,12 +828,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _resetHosnObePlayers() {
+    if (hosnObePlayers.values.every(
+      (value) => value == GameRules.hosnObeStartingLives,
+    )) {
+      return;
+    }
+
     _pushUndoSnapshot();
     setState(() {
-      hosnObePlayers.updateAll(
-        (key, value) =>
-            CounterStorageService.defaultHosnObePlayers.values.first,
-      );
+      hosnObePlayers.updateAll((key, value) => GameRules.hosnObeStartingLives);
     });
     _saveCounters();
   }
@@ -786,7 +848,7 @@ class _HomePageState extends State<HomePage> {
     final rawNextValue = currentValue + delta;
 
     _pushUndoSnapshot();
-    final clampedNextValue = rawNextValue < 0 ? 0 : rawNextValue;
+    final clampedNextValue = GameRules.clampAtZero(rawNextValue);
     final nextValue = muleqackEnabled
         ? _applyMuleqackReset(clampedNextValue)
         : clampedNextValue;
@@ -799,25 +861,24 @@ class _HomePageState extends State<HomePage> {
   }
 
   int _applyMuleqackReset(int score) {
-    final resetDifference = muleqackTriggerPoints - muleqackResetPoints;
-
-    if (resetDifference <= 0) {
-      return score;
-    }
-
-    var adjustedScore = score;
-    while (adjustedScore >= muleqackTriggerPoints) {
-      adjustedScore -= resetDifference;
-    }
-
-    return adjustedScore;
+    return GameRules.applyResetLoop(
+      score: score,
+      triggerPoints: muleqackTriggerPoints,
+      resetPoints: muleqackResetPoints,
+    );
   }
 
   void _resetMulatschakPlayers() {
+    if (mulatschakPlayers.values.every(
+      (value) => value == GameRules.mulatschakStartingScore,
+    )) {
+      return;
+    }
+
     _pushUndoSnapshot();
     setState(() {
       mulatschakPlayers.updateAll((playerName, value) {
-        const resetValue = 21;
+        const resetValue = GameRules.mulatschakStartingScore;
         _recordMulatschakHistory(playerName, resetValue - value);
         return resetValue;
       });
@@ -923,24 +984,24 @@ class _HomePageState extends State<HomePage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
+            ScoreButton(
+              label: '+2',
               onPressed: () => _updateWattenScore(2),
-              style: ElevatedButton.styleFrom(minimumSize: const Size(100, 80)),
-              child: const Text('+2', style: TextStyle(fontSize: 28)),
+              fontSize: 28,
             ),
             const SizedBox(width: 20),
-            ElevatedButton(
+            ScoreButton(
+              label: '+3',
               onPressed: () => _updateWattenScore(3),
-              style: ElevatedButton.styleFrom(minimumSize: const Size(100, 80)),
-              child: const Text('+3', style: TextStyle(fontSize: 28)),
+              fontSize: 28,
             ),
           ],
         ),
         const SizedBox(height: 20),
-        ElevatedButton(
+        ScoreButton(
+          label: 'Reset',
           onPressed: _resetWattenSelectedSide,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(120, 80)),
-          child: const Text('Reset', style: TextStyle(fontSize: 24)),
+          minimumSize: const Size(120, 80),
         ),
       ],
     );
@@ -973,7 +1034,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (BuildContext context) {
         void submit() {
-          final trimmedName = controller.text.trim();
+          final trimmedName = _cleanName(controller.text);
           if (_isCounterNameValid(trimmedName)) {
             _addCounterToList(trimmedName);
             Navigator.of(context).pop();
@@ -1015,7 +1076,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (BuildContext context) {
         void submit() {
-          final trimmedName = controller.text.trim();
+          final trimmedName = _cleanName(controller.text);
           if (_isWattenGameNameValid(trimmedName)) {
             _addWattenGame(trimmedName);
             Navigator.of(context).pop();
@@ -1074,7 +1135,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (BuildContext context) {
         void submit() {
-          final trimmedName = controller.text.trim();
+          final trimmedName = _cleanName(controller.text);
           if (isValidName(trimmedName)) {
             onAdd(trimmedName);
             Navigator.of(context).pop();
@@ -1115,7 +1176,7 @@ class _HomePageState extends State<HomePage> {
       hintText: 'New counter name',
       duplicateNameMessage: 'This counter name can only be used once.',
       isValidName: (newName) =>
-          newName == oldName || _isCounterNameValid(newName),
+          _isUniqueNameExcept(newName, counters.keys, oldName),
       onRename: (newName) {
         if (newName != oldName) {
           _renameCounter(oldName, newName);
@@ -1131,7 +1192,7 @@ class _HomePageState extends State<HomePage> {
       hintText: 'New game name',
       duplicateNameMessage: 'This game name can only be used once.',
       isValidName: (newName) =>
-          newName == oldName || _isWattenGameNameValid(newName),
+          _isUniqueNameExcept(newName, wattenGames.keys, oldName),
       onRename: (newName) {
         if (newName != oldName) {
           _renameWattenGame(oldName, newName);
@@ -1147,7 +1208,7 @@ class _HomePageState extends State<HomePage> {
       hintText: 'New player name',
       duplicateNameMessage: 'This player name can only be used once.',
       isValidName: (newName) =>
-          newName == oldName || _isMulatschakPlayerNameValid(newName),
+          _isUniqueNameExcept(newName, mulatschakPlayers.keys, oldName),
       onRename: (newName) {
         if (newName != oldName) {
           _renameMulatschakPlayer(oldName, newName);
@@ -1163,7 +1224,7 @@ class _HomePageState extends State<HomePage> {
       hintText: 'New player name',
       duplicateNameMessage: 'This player name can only be used once.',
       isValidName: (newName) =>
-          newName == oldName || _isHosnObePlayerNameValid(newName),
+          _isUniqueNameExcept(newName, hosnObePlayers.keys, oldName),
       onRename: (newName) {
         if (newName != oldName) {
           _renameHosnObePlayer(oldName, newName);
@@ -1191,7 +1252,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (BuildContext context) {
         void submit() {
-          final trimmedName = controller.text.trim();
+          final trimmedName = _cleanName(controller.text);
           if (trimmedName.isNotEmpty && isValidName(trimmedName)) {
             onRename(trimmedName);
             Navigator.of(context).pop();
@@ -1643,48 +1704,15 @@ class _HomePageState extends State<HomePage> {
             defaultTargetPlatform == TargetPlatform.macOS);
 
     return Expanded(
-      child: GestureDetector(
+      child: ScoreCard(
+        title: title,
+        score: score,
+        isSelected: isSelected,
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          constraints: BoxConstraints(
-            minHeight: isDesktopCard ? 260 : 220,
-            maxHeight: isDesktopCard ? 300 : 260,
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? Colors.white.withValues(alpha: 0.18)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isSelected
-                  ? Colors.white.withValues(alpha: 0.45)
-                  : Theme.of(context).dividerColor,
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                '$score',
-                style: const TextStyle(
-                  fontSize: 72,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        constraints: BoxConstraints(
+          minHeight: isDesktopCard ? 260 : 220,
+          maxHeight: isDesktopCard ? 300 : 260,
         ),
       ),
     );
@@ -1703,28 +1731,7 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (winner != null)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.amber.withValues(alpha: 0.45),
-                  width: 2,
-                ),
-              ),
-              child: Text(
-                '$winner wins',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          if (winner != null) WinnerBanner(winner: winner),
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -1767,55 +1774,15 @@ class _HomePageState extends State<HomePage> {
   }) {
     final isSelected = playerName == currentMulatschakPlayer;
 
-    return GestureDetector(
+    return ScoreCard(
+      title: playerName,
+      score: score,
+      isSelected: isSelected,
+      compact: compact,
       onTap: () {
         FocusScope.of(context).unfocus();
-        setState(() {
-          currentMulatschakPlayer = playerName;
-        });
-        _saveCounters();
+        _selectMulatschakPlayer(playerName);
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: compact
-            ? const EdgeInsets.symmetric(vertical: 12, horizontal: 8)
-            : const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withValues(alpha: 0.18)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(compact ? 16 : 20),
-          border: Border.all(
-            color: isSelected
-                ? Colors.white.withValues(alpha: 0.45)
-                : Theme.of(context).dividerColor,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              playerName,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: compact ? 18 : 24,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: compact ? 10 : 18),
-            Text(
-              '$score',
-              style: TextStyle(
-                fontSize: compact ? 42 : 64,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -1909,30 +1876,28 @@ class _HomePageState extends State<HomePage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
+            ScoreButton(
+              label: '-1',
               onPressed: () => _updateMulatschakScore(-1),
-              style: ElevatedButton.styleFrom(minimumSize: const Size(100, 80)),
-              child: const Text('-1', style: TextStyle(fontSize: 24)),
             ),
             const SizedBox(width: 20),
-            ElevatedButton(
+            ScoreButton(
+              label: '+1',
               onPressed: () => _updateMulatschakScore(1),
-              style: ElevatedButton.styleFrom(minimumSize: const Size(100, 80)),
-              child: const Text('+1', style: TextStyle(fontSize: 24)),
             ),
             const SizedBox(width: 20),
-            ElevatedButton(
+            ScoreButton(
+              label: '+5',
               onPressed: () => _updateMulatschakScore(5),
-              style: ElevatedButton.styleFrom(minimumSize: const Size(120, 80)),
-              child: const Text('+5', style: TextStyle(fontSize: 24)),
+              minimumSize: const Size(120, 80),
             ),
           ],
         ),
         const SizedBox(height: 20),
-        ElevatedButton(
+        ScoreButton(
+          label: 'Reset',
           onPressed: _resetMulatschakPlayers,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(120, 80)),
-          child: const Text('Reset', style: TextStyle(fontSize: 24)),
+          minimumSize: const Size(120, 80),
         ),
       ],
     );
@@ -1996,28 +1961,7 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       child: Column(
         children: [
-          if (winner != null)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.amber.withValues(alpha: 0.45),
-                  width: 2,
-                ),
-              ),
-              child: Text(
-                '$winner wins',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          if (winner != null) WinnerBanner(winner: winner),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -2041,45 +1985,14 @@ class _HomePageState extends State<HomePage> {
   Widget _buildHosnObePlayerCard(String playerName, int score) {
     final isSelected = playerName == currentHosnObePlayer;
 
-    return GestureDetector(
+    return ScoreCard(
+      title: playerName,
+      score: score,
+      isSelected: isSelected,
+      width: 180,
       onTap: () {
-        setState(() {
-          currentHosnObePlayer = playerName;
-        });
-        _saveCounters();
+        _selectHosnObePlayer(playerName);
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 180,
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white.withValues(alpha: 0.18)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? Colors.white.withValues(alpha: 0.45)
-                : Theme.of(context).dividerColor,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              playerName,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              '$score',
-              style: const TextStyle(fontSize: 64, fontWeight: FontWeight.w900),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -2087,16 +2000,15 @@ class _HomePageState extends State<HomePage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ElevatedButton(
+        ScoreButton(
+          label: '-1',
           onPressed: () => _updateHosnObeScore(-1),
-          style: ElevatedButton.styleFrom(minimumSize: const Size(100, 80)),
-          child: const Text('-1', style: TextStyle(fontSize: 24)),
         ),
         const SizedBox(width: 20),
-        ElevatedButton(
+        ScoreButton(
+          label: 'Reset',
           onPressed: _resetHosnObePlayers,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(120, 80)),
-          child: const Text('Reset', style: TextStyle(fontSize: 24)),
+          minimumSize: const Size(120, 80),
         ),
       ],
     );
@@ -2113,28 +2025,7 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       child: Column(
         children: [
-          if (winner != null)
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.amber.withValues(alpha: 0.45),
-                  width: 2,
-                ),
-              ),
-              child: Text(
-                '$winner wins',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          if (winner != null) WinnerBanner(winner: winner),
           Expanded(
             child: SingleChildScrollView(
               child: Wrap(
