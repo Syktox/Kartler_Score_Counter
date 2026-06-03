@@ -88,7 +88,7 @@ flutter config --enable-macos-desktop
 
 ## GitHub Releases
 
-The repository includes a GitHub Actions workflow at [.github/workflows/release.yml](/Users/syktox/Documents/Projekte/Counter_App/.github/workflows/release.yml) that can build release artifacts for:
+The repository includes a GitHub Actions workflow at [.github/workflows/release.yml](.github/workflows/release.yml) that can build release artifacts for:
 
 - Android
 - Windows
