@@ -5,6 +5,7 @@ class ScoreButton extends StatelessWidget {
   final VoidCallback onPressed;
   final Size minimumSize;
   final double fontSize;
+  final double? width;
 
   const ScoreButton({
     super.key,
@@ -12,14 +13,18 @@ class ScoreButton extends StatelessWidget {
     required this.onPressed,
     this.minimumSize = const Size(100, 80),
     this.fontSize = 24,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(minimumSize: minimumSize),
-      child: Text(label, style: TextStyle(fontSize: fontSize)),
+    return SizedBox(
+      width: width,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(minimumSize: minimumSize),
+        child: Text(label, style: TextStyle(fontSize: fontSize)),
+      ),
     );
   }
 }

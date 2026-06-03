@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 
 class WinnerBanner extends StatelessWidget {
   final String winner;
+  final bool compact;
 
-  const WinnerBanner({super.key, required this.winner});
+  const WinnerBanner({super.key, required this.winner, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+      margin: EdgeInsets.only(bottom: compact ? 0 : 20),
+      padding: compact
+          ? const EdgeInsets.symmetric(vertical: 10, horizontal: 8)
+          : const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.amber.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(20),
@@ -22,7 +25,10 @@ class WinnerBanner extends StatelessWidget {
       child: Text(
         '$winner wins',
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+        style: TextStyle(
+          fontSize: compact ? 16 : 28,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

@@ -978,7 +978,38 @@ class _HomePageState extends State<HomePage> {
     _saveCounters();
   }
 
-  Widget _buildWattenControls() {
+  Widget _buildWattenControls({bool compact = false}) {
+    if (compact) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ScoreButton(
+            label: '+2',
+            onPressed: () => _updateWattenScore(2),
+            minimumSize: const Size(120, 54),
+            fontSize: 22,
+            width: 120,
+          ),
+          const SizedBox(height: 8),
+          ScoreButton(
+            label: '+3',
+            onPressed: () => _updateWattenScore(3),
+            minimumSize: const Size(120, 54),
+            fontSize: 22,
+            width: 120,
+          ),
+          const SizedBox(height: 8),
+          ScoreButton(
+            label: 'Reset',
+            onPressed: _resetWattenSelectedSide,
+            minimumSize: const Size(120, 54),
+            fontSize: 18,
+            width: 120,
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         Row(
@@ -1045,6 +1076,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         return AlertDialog(
+          scrollable: true,
           title: const Text('Add Counter'),
           content: TextField(
             controller: controller,
@@ -1063,6 +1095,7 @@ class _HomePageState extends State<HomePage> {
             ),
             TextButton(onPressed: submit, child: const Text('Add')),
           ],
+          actionsOverflowDirection: VerticalDirection.up,
         );
       },
     );
@@ -1087,6 +1120,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         return AlertDialog(
+          scrollable: true,
           title: const Text('Add Game'),
           content: TextField(
             controller: controller,
@@ -1105,6 +1139,7 @@ class _HomePageState extends State<HomePage> {
             ),
             TextButton(onPressed: submit, child: const Text('Add')),
           ],
+          actionsOverflowDirection: VerticalDirection.up,
         );
       },
     );
@@ -1146,6 +1181,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         return AlertDialog(
+          scrollable: true,
           title: const Text('Add Player'),
           content: TextField(
             controller: controller,
@@ -1164,6 +1200,7 @@ class _HomePageState extends State<HomePage> {
             ),
             TextButton(onPressed: submit, child: const Text('Add')),
           ],
+          actionsOverflowDirection: VerticalDirection.up,
         );
       },
     );
@@ -1269,6 +1306,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         return AlertDialog(
+          scrollable: true,
           title: Text(title),
           content: TextField(
             controller: controller,
@@ -1287,6 +1325,7 @@ class _HomePageState extends State<HomePage> {
             ),
             TextButton(onPressed: submit, child: const Text('Rename')),
           ],
+          actionsOverflowDirection: VerticalDirection.up,
         );
       },
     );
@@ -1656,29 +1695,61 @@ class _HomePageState extends State<HomePage> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final isLandscape = _isHandsetLandscape(MediaQuery.of(context).size);
+    final title = Text(
+      currentCounter,
+      textAlign: TextAlign.center,
+      maxLines: isLandscape ? 2 : null,
+      overflow: isLandscape ? TextOverflow.ellipsis : TextOverflow.visible,
+      style: TextStyle(
+        fontSize: isLandscape ? 28 : 42,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    final score = Text(
+      '${counters[currentCounter]}',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: isLandscape ? 72 : 96,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+
+    if (isLandscape) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  title,
+                  const SizedBox(height: 8),
+                  score,
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            CounterControls(
+              compact: true,
+              onIncrement: _increment,
+              onDecrement: _decrement,
+              onReset: _reset,
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 24),
-          Text(
-            currentCounter,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 42, fontWeight: FontWeight.bold),
-          ),
-          Expanded(
-            child: Center(
-              child: Text(
-                '${counters[currentCounter]}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 96,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
+          title,
+          Expanded(child: Center(child: score)),
           CounterControls(
             onIncrement: _increment,
             onDecrement: _decrement,
@@ -1696,6 +1767,7 @@ class _HomePageState extends State<HomePage> {
     required int score,
     required bool isSelected,
     required VoidCallback onTap,
+    bool compact = false,
   }) {
     final isDesktopCard =
         !kIsWeb &&
@@ -1707,11 +1779,12 @@ class _HomePageState extends State<HomePage> {
         title: title,
         score: score,
         isSelected: isSelected,
+        compact: compact,
         onTap: onTap,
         margin: const EdgeInsets.symmetric(horizontal: 6),
         constraints: BoxConstraints(
-          minHeight: isDesktopCard ? 260 : 220,
-          maxHeight: isDesktopCard ? 300 : 260,
+          minHeight: compact ? 120 : (isDesktopCard ? 260 : 220),
+          maxHeight: compact ? 180 : (isDesktopCard ? 300 : 260),
         ),
       ),
     );
@@ -1724,6 +1797,61 @@ class _HomePageState extends State<HomePage> {
 
     final currentGame = wattenGames[currentWattenGame]!;
     final winner = _wattenWinner(currentGame);
+    final isLandscape = _isHandsetLandscape(MediaQuery.of(context).size);
+    final scoreCards = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _buildWattenSideCard(
+          title: 'Me',
+          score: currentGame.me,
+          isSelected: selectedWattenSide == WattenSide.me,
+          compact: isLandscape,
+          onTap: () {
+            setState(() {
+              selectedWattenSide = WattenSide.me;
+            });
+          },
+        ),
+        _buildWattenSideCard(
+          title: 'You',
+          score: currentGame.you,
+          isSelected: selectedWattenSide == WattenSide.you,
+          compact: isLandscape,
+          onTap: () {
+            setState(() {
+              selectedWattenSide = WattenSide.you;
+            });
+          },
+        ),
+      ],
+    );
+
+    if (isLandscape) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 18, 12),
+        child: Row(
+          children: [
+            Expanded(child: scoreCards),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 132,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (winner != null) ...[
+                      WinnerBanner(winner: winner, compact: true),
+                      const SizedBox(height: 6),
+                    ],
+                    _buildWattenControls(compact: true),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
@@ -1731,33 +1859,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (winner != null) WinnerBanner(winner: winner),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _buildWattenSideCard(
-                  title: 'Me',
-                  score: currentGame.me,
-                  isSelected: selectedWattenSide == WattenSide.me,
-                  onTap: () {
-                    setState(() {
-                      selectedWattenSide = WattenSide.me;
-                    });
-                  },
-                ),
-                _buildWattenSideCard(
-                  title: 'You',
-                  score: currentGame.you,
-                  isSelected: selectedWattenSide == WattenSide.you,
-                  onTap: () {
-                    setState(() {
-                      selectedWattenSide = WattenSide.you;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
+          Expanded(child: scoreCards),
           const SizedBox(height: 24),
           _buildWattenControls(),
           const SizedBox(height: 24),
@@ -1837,6 +1939,14 @@ class _HomePageState extends State<HomePage> {
     return isMobilePlatform && width < 600;
   }
 
+  bool _isHandsetLandscape(Size size) {
+    final platform = defaultTargetPlatform;
+    final isMobilePlatform =
+        platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+
+    return isMobilePlatform && size.width > size.height;
+  }
+
   Widget _buildMulatschakMultiplierRow() {
     const label = Text(
       'Multiplier',
@@ -1864,7 +1974,48 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildMulatschakControls() {
+  Widget _buildMulatschakControls({bool compact = false}) {
+    if (compact) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildMulatschakMultiplierSelector(),
+          const SizedBox(height: 6),
+          ScoreButton(
+            label: '-1',
+            onPressed: () => _updateMulatschakScore(-1),
+            minimumSize: const Size(112, 42),
+            fontSize: 18,
+            width: 120,
+          ),
+          const SizedBox(height: 6),
+          ScoreButton(
+            label: '+1',
+            onPressed: () => _updateMulatschakScore(1),
+            minimumSize: const Size(112, 42),
+            fontSize: 18,
+            width: 120,
+          ),
+          const SizedBox(height: 6),
+          ScoreButton(
+            label: '+5',
+            onPressed: () => _updateMulatschakScore(5),
+            minimumSize: const Size(112, 42),
+            fontSize: 18,
+            width: 120,
+          ),
+          const SizedBox(height: 6),
+          ScoreButton(
+            label: 'Reset',
+            onPressed: _resetMulatschakPlayers,
+            minimumSize: const Size(112, 42),
+            fontSize: 16,
+            width: 120,
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         _buildMulatschakMultiplierRow(),
@@ -1921,6 +2072,28 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildCompactPlayerWrap(List<MapEntry<String, int>> entries) {
+    return SingleChildScrollView(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 10,
+        runSpacing: 10,
+        children: entries
+            .map(
+              (entry) => SizedBox(
+                width: 132,
+                child: _buildMulatschakPlayerCard(
+                  entry.key,
+                  entry.value,
+                  compact: true,
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
   Widget _buildMulatschakPlayersGrid(List<MapEntry<String, int>> entries) {
     final columnCount = entries.length >= 3 ? 3 : entries.length;
 
@@ -1948,6 +2121,34 @@ class _HomePageState extends State<HomePage> {
 
     final winner = _mulatschakWinner();
     final entries = mulatschakPlayers.entries.toList();
+    final isLandscape = _isHandsetLandscape(MediaQuery.of(context).size);
+
+    if (isLandscape) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 18, 12),
+        child: Row(
+          children: [
+            Expanded(child: _buildCompactPlayerWrap(entries)),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 132,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (winner != null) ...[
+                      WinnerBanner(winner: winner, compact: true),
+                      const SizedBox(height: 6),
+                    ],
+                    _buildMulatschakControls(compact: true),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
@@ -1974,21 +2175,49 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildHosnObePlayerCard(String playerName, int score) {
+  Widget _buildHosnObePlayerCard(
+    String playerName,
+    int score, {
+    bool compact = false,
+  }) {
     final isSelected = playerName == currentHosnObePlayer;
 
     return ScoreCard(
       title: playerName,
       score: score,
       isSelected: isSelected,
-      width: 180,
+      compact: compact,
+      width: compact ? 132 : 180,
       onTap: () {
         _selectHosnObePlayer(playerName);
       },
     );
   }
 
-  Widget _buildHosnObeControls() {
+  Widget _buildHosnObeControls({bool compact = false}) {
+    if (compact) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ScoreButton(
+            label: '-1',
+            onPressed: () => _updateHosnObeScore(-1),
+            minimumSize: const Size(120, 56),
+            fontSize: 22,
+            width: 120,
+          ),
+          const SizedBox(height: 8),
+          ScoreButton(
+            label: 'Reset',
+            onPressed: _resetHosnObePlayers,
+            minimumSize: const Size(120, 56),
+            fontSize: 18,
+            width: 120,
+          ),
+        ],
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -2012,27 +2241,55 @@ class _HomePageState extends State<HomePage> {
     }
 
     final winner = _hosnObeWinner();
+    final isLandscape = _isHandsetLandscape(MediaQuery.of(context).size);
+    final playerWrap = SingleChildScrollView(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 12,
+        runSpacing: 12,
+        children: hosnObePlayers.entries
+            .map(
+              (entry) => _buildHosnObePlayerCard(
+                entry.key,
+                entry.value,
+                compact: isLandscape,
+              ),
+            )
+            .toList(),
+      ),
+    );
+
+    if (isLandscape) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 18, 12),
+        child: Row(
+          children: [
+            Expanded(child: playerWrap),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 132,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (winner != null) ...[
+                    WinnerBanner(winner: winner, compact: true),
+                    const SizedBox(height: 8),
+                  ],
+                  _buildHosnObeControls(compact: true),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       child: Column(
         children: [
           if (winner != null) WinnerBanner(winner: winner),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 12,
-                children: hosnObePlayers.entries
-                    .map(
-                      (entry) =>
-                          _buildHosnObePlayerCard(entry.key, entry.value),
-                    )
-                    .toList(),
-              ),
-            ),
-          ),
+          Expanded(child: playerWrap),
           const SizedBox(height: 20),
           _buildHosnObeControls(),
           const SizedBox(height: 24),
@@ -2066,7 +2323,7 @@ class _HomePageState extends State<HomePage> {
           ? _buildMulatschakHistoryDrawer()
           : null,
       drawerEdgeDragWidth: isMobileDrawerGesture ? screenWidth * 0.5 : null,
-      body: SafeArea(top: false, left: false, right: false, child: body),
+      body: SafeArea(top: false, child: body),
     );
   }
 }
