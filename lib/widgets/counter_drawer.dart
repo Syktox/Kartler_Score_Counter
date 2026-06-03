@@ -81,7 +81,6 @@ class CounterDrawer extends StatelessWidget {
     return Drawer(
       child: SafeArea(
         top: true,
-        bottom: false,
         child: Column(
           children: [
             Expanded(

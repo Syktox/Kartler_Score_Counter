@@ -1262,9 +1262,9 @@ class _HomePageState extends State<HomePage> {
           focusNode.requestFocus();
 
           if (trimmedName.isNotEmpty) {
-            ScaffoldMessenger.of(this.context).showSnackBar(
-              SnackBar(content: Text(duplicateNameMessage)),
-            );
+            ScaffoldMessenger.of(
+              this.context,
+            ).showSnackBar(SnackBar(content: Text(duplicateNameMessage)));
           }
         }
 
@@ -1543,8 +1543,7 @@ class _HomePageState extends State<HomePage> {
               onMuleqackTriggerPointsChanged: _setMuleqackTriggerPoints,
               onMuleqackResetPointsChanged: _setMuleqackResetPoints,
               onCounterHistoryEnabledChanged: _setCounterHistoryEnabled,
-              onMulatschakHistoryEnabledChanged:
-                  _setMulatschakHistoryEnabled,
+              onMulatschakHistoryEnabledChanged: _setMulatschakHistoryEnabled,
             ),
           ),
         );
@@ -1849,10 +1848,7 @@ class _HomePageState extends State<HomePage> {
         if (_isHandsetWidth(constraints.maxWidth)) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              label,
-              _buildMulatschakMultiplierSelector(),
-            ],
+            children: [label, _buildMulatschakMultiplierSelector()],
           );
         }
 
@@ -1907,9 +1903,7 @@ class _HomePageState extends State<HomePage> {
     return _isHandsetWidth(constraints.maxWidth);
   }
 
-  Widget _buildMulatschakPlayersWrap(
-    List<MapEntry<String, int>> entries,
-  ) {
+  Widget _buildMulatschakPlayersWrap(List<MapEntry<String, int>> entries) {
     return SingleChildScrollView(
       child: Wrap(
         alignment: WrapAlignment.center,
@@ -1927,9 +1921,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildMulatschakPlayersGrid(
-    List<MapEntry<String, int>> entries,
-  ) {
+  Widget _buildMulatschakPlayersGrid(List<MapEntry<String, int>> entries) {
     final columnCount = entries.length >= 3 ? 3 : entries.length;
 
     return GridView.count(
@@ -2056,6 +2048,13 @@ class _HomePageState extends State<HomePage> {
         !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
+    final body = widget.appMode == AppMode.watten
+        ? _buildWattenBody()
+        : widget.appMode == AppMode.mulatschak
+        ? _buildMulatschakBody()
+        : widget.appMode == AppMode.hosnObe
+        ? _buildHosnObeBody()
+        : _buildCounterBody();
 
     return Scaffold(
       key: _scaffoldKey,
@@ -2067,13 +2066,7 @@ class _HomePageState extends State<HomePage> {
           ? _buildMulatschakHistoryDrawer()
           : null,
       drawerEdgeDragWidth: isMobileDrawerGesture ? screenWidth * 0.5 : null,
-      body: widget.appMode == AppMode.watten
-          ? _buildWattenBody()
-          : widget.appMode == AppMode.mulatschak
-          ? _buildMulatschakBody()
-          : widget.appMode == AppMode.hosnObe
-          ? _buildHosnObeBody()
-          : _buildCounterBody(),
+      body: SafeArea(top: false, left: false, right: false, child: body),
     );
   }
 }

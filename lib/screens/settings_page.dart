@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/app_mode.dart';
+import 'bug_report_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final ThemeMode currentThemeMode;
@@ -90,8 +91,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _counterHistoryEnabled = widget.counterHistoryEnabled;
     }
 
-    if (oldWidget.mulatschakHistoryEnabled !=
-        widget.mulatschakHistoryEnabled) {
+    if (oldWidget.mulatschakHistoryEnabled != widget.mulatschakHistoryEnabled) {
       _mulatschakHistoryEnabled = widget.mulatschakHistoryEnabled;
     }
   }
@@ -146,137 +146,161 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          const ListTile(title: Text('Modus')),
-          RadioGroup<AppMode>(
-            groupValue: widget.currentAppMode,
-            onChanged: (value) {
-              if (value != null) {
-                widget.onAppModeChanged(value);
-              }
-            },
-            child: const Column(
-              children: [
-                RadioListTile<AppMode>(
-                  title: Text('Counter'),
-                  value: AppMode.counter,
-                ),
-                RadioListTile<AppMode>(
-                  title: Text('Watten'),
-                  value: AppMode.watten,
-                ),
-                RadioListTile<AppMode>(
-                  title: Text('Mulatschak'),
-                  value: AppMode.mulatschak,
-                ),
-                RadioListTile<AppMode>(
-                  title: Text('Hosn Obe'),
-                  value: AppMode.hosnObe,
-                ),
-              ],
-            ),
-          ),
-          if (showCounterSettings) ...[
-            const Divider(),
-            SwitchListTile(
-              title: const Text('Counter history'),
-              subtitle: const Text(
-                'Shows a history button with the latest counter changes.',
-              ),
-              value: _counterHistoryEnabled,
+      body: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        child: ListView(
+          children: [
+            const ListTile(title: Text('Modus')),
+            RadioGroup<AppMode>(
+              groupValue: widget.currentAppMode,
               onChanged: (value) {
-                setState(() {
-                  _counterHistoryEnabled = value;
-                });
-                widget.onCounterHistoryEnabledChanged(value);
+                if (value != null) {
+                  widget.onAppModeChanged(value);
+                }
               },
+              child: const Column(
+                children: [
+                  RadioListTile<AppMode>(
+                    title: Text('Counter'),
+                    value: AppMode.counter,
+                  ),
+                  RadioListTile<AppMode>(
+                    title: Text('Watten'),
+                    value: AppMode.watten,
+                  ),
+                  RadioListTile<AppMode>(
+                    title: Text('Mulatschak'),
+                    value: AppMode.mulatschak,
+                  ),
+                  RadioListTile<AppMode>(
+                    title: Text('Hosn Obe'),
+                    value: AppMode.hosnObe,
+                  ),
+                ],
+              ),
+            ),
+            if (showCounterSettings) ...[
+              const Divider(),
+              SwitchListTile(
+                title: const Text('Counter history'),
+                subtitle: const Text(
+                  'Shows a history button with the latest counter changes.',
+                ),
+                value: _counterHistoryEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    _counterHistoryEnabled = value;
+                  });
+                  widget.onCounterHistoryEnabledChanged(value);
+                },
+              ),
+            ],
+            if (showMuleqackSettings) ...[
+              const Divider(),
+              SwitchListTile(
+                title: const Text('Mulatschak history'),
+                subtitle: const Text(
+                  'Shows a history button with the latest player changes.',
+                ),
+                value: _mulatschakHistoryEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    _mulatschakHistoryEnabled = value;
+                  });
+                  widget.onMulatschakHistoryEnabledChanged(value);
+                },
+              ),
+              const Divider(),
+              SwitchListTile(
+                title: const Text('Mulatschak reset'),
+                subtitle: const Text(
+                  'Automatically resets a player when the configured score is reached.',
+                ),
+                value: _muleqackEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    _muleqackEnabled = value;
+                  });
+                  widget.onMuleqackEnabledChanged(value);
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: TextField(
+                  controller: _triggerController,
+                  enabled: _muleqackEnabled,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Reset when score reaches',
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _submitTriggerPoints(),
+                  onTapOutside: (_) => _submitTriggerPoints(),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: TextField(
+                  controller: _resetController,
+                  enabled: _muleqackEnabled,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Reset score to',
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _submitResetPoints(),
+                  onTapOutside: (_) => _submitResetPoints(),
+                ),
+              ),
+            ],
+            const Divider(),
+            RadioGroup<ThemeMode>(
+              groupValue: widget.currentThemeMode,
+              onChanged: (value) {
+                if (value != null) {
+                  widget.onThemeModeChanged(value);
+                }
+              },
+              child: const Column(
+                children: [
+                  RadioListTile<ThemeMode>(
+                    title: Text('Light Mode'),
+                    value: ThemeMode.light,
+                  ),
+                  RadioListTile<ThemeMode>(
+                    title: Text('Dark Mode'),
+                    value: ThemeMode.dark,
+                  ),
+                  RadioListTile<ThemeMode>(
+                    title: Text('System Mode'),
+                    value: ThemeMode.system,
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const BugReportPage()),
+                  );
+                },
+                icon: const Icon(Icons.bug_report_outlined),
+                label: const Text('Report a bug'),
+              ),
             ),
           ],
-          if (showMuleqackSettings) ...[
-            const Divider(),
-            SwitchListTile(
-              title: const Text('Mulatschak history'),
-              subtitle: const Text(
-                'Shows a history button with the latest player changes.',
-              ),
-              value: _mulatschakHistoryEnabled,
-              onChanged: (value) {
-                setState(() {
-                  _mulatschakHistoryEnabled = value;
-                });
-                widget.onMulatschakHistoryEnabledChanged(value);
-              },
-            ),
-            const Divider(),
-            SwitchListTile(
-              title: const Text('Mulatschak reset'),
-              subtitle: const Text(
-                'Automatically resets a player when the configured score is reached.',
-              ),
-              value: _muleqackEnabled,
-              onChanged: (value) {
-                setState(() {
-                  _muleqackEnabled = value;
-                });
-                widget.onMuleqackEnabledChanged(value);
-              },
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: TextField(
-                controller: _triggerController,
-                enabled: _muleqackEnabled,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Reset when score reaches',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => _submitTriggerPoints(),
-                onTapOutside: (_) => _submitTriggerPoints(),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: TextField(
-                controller: _resetController,
-                enabled: _muleqackEnabled,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Reset score to',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => _submitResetPoints(),
-                onTapOutside: (_) => _submitResetPoints(),
-              ),
-            ),
-          ],
-          const Divider(),
-          RadioGroup<ThemeMode>(
-            groupValue: widget.currentThemeMode,
-            onChanged: (value) {
-              if (value != null) {
-                widget.onThemeModeChanged(value);
-              }
-            },
-            child: const Column(
-              children: [
-                RadioListTile<ThemeMode>(
-                  title: Text('Light Mode'),
-                  value: ThemeMode.light,
-                ),
-                RadioListTile<ThemeMode>(
-                  title: Text('Dark Mode'),
-                  value: ThemeMode.dark,
-                ),
-                RadioListTile<ThemeMode>(
-                  title: Text('System Mode'),
-                  value: ThemeMode.system,
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
