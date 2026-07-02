@@ -30,6 +30,7 @@ class _HomePageSnapshot {
   final int muleqackTriggerPoints;
   final int muleqackResetPoints;
   final bool counterHistoryEnabled;
+  final bool counterNegativeEnabled;
   final Map<String, List<String>> counterHistory;
   final bool mulatschakHistoryEnabled;
   final List<String> mulatschakHistory;
@@ -52,6 +53,7 @@ class _HomePageSnapshot {
     required this.muleqackTriggerPoints,
     required this.muleqackResetPoints,
     required this.counterHistoryEnabled,
+    required this.counterNegativeEnabled,
     required this.counterHistory,
     required this.mulatschakHistoryEnabled,
     required this.mulatschakHistory,
@@ -122,6 +124,8 @@ class _HomePageState extends State<HomePage> {
   int muleqackResetPoints = CounterStorageService.defaultMuleqackResetPoints;
   bool counterHistoryEnabled =
       CounterStorageService.defaultCounterHistoryEnabled;
+  bool counterNegativeEnabled =
+      CounterStorageService.defaultCounterNegativeEnabled;
   Map<String, List<String>> counterHistory = {};
   bool mulatschakHistoryEnabled =
       CounterStorageService.defaultMulatschakHistoryEnabled;
@@ -167,6 +171,7 @@ class _HomePageState extends State<HomePage> {
       muleqackTriggerPoints = storedData.muleqackTriggerPoints;
       muleqackResetPoints = storedData.muleqackResetPoints;
       counterHistoryEnabled = storedData.counterHistoryEnabled;
+      counterNegativeEnabled = storedData.counterNegativeEnabled;
       counterHistory = _copyCounterHistory(storedData.counterHistory);
       mulatschakHistoryEnabled = storedData.mulatschakHistoryEnabled;
       mulatschakHistory = List<String>.from(storedData.mulatschakHistory);
@@ -193,6 +198,7 @@ class _HomePageState extends State<HomePage> {
       muleqackTriggerPoints: muleqackTriggerPoints,
       muleqackResetPoints: muleqackResetPoints,
       counterHistoryEnabled: counterHistoryEnabled,
+      counterNegativeEnabled: counterNegativeEnabled,
       counterHistory: counterHistory,
       mulatschakHistoryEnabled: mulatschakHistoryEnabled,
       mulatschakHistory: mulatschakHistory,
@@ -218,6 +224,7 @@ class _HomePageState extends State<HomePage> {
       muleqackTriggerPoints: muleqackTriggerPoints,
       muleqackResetPoints: muleqackResetPoints,
       counterHistoryEnabled: counterHistoryEnabled,
+      counterNegativeEnabled: counterNegativeEnabled,
       counterHistory: _copyCounterHistory(counterHistory),
       mulatschakHistoryEnabled: mulatschakHistoryEnabled,
       mulatschakHistory: List<String>.from(mulatschakHistory),
@@ -256,6 +263,7 @@ class _HomePageState extends State<HomePage> {
         counters = LinkedHashMap<String, int>.from(snapshot.counters);
         currentCounter = snapshot.currentCounter;
         counterHistoryEnabled = snapshot.counterHistoryEnabled;
+        counterNegativeEnabled = snapshot.counterNegativeEnabled;
         counterHistory = _copyCounterHistory(snapshot.counterHistory);
       case AppMode.watten:
         wattenGames = LinkedHashMap<String, WattenGame>.from(
@@ -305,7 +313,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _decrement() {
-    if (counters[currentCounter]! <= 0) {
+    if (!counterNegativeEnabled && counters[currentCounter]! <= 0) {
       return;
     }
 
@@ -942,6 +950,18 @@ class _HomePageState extends State<HomePage> {
     _pushUndoSnapshot();
     setState(() {
       counterHistoryEnabled = enabled;
+    });
+    _saveCounters();
+  }
+
+  void _setCounterNegativeEnabled(bool enabled) {
+    if (counterNegativeEnabled == enabled) {
+      return;
+    }
+
+    _pushUndoSnapshot();
+    setState(() {
+      counterNegativeEnabled = enabled;
     });
     _saveCounters();
   }
@@ -1599,11 +1619,13 @@ class _HomePageState extends State<HomePage> {
               muleqackTriggerPoints: muleqackTriggerPoints,
               muleqackResetPoints: muleqackResetPoints,
               counterHistoryEnabled: counterHistoryEnabled,
+              counterNegativeEnabled: counterNegativeEnabled,
               mulatschakHistoryEnabled: mulatschakHistoryEnabled,
               onMuleqackEnabledChanged: _setMuleqackEnabled,
               onMuleqackTriggerPointsChanged: _setMuleqackTriggerPoints,
               onMuleqackResetPointsChanged: _setMuleqackResetPoints,
               onCounterHistoryEnabledChanged: _setCounterHistoryEnabled,
+              onCounterNegativeEnabledChanged: _setCounterNegativeEnabled,
               onMulatschakHistoryEnabledChanged: _setMulatschakHistoryEnabled,
             ),
           ),

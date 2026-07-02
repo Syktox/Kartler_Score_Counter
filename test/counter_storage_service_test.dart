@@ -32,6 +32,10 @@ void main() {
         data.counterHistoryEnabled,
         CounterStorageService.defaultCounterHistoryEnabled,
       );
+      expect(
+        data.counterNegativeEnabled,
+        CounterStorageService.defaultCounterNegativeEnabled,
+      );
       expect(data.counterHistory, isEmpty);
       expect(
         data.mulatschakHistoryEnabled,
@@ -63,6 +67,7 @@ void main() {
         muleqackTriggerPoints: 100,
         muleqackResetPoints: 50,
         counterHistoryEnabled: true,
+        counterNegativeEnabled: true,
         counterHistory: const {
           'Focus': ['14:30:21 - increased.'],
         },
@@ -91,6 +96,7 @@ void main() {
       expect(data.muleqackTriggerPoints, 100);
       expect(data.muleqackResetPoints, 50);
       expect(data.counterHistoryEnabled, isTrue);
+      expect(data.counterNegativeEnabled, isTrue);
       expect(data.counterHistory, {
         'Focus': ['14:30:21 - increased.'],
       });

@@ -20,6 +20,7 @@ class CounterStorageData {
   final int muleqackTriggerPoints;
   final int muleqackResetPoints;
   final bool counterHistoryEnabled;
+  final bool counterNegativeEnabled;
   final Map<String, List<String>> counterHistory;
   final bool mulatschakHistoryEnabled;
   final List<String> mulatschakHistory;
@@ -41,6 +42,7 @@ class CounterStorageData {
     required this.muleqackTriggerPoints,
     required this.muleqackResetPoints,
     required this.counterHistoryEnabled,
+    required this.counterNegativeEnabled,
     required this.counterHistory,
     required this.mulatschakHistoryEnabled,
     required this.mulatschakHistory,
@@ -64,6 +66,7 @@ class CounterStorageService {
   static const String _muleqackTriggerPointsKey = 'muleqack_trigger_points';
   static const String _muleqackResetPointsKey = 'muleqack_reset_points';
   static const String _counterHistoryEnabledKey = 'counter_history_enabled';
+  static const String _counterNegativeEnabledKey = 'counter_negative_enabled';
   static const String _counterHistoryKey = 'counter_history';
   static const String _mulatschakHistoryEnabledKey =
       'mulatschak_history_enabled';
@@ -99,6 +102,7 @@ class CounterStorageService {
   static const int defaultMuleqackTriggerPoints = 100;
   static const int defaultMuleqackResetPoints = 50;
   static const bool defaultCounterHistoryEnabled = false;
+  static const bool defaultCounterNegativeEnabled = false;
   static const bool defaultMulatschakHistoryEnabled = false;
   static const int defaultMulatschakHistoryRound = 1;
   static const AppMode defaultAppMode = AppMode.counter;
@@ -123,6 +127,9 @@ class CounterStorageService {
     final storedMuleqackResetPoints = prefs.getInt(_muleqackResetPointsKey);
     final storedCounterHistoryEnabled = prefs.getBool(
       _counterHistoryEnabledKey,
+    );
+    final storedCounterNegativeEnabled = prefs.getBool(
+      _counterNegativeEnabledKey,
     );
     final storedMulatschakHistoryEnabled = prefs.getBool(
       _mulatschakHistoryEnabledKey,
@@ -172,6 +179,8 @@ class CounterStorageService {
         : defaultMuleqackResetPoints;
     final counterHistoryEnabled =
         storedCounterHistoryEnabled ?? defaultCounterHistoryEnabled;
+    final counterNegativeEnabled =
+        storedCounterNegativeEnabled ?? defaultCounterNegativeEnabled;
     final counterHistory = _loadCounterHistory(prefs, currentCounter);
     final mulatschakHistoryEnabled =
         storedMulatschakHistoryEnabled ?? defaultMulatschakHistoryEnabled;
@@ -200,6 +209,7 @@ class CounterStorageService {
       muleqackTriggerPoints: muleqackTriggerPoints,
       muleqackResetPoints: muleqackResetPoints,
       counterHistoryEnabled: counterHistoryEnabled,
+      counterNegativeEnabled: counterNegativeEnabled,
       counterHistory: counterHistory,
       mulatschakHistoryEnabled: mulatschakHistoryEnabled,
       mulatschakHistory: mulatschakHistory,
@@ -223,6 +233,7 @@ class CounterStorageService {
     required int muleqackTriggerPoints,
     required int muleqackResetPoints,
     required bool counterHistoryEnabled,
+    required bool counterNegativeEnabled,
     required Map<String, List<String>> counterHistory,
     required bool mulatschakHistoryEnabled,
     required List<String> mulatschakHistory,
@@ -249,11 +260,9 @@ class CounterStorageService {
     await prefs.setInt(_muleqackTriggerPointsKey, muleqackTriggerPoints);
     await prefs.setInt(_muleqackResetPointsKey, muleqackResetPoints);
     await prefs.setBool(_counterHistoryEnabledKey, counterHistoryEnabled);
+    await prefs.setBool(_counterNegativeEnabledKey, counterNegativeEnabled);
     await prefs.setString(_counterHistoryKey, jsonEncode(counterHistory));
-    await prefs.setBool(
-      _mulatschakHistoryEnabledKey,
-      mulatschakHistoryEnabled,
-    );
+    await prefs.setBool(_mulatschakHistoryEnabledKey, mulatschakHistoryEnabled);
     await prefs.setString(_mulatschakHistoryKey, jsonEncode(mulatschakHistory));
     await prefs.setInt(_mulatschakHistoryRoundKey, mulatschakHistoryRound);
     await prefs.setString(

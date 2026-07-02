@@ -11,11 +11,13 @@ class SettingsPage extends StatefulWidget {
   final int muleqackTriggerPoints;
   final int muleqackResetPoints;
   final bool counterHistoryEnabled;
+  final bool counterNegativeEnabled;
   final bool mulatschakHistoryEnabled;
   final ValueChanged<bool> onMuleqackEnabledChanged;
   final ValueChanged<int> onMuleqackTriggerPointsChanged;
   final ValueChanged<int> onMuleqackResetPointsChanged;
   final ValueChanged<bool> onCounterHistoryEnabledChanged;
+  final ValueChanged<bool> onCounterNegativeEnabledChanged;
   final ValueChanged<bool> onMulatschakHistoryEnabledChanged;
 
   const SettingsPage({
@@ -28,11 +30,13 @@ class SettingsPage extends StatefulWidget {
     required this.muleqackTriggerPoints,
     required this.muleqackResetPoints,
     required this.counterHistoryEnabled,
+    required this.counterNegativeEnabled,
     required this.mulatschakHistoryEnabled,
     required this.onMuleqackEnabledChanged,
     required this.onMuleqackTriggerPointsChanged,
     required this.onMuleqackResetPointsChanged,
     required this.onCounterHistoryEnabledChanged,
+    required this.onCounterNegativeEnabledChanged,
     required this.onMulatschakHistoryEnabledChanged,
   });
 
@@ -47,6 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late int _muleqackTriggerPoints;
   late int _muleqackResetPoints;
   late bool _counterHistoryEnabled;
+  late bool _counterNegativeEnabled;
   late bool _mulatschakHistoryEnabled;
 
   @override
@@ -56,6 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _muleqackTriggerPoints = widget.muleqackTriggerPoints;
     _muleqackResetPoints = widget.muleqackResetPoints;
     _counterHistoryEnabled = widget.counterHistoryEnabled;
+    _counterNegativeEnabled = widget.counterNegativeEnabled;
     _mulatschakHistoryEnabled = widget.mulatschakHistoryEnabled;
     _triggerController = TextEditingController(
       text: _muleqackTriggerPoints.toString(),
@@ -89,6 +95,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (oldWidget.counterHistoryEnabled != widget.counterHistoryEnabled) {
       _counterHistoryEnabled = widget.counterHistoryEnabled;
+    }
+
+    if (oldWidget.counterNegativeEnabled != widget.counterNegativeEnabled) {
+      _counterNegativeEnabled = widget.counterNegativeEnabled;
     }
 
     if (oldWidget.mulatschakHistoryEnabled != widget.mulatschakHistoryEnabled) {
@@ -190,6 +200,17 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             if (showCounterSettings) ...[
               const Divider(),
+              SwitchListTile(
+                title: const Text('Allow negative counters'),
+                subtitle: const Text('Lets counters go below zero.'),
+                value: _counterNegativeEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    _counterNegativeEnabled = value;
+                  });
+                  widget.onCounterNegativeEnabledChanged(value);
+                },
+              ),
               SwitchListTile(
                 title: const Text('Counter history'),
                 subtitle: const Text(
