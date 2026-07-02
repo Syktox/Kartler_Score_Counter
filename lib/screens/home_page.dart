@@ -978,34 +978,52 @@ class _HomePageState extends State<HomePage> {
     _saveCounters();
   }
 
-  Widget _buildWattenControls({bool compact = false}) {
+  Widget _buildWattenControls({bool compact = false, bool fillHeight = false}) {
     if (compact) {
+      final buttons = [
+        ScoreButton(
+          label: '+2',
+          onPressed: () => _updateWattenScore(2),
+          minimumSize: const Size(120, 54),
+          fontSize: 22,
+          width: 120,
+        ),
+        ScoreButton(
+          label: '+3',
+          onPressed: () => _updateWattenScore(3),
+          minimumSize: const Size(120, 54),
+          fontSize: 22,
+          width: 120,
+        ),
+        ScoreButton(
+          label: 'Reset',
+          onPressed: _resetWattenSelectedSide,
+          minimumSize: const Size(120, 54),
+          fontSize: 18,
+          width: 120,
+        ),
+      ];
+
+      if (fillHeight) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final button in buttons) ...[
+              Expanded(child: button),
+              if (button != buttons.last) const SizedBox(height: 8),
+            ],
+          ],
+        );
+      }
+
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ScoreButton(
-            label: '+2',
-            onPressed: () => _updateWattenScore(2),
-            minimumSize: const Size(120, 54),
-            fontSize: 22,
-            width: 120,
-          ),
+          buttons[0],
           const SizedBox(height: 8),
-          ScoreButton(
-            label: '+3',
-            onPressed: () => _updateWattenScore(3),
-            minimumSize: const Size(120, 54),
-            fontSize: 22,
-            width: 120,
-          ),
+          buttons[1],
           const SizedBox(height: 8),
-          ScoreButton(
-            label: 'Reset',
-            onPressed: _resetWattenSelectedSide,
-            minimumSize: const Size(120, 54),
-            fontSize: 18,
-            width: 120,
-          ),
+          buttons[2],
         ],
       );
     }
@@ -1126,6 +1144,7 @@ class _HomePageState extends State<HomePage> {
             controller: controller,
             focusNode: focusNode,
             autofocus: true,
+            textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => submit(),
             decoration: const InputDecoration(hintText: 'Game name'),
@@ -1187,6 +1206,7 @@ class _HomePageState extends State<HomePage> {
             controller: controller,
             focusNode: focusNode,
             autofocus: true,
+            textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => submit(),
             decoration: const InputDecoration(hintText: 'Player name'),
@@ -1312,6 +1332,7 @@ class _HomePageState extends State<HomePage> {
             controller: controller,
             focusNode: focusNode,
             autofocus: true,
+            textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => submit(),
             decoration: InputDecoration(hintText: hintText),
@@ -1723,11 +1744,7 @@ class _HomePageState extends State<HomePage> {
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  title,
-                  const SizedBox(height: 8),
-                  score,
-                ],
+                children: [title, const SizedBox(height: 8), score],
               ),
             ),
             const SizedBox(width: 16),
@@ -1768,6 +1785,7 @@ class _HomePageState extends State<HomePage> {
     required bool isSelected,
     required VoidCallback onTap,
     bool compact = false,
+    bool fillHeight = false,
   }) {
     final isDesktopCard =
         !kIsWeb &&
@@ -1782,10 +1800,12 @@ class _HomePageState extends State<HomePage> {
         compact: compact,
         onTap: onTap,
         margin: const EdgeInsets.symmetric(horizontal: 6),
-        constraints: BoxConstraints(
-          minHeight: compact ? 120 : (isDesktopCard ? 260 : 220),
-          maxHeight: compact ? 180 : (isDesktopCard ? 300 : 260),
-        ),
+        constraints: fillHeight
+            ? null
+            : BoxConstraints(
+                minHeight: compact ? 120 : (isDesktopCard ? 260 : 220),
+                maxHeight: compact ? 180 : (isDesktopCard ? 300 : 260),
+              ),
       ),
     );
   }
@@ -1799,13 +1819,15 @@ class _HomePageState extends State<HomePage> {
     final winner = _wattenWinner(currentGame);
     final isLandscape = _isHandsetLandscape(MediaQuery.of(context).size);
     final scoreCards = Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: isLandscape
+          ? CrossAxisAlignment.stretch
+          : CrossAxisAlignment.center,
       children: [
         _buildWattenSideCard(
           title: 'Me',
           score: currentGame.me,
           isSelected: selectedWattenSide == WattenSide.me,
-          compact: isLandscape,
+          fillHeight: isLandscape,
           onTap: () {
             setState(() {
               selectedWattenSide = WattenSide.me;
@@ -1816,7 +1838,7 @@ class _HomePageState extends State<HomePage> {
           title: 'You',
           score: currentGame.you,
           isSelected: selectedWattenSide == WattenSide.you,
-          compact: isLandscape,
+          fillHeight: isLandscape,
           onTap: () {
             setState(() {
               selectedWattenSide = WattenSide.you;
@@ -1828,24 +1850,32 @@ class _HomePageState extends State<HomePage> {
 
     if (isLandscape) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 18, 12),
+        padding: const EdgeInsets.fromLTRB(14, 10, 18, 0),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: scoreCards),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: scoreCards,
+              ),
+            ),
             const SizedBox(width: 12),
             SizedBox(
               width: 132,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (winner != null) ...[
-                      WinnerBanner(winner: winner, compact: true),
-                      const SizedBox(height: 6),
-                    ],
-                    _buildWattenControls(compact: true),
+              child: Column(
+                children: [
+                  if (winner != null) ...[
+                    WinnerBanner(winner: winner, compact: true),
+                    const SizedBox(height: 6),
                   ],
-                ),
+                  Expanded(
+                    child: _buildWattenControls(
+                      compact: true,
+                      fillHeight: true,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1976,77 +2006,114 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildMulatschakControls({bool compact = false}) {
     if (compact) {
-      return Column(
+      final buttons = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildMulatschakMultiplierSelector(),
-          const SizedBox(height: 6),
+          ScoreButton(
+            label: '-5',
+            onPressed: () => _updateMulatschakScore(-5),
+            minimumSize: const Size(128, 48),
+            fontSize: 20,
+            width: 128,
+          ),
+          const SizedBox(height: 8),
           ScoreButton(
             label: '-1',
             onPressed: () => _updateMulatschakScore(-1),
-            minimumSize: const Size(112, 42),
-            fontSize: 18,
-            width: 120,
+            minimumSize: const Size(128, 48),
+            fontSize: 20,
+            width: 128,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           ScoreButton(
             label: '+1',
             onPressed: () => _updateMulatschakScore(1),
-            minimumSize: const Size(112, 42),
-            fontSize: 18,
-            width: 120,
+            minimumSize: const Size(128, 48),
+            fontSize: 20,
+            width: 128,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           ScoreButton(
             label: '+5',
             onPressed: () => _updateMulatschakScore(5),
-            minimumSize: const Size(112, 42),
-            fontSize: 18,
-            width: 120,
+            minimumSize: const Size(128, 48),
+            fontSize: 20,
+            width: 128,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           ScoreButton(
             label: 'Reset',
             onPressed: _resetMulatschakPlayers,
-            minimumSize: const Size(112, 42),
-            fontSize: 16,
-            width: 120,
+            minimumSize: const Size(128, 48),
+            fontSize: 17,
+            width: 128,
           ),
+        ],
+      );
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildMulatschakMultiplierSelector(),
+          const SizedBox(width: 8),
+          buttons,
         ],
       );
     }
 
-    return Column(
-      children: [
-        _buildMulatschakMultiplierRow(),
-        const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 8.0;
+        final buttonWidth = ((constraints.maxWidth - gap * 3) / 4).clamp(
+          0.0,
+          116.0,
+        );
+
+        return Column(
           children: [
-            ScoreButton(
-              label: '-1',
-              onPressed: () => _updateMulatschakScore(-1),
+            _buildMulatschakMultiplierRow(),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ScoreButton(
+                  label: '-5',
+                  onPressed: () => _updateMulatschakScore(-5),
+                  minimumSize: const Size(0, 84),
+                  width: buttonWidth,
+                ),
+                const SizedBox(width: gap),
+                ScoreButton(
+                  label: '-1',
+                  onPressed: () => _updateMulatschakScore(-1),
+                  minimumSize: const Size(0, 84),
+                  width: buttonWidth,
+                ),
+                const SizedBox(width: gap),
+                ScoreButton(
+                  label: '+1',
+                  onPressed: () => _updateMulatschakScore(1),
+                  minimumSize: const Size(0, 84),
+                  width: buttonWidth,
+                ),
+                const SizedBox(width: gap),
+                ScoreButton(
+                  label: '+5',
+                  onPressed: () => _updateMulatschakScore(5),
+                  minimumSize: const Size(0, 84),
+                  width: buttonWidth,
+                ),
+              ],
             ),
-            const SizedBox(width: 20),
+            const SizedBox(height: 20),
             ScoreButton(
-              label: '+1',
-              onPressed: () => _updateMulatschakScore(1),
-            ),
-            const SizedBox(width: 20),
-            ScoreButton(
-              label: '+5',
-              onPressed: () => _updateMulatschakScore(5),
-              minimumSize: const Size(120, 80),
+              label: 'Reset',
+              onPressed: _resetMulatschakPlayers,
+              minimumSize: const Size(132, 84),
             ),
           ],
-        ),
-        const SizedBox(height: 20),
-        ScoreButton(
-          label: 'Reset',
-          onPressed: _resetMulatschakPlayers,
-          minimumSize: const Size(120, 80),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -2063,7 +2130,7 @@ class _HomePageState extends State<HomePage> {
         children: entries
             .map(
               (entry) => SizedBox(
-                width: 180,
+                width: 196,
                 child: _buildMulatschakPlayerCard(entry.key, entry.value),
               ),
             )
@@ -2081,7 +2148,7 @@ class _HomePageState extends State<HomePage> {
         children: entries
             .map(
               (entry) => SizedBox(
-                width: 132,
+                width: 148,
                 child: _buildMulatschakPlayerCard(
                   entry.key,
                   entry.value,
@@ -2101,7 +2168,7 @@ class _HomePageState extends State<HomePage> {
       crossAxisCount: columnCount,
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
-      childAspectRatio: 0.68,
+      childAspectRatio: 0.62,
       children: entries
           .map(
             (entry) => _buildMulatschakPlayerCard(
@@ -2131,7 +2198,7 @@ class _HomePageState extends State<HomePage> {
             Expanded(child: _buildCompactPlayerWrap(entries)),
             const SizedBox(width: 12),
             SizedBox(
-              width: 132,
+              width: 216,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -2221,10 +2288,7 @@ class _HomePageState extends State<HomePage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ScoreButton(
-          label: '-1',
-          onPressed: () => _updateHosnObeScore(-1),
-        ),
+        ScoreButton(label: '-1', onPressed: () => _updateHosnObeScore(-1)),
         const SizedBox(width: 20),
         ScoreButton(
           label: 'Reset',
