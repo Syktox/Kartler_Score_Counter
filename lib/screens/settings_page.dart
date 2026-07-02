@@ -202,7 +202,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const Divider(),
               SwitchListTile(
                 title: const Text('Allow negative counters'),
-                subtitle: const Text('Lets counters go below zero.'),
+                subtitle: const Text('Let counters go below zero.'),
                 value: _counterNegativeEnabled,
                 onChanged: (value) {
                   setState(() {
