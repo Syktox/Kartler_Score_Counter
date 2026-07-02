@@ -18,34 +18,39 @@ class CounterControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttonSize = compact ? const Size(64, 56) : const Size(80, 80);
-    final resetSize = compact ? const Size(88, 56) : const Size(100, 80);
-    final gap = compact ? 8.0 : 20.0;
-    final symbolSize = compact ? 24.0 : 32.0;
+    final buttonSize = compact ? const Size(112, 58) : const Size(160, 76);
+    final resetSize = compact ? const Size(112, 58) : const Size(160, 76);
+    final buttonWidth = compact ? 112.0 : 160.0;
+    final gap = compact ? 8.0 : 14.0;
+    final symbolSize = compact ? 28.0 : 36.0;
     final resetFontSize = compact ? 18.0 : 24.0;
 
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ScoreButton(
-          label: '-',
-          onPressed: onDecrement,
-          minimumSize: buttonSize,
-          fontSize: symbolSize,
-        ),
-        SizedBox(width: gap),
-        ScoreButton(
-          label: 'Reset',
-          onPressed: onReset,
-          minimumSize: resetSize,
-          fontSize: resetFontSize,
-        ),
-        SizedBox(width: gap),
         ScoreButton(
           label: '+',
           onPressed: onIncrement,
           minimumSize: buttonSize,
           fontSize: symbolSize,
+          width: buttonWidth,
+        ),
+        SizedBox(height: gap),
+        ScoreButton(
+          label: 'Reset',
+          onPressed: onReset,
+          minimumSize: resetSize,
+          fontSize: resetFontSize,
+          width: buttonWidth,
+        ),
+        SizedBox(height: gap),
+        ScoreButton(
+          label: '-',
+          onPressed: onDecrement,
+          minimumSize: buttonSize,
+          fontSize: symbolSize,
+          width: buttonWidth,
         ),
       ],
     );

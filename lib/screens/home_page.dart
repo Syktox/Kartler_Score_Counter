@@ -1100,6 +1100,7 @@ class _HomePageState extends State<HomePage> {
             controller: controller,
             focusNode: focusNode,
             autofocus: true,
+            textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => submit(),
             decoration: const InputDecoration(hintText: 'Counter name'),
@@ -1720,10 +1721,10 @@ class _HomePageState extends State<HomePage> {
     final title = Text(
       currentCounter,
       textAlign: TextAlign.center,
-      maxLines: isLandscape ? 2 : null,
-      overflow: isLandscape ? TextOverflow.ellipsis : TextOverflow.visible,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        fontSize: isLandscape ? 28 : 42,
+        fontSize: isLandscape ? 40 : 56,
         fontWeight: FontWeight.bold,
       ),
     );
@@ -1731,7 +1732,7 @@ class _HomePageState extends State<HomePage> {
       '${counters[currentCounter]}',
       textAlign: TextAlign.center,
       style: TextStyle(
-        fontSize: isLandscape ? 72 : 96,
+        fontSize: isLandscape ? 104 : 136,
         fontWeight: FontWeight.w900,
       ),
     );
@@ -1764,7 +1765,7 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           title,
           Expanded(child: Center(child: score)),
           CounterControls(
@@ -1772,7 +1773,6 @@ class _HomePageState extends State<HomePage> {
             onDecrement: _decrement,
             onReset: _reset,
           ),
-          const SizedBox(height: 24),
           const SizedBox(height: 16),
         ],
       ),

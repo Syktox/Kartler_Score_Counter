@@ -145,7 +145,14 @@ class _SettingsPageState extends State<SettingsPage> {
     final showCounterSettings = widget.currentAppMode == AppMode.counter;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        title: const Text('Settings'),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+      ),
       body: SafeArea(
         top: false,
         left: false,
