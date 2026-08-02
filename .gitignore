@@ -70,7 +70,6 @@ ios/Flutter/Generated.xcconfig
 ios/Flutter/flutter_export_environment.sh
 ios/Flutter/ephemeral/
 ios/Pods/
-ios/Podfile
 ios/Podfile.lock
 *.mobileprovision
 ios/build/
@@ -81,7 +80,6 @@ linux/build/
 # macOS related
 macos/build/
 macos/Flutter/ephemeral/
-macos/Podfile
 macos/Podfile.lock
 
 # Xcode user-specific

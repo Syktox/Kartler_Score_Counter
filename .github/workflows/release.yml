@@ -242,6 +242,9 @@ jobs:
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
 
+      - name: Install iOS pods
+        run: pod install --project-directory=ios
+
       - name: Build unsigned iOS app
         run: flutter build ios --release --no-codesign
 
@@ -290,6 +293,9 @@ jobs:
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
 
+      - name: Install macOS pods
+        run: pod install --project-directory=macos
+
       - name: Build macOS app
         run: flutter build macos --release
 
@@ -298,7 +304,7 @@ jobs:
         run: |
           mkdir -p release-assets
           ditto -c -k --sequesterRsrc --keepParent \
-            build/macos/Build/Products/Release/Counter.app \
+            build/macos/Build/Products/Release/Kartler.app \
             "release-assets/counter-macos-${{ needs.prepare_release.outputs.tag_name }}.zip"
 
       - name: Upload macOS artifact
