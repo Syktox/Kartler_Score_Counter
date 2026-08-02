@@ -8,7 +8,6 @@ class UrlLauncherService {
   UrlLauncherService._();
 
   static const donateUrl = 'https://buymeacoffee.com/syktox';
-  static const bugReportEmail = 'markus.kammerstetter@hotmail.com';
 
   static Future<void> openDonateUrl(BuildContext context) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -39,20 +38,18 @@ class UrlLauncherService {
     required String deviceInfo,
   }) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final subject = '${AppConstants.bugReportSubjectPrefix} $title';
+    final issueTitle = '${AppConstants.bugReportSubjectPrefix} $title';
     final body =
         '''
-Description
+### Description
 $description
 
-Device information
+### Device information
 $deviceInfo
 ''';
-    final uri = Uri(
-      scheme: 'mailto',
-      path: bugReportEmail,
-      queryParameters: {'subject': subject, 'body': body},
-    );
+    final uri = Uri.parse(
+      AppConstants.githubIssuesUrl,
+    ).replace(queryParameters: {'title': issueTitle, 'body': body});
 
     final openedInExternalApp = await launchUrl(
       uri,
@@ -68,11 +65,13 @@ $deviceInfo
     }
 
     await Clipboard.setData(
-      ClipboardData(text: 'To: $bugReportEmail\nSubject: $subject\n\n$body'),
+      ClipboardData(text: 'Title: $issueTitle\n\n$body\n\n$uri'),
     );
     scaffoldMessenger.showSnackBar(
       const SnackBar(
-        content: Text('Could not open email app. Bug report copied instead.'),
+        content: Text(
+          'Could not open GitHub. Bug report details copied instead.',
+        ),
       ),
     );
   }

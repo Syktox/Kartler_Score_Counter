@@ -1,19 +1,22 @@
-import 'package:flutter/material.dart';
 import 'dart:collection';
 
+import 'package:flutter/material.dart';
+
 import '../features/counter/counter_body.dart';
+import '../features/counter/counter_helper.dart';
 import '../features/hosn_obe/hosn_obe_body.dart';
+import '../features/hosn_obe/hosn_obe_helper.dart';
 import '../features/mulatschak/mulatschak_body.dart';
+import '../features/mulatschak/mulatschak_helper.dart';
 import '../features/watten/watten_body.dart';
+import '../features/watten/watten_helper.dart';
 import '../models/app_mode.dart';
 import '../models/game_rules.dart';
-import '../models/mulatschak_history_entry.dart';
 import '../models/watten_game.dart';
 import '../models/watten_side.dart';
 import '../services/counter_storage_service.dart';
 import '../utils/history_utils.dart';
 import '../utils/name_utils.dart';
-import '../utils/ordered_map_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../widgets/app_dialogs.dart';
 import '../widgets/counter_history_drawer.dart';
@@ -66,6 +69,32 @@ class _HomePageSnapshot {
     required this.mulatschakHistoryRound,
     required this.mulatschakRoundPlayers,
     required this.appMode,
+  });
+}
+
+class _DrawerConfig {
+  final List<String> items;
+  final String selectedItem;
+  final String addButtonLabel;
+  final IconData addButtonIcon;
+  final bool closeDrawerOnAdd;
+  final VoidCallback onAddNewItem;
+  final ValueChanged<String> onSelectItem;
+  final ValueChanged<String> onRenameItem;
+  final ValueChanged<String> onDeleteItem;
+  final ReorderItemsCallback onReorderItems;
+
+  const _DrawerConfig({
+    required this.items,
+    required this.selectedItem,
+    required this.addButtonLabel,
+    required this.addButtonIcon,
+    required this.closeDrawerOnAdd,
+    required this.onAddNewItem,
+    required this.onSelectItem,
+    required this.onRenameItem,
+    required this.onDeleteItem,
+    required this.onReorderItems,
   });
 }
 
@@ -135,11 +164,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadCounters();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   Future<void> _loadCounters() async {
@@ -299,26 +323,58 @@ class _HomePageState extends State<HomePage> {
     _saveCounters(appMode: mode);
   }
 
-  void _increment() {
-    _pushUndoSnapshot();
-    setState(() {
-      counters[currentCounter] = counters[currentCounter]! + 1;
-      _recordCounterHistory('increased');
-    });
+  void _updateAndSave(VoidCallback update) {
+    setState(update);
     _saveCounters();
   }
 
+  void _updateWithUndoAndSave(VoidCallback update) {
+    _pushUndoSnapshot();
+    setState(update);
+    _saveCounters();
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _increment() {
+    _updateWithUndoAndSave(() {
+      final result = CounterHelper.updateScore(
+        counters: counters,
+        history: counterHistory,
+        currentCounter: currentCounter,
+        historyEnabled: counterHistoryEnabled,
+        score: counters[currentCounter]! + 1,
+        action: 'increased',
+      );
+      counters = result.counters;
+      counterHistory = result.history;
+    });
+  }
+
   void _decrement() {
-    if (!counterNegativeEnabled && counters[currentCounter]! <= 0) {
+    if (!CounterHelper.canDecrement(
+      score: counters[currentCounter]!,
+      allowNegative: counterNegativeEnabled,
+    )) {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      counters[currentCounter] = counters[currentCounter]! - 1;
-      _recordCounterHistory('decreased');
+    _updateWithUndoAndSave(() {
+      final result = CounterHelper.updateScore(
+        counters: counters,
+        history: counterHistory,
+        currentCounter: currentCounter,
+        historyEnabled: counterHistoryEnabled,
+        score: counters[currentCounter]! - 1,
+        action: 'decreased',
+      );
+      counters = result.counters;
+      counterHistory = result.history;
     });
-    _saveCounters();
   }
 
   void _reset() {
@@ -326,48 +382,33 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      counters[currentCounter] = 0;
-      _recordCounterHistory('reseted');
+    _updateWithUndoAndSave(() {
+      final result = CounterHelper.updateScore(
+        counters: counters,
+        history: counterHistory,
+        currentCounter: currentCounter,
+        historyEnabled: counterHistoryEnabled,
+        score: 0,
+        action: 'reseted',
+      );
+      counters = result.counters;
+      counterHistory = result.history;
     });
-    _saveCounters();
-  }
-
-  void _recordCounterHistory(String action) {
-    if (!counterHistoryEnabled) {
-      return;
-    }
-
-    final currentHistory = counterHistory[currentCounter] ?? const <String>[];
-    counterHistory = Map<String, List<String>>.from(counterHistory)
-      ..[currentCounter] = [
-        '${HistoryUtils.formatTime(DateTime.now())} - $action.',
-        ...currentHistory,
-      ];
   }
 
   void _recordMulatschakHistory(String playerName, int points) {
-    if (!mulatschakHistoryEnabled || points == 0) {
-      return;
-    }
-
-    mulatschakHistory = [
-      ...mulatschakHistory,
-      MulatschakHistoryEntry(
-        round: mulatschakHistoryRound,
-        time: HistoryUtils.formatTime(DateTime.now()),
-        playerName: playerName,
-        points: points,
-      ).encode(),
-    ];
-
-    mulatschakRoundPlayers = Set<String>.from(mulatschakRoundPlayers)
-      ..add(playerName);
-    if (mulatschakRoundPlayers.length >= mulatschakPlayers.length) {
-      mulatschakHistoryRound += 1;
-      mulatschakRoundPlayers = {};
-    }
+    final result = MulatschakHelper.recordHistory(
+      enabled: mulatschakHistoryEnabled,
+      history: mulatschakHistory,
+      players: mulatschakPlayers,
+      roundPlayers: mulatschakRoundPlayers,
+      historyRound: mulatschakHistoryRound,
+      playerName: playerName,
+      points: points,
+    );
+    mulatschakHistory = result.history;
+    mulatschakRoundPlayers = result.roundPlayers;
+    mulatschakHistoryRound = result.historyRound;
   }
 
   void _selectCounter(String counter) {
@@ -375,84 +416,85 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    setState(() {
+    _updateAndSave(() {
       currentCounter = counter;
     });
-    _saveCounters();
   }
 
   bool _isCounterNameValid(String counterName) {
-    return NameUtils.isUnique(counterName, counters.keys);
+    return CounterHelper.isNameValid(counterName, counters.keys);
   }
 
   bool _isWattenGameNameValid(String gameName) {
-    return NameUtils.isUnique(gameName, wattenGames.keys);
+    return WattenHelper.isGameNameValid(gameName, wattenGames.keys);
   }
 
   bool _isMulatschakPlayerNameValid(String playerName) {
-    return NameUtils.isUnique(playerName, mulatschakPlayers.keys);
+    return MulatschakHelper.isPlayerNameValid(
+      playerName,
+      mulatschakPlayers.keys,
+    );
   }
 
   bool _isHosnObePlayerNameValid(String playerName) {
-    return NameUtils.isUnique(playerName, hosnObePlayers.keys);
+    return HosnObeHelper.isPlayerNameValid(playerName, hosnObePlayers.keys);
   }
 
   String? _wattenWinner(WattenGame game) {
-    return GameRules.wattenWinner(game);
+    return WattenHelper.winner(game);
   }
 
   String? _mulatschakWinner() {
-    return GameRules.firstZeroScoreWinner(mulatschakPlayers);
+    return MulatschakHelper.winner(mulatschakPlayers);
   }
 
   String? _hosnObeWinner() {
-    return GameRules.lastPlayerWithLives(hosnObePlayers);
+    return HosnObeHelper.winner(hosnObePlayers);
   }
 
   void _addCounterToList(String counterName) {
-    _pushUndoSnapshot();
-    setState(() {
-      counters[counterName] = 0;
-      currentCounter = counterName;
+    _updateWithUndoAndSave(() {
+      final result = CounterHelper.addCounter(
+        counters: counters,
+        counterName: counterName,
+      );
+      counters = result.counters;
+      currentCounter = result.currentCounter;
     });
-    _saveCounters();
   }
 
   void _renameCounter(String oldName, String newName) {
-    _pushUndoSnapshot();
-    setState(() {
-      counters = OrderedMapUtils.renameKey(counters, oldName, newName);
-      counterHistory = OrderedMapUtils.renameKey(
-        counterHistory,
-        oldName,
-        newName,
-        copyValue: List<String>.from,
+    _updateWithUndoAndSave(() {
+      final result = CounterHelper.renameCounter(
+        counters: counters,
+        history: counterHistory,
+        currentCounter: currentCounter,
+        oldName: oldName,
+        newName: newName,
       );
-      if (currentCounter == oldName) {
-        currentCounter = newName;
-      }
+      counters = result.counters;
+      counterHistory = result.history;
+      currentCounter = result.currentCounter;
     });
-    _saveCounters();
   }
 
   void _deleteCounter(String counterName) {
     if (counters.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At least one counter must remain.')),
-      );
+      _showMessage('At least one counter must remain.');
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      counters.remove(counterName);
-      counterHistory = Map<String, List<String>>.from(counterHistory)
-        ..remove(counterName);
-      if (currentCounter == counterName) {
-        currentCounter = counters.keys.first;
-      }
+    _updateWithUndoAndSave(() {
+      final result = CounterHelper.deleteCounter(
+        counters: counters,
+        history: counterHistory,
+        currentCounter: currentCounter,
+        counterName: counterName,
+      );
+      counters = result.counters;
+      counterHistory = result.history;
+      currentCounter = result.currentCounter;
     });
-    _saveCounters();
   }
 
   void _selectWattenGame(String gameName) {
@@ -460,72 +502,69 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    setState(() {
+    _updateAndSave(() {
       currentWattenGame = gameName;
     });
-    _saveCounters();
   }
 
   void _renameWattenGame(String oldName, String newName) {
-    _pushUndoSnapshot();
-    setState(() {
-      wattenGames = OrderedMapUtils.renameKey(wattenGames, oldName, newName);
+    _updateWithUndoAndSave(() {
+      wattenGames = WattenHelper.renameGame(
+        games: wattenGames,
+        oldName: oldName,
+        newName: newName,
+      );
       if (currentWattenGame == oldName) {
         currentWattenGame = newName;
       }
     });
-    _saveCounters();
   }
 
   void _renameMulatschakPlayer(String oldName, String newName) {
-    _pushUndoSnapshot();
-    setState(() {
-      mulatschakPlayers = OrderedMapUtils.renameKey(
-        mulatschakPlayers,
-        oldName,
-        newName,
+    _updateWithUndoAndSave(() {
+      final result = MulatschakHelper.renamePlayer(
+        players: mulatschakPlayers,
+        currentPlayer: currentMulatschakPlayer,
+        roundPlayers: mulatschakRoundPlayers,
+        oldName: oldName,
+        newName: newName,
       );
-      if (currentMulatschakPlayer == oldName) {
-        currentMulatschakPlayer = newName;
-      }
-      if (mulatschakRoundPlayers.remove(oldName)) {
-        mulatschakRoundPlayers = Set<String>.from(mulatschakRoundPlayers)
-          ..add(newName);
-      }
+      mulatschakPlayers = result.players;
+      currentMulatschakPlayer = result.currentPlayer;
+      mulatschakRoundPlayers = result.roundPlayers;
     });
-    _saveCounters();
   }
 
   void _renameHosnObePlayer(String oldName, String newName) {
-    _pushUndoSnapshot();
-    setState(() {
-      hosnObePlayers = OrderedMapUtils.renameKey(
-        hosnObePlayers,
-        oldName,
-        newName,
+    _updateWithUndoAndSave(() {
+      final result = HosnObeHelper.renamePlayer(
+        players: hosnObePlayers,
+        currentPlayer: currentHosnObePlayer,
+        oldName: oldName,
+        newName: newName,
       );
-      if (currentHosnObePlayer == oldName) {
-        currentHosnObePlayer = newName;
-      }
+      hosnObePlayers = result.players;
+      currentHosnObePlayer = result.currentPlayer;
     });
-    _saveCounters();
   }
 
   void _reorderCounters(int oldIndex, int newIndex) {
-    final reordered = OrderedMapUtils.reorder(counters, oldIndex, newIndex);
+    final reordered = CounterHelper.reorderCounters(
+      counters,
+      oldIndex,
+      newIndex,
+    );
     if (reordered == null) {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       counters = reordered;
     });
-    _saveCounters();
   }
 
   void _reorderMulatschakPlayers(int oldIndex, int newIndex) {
-    final reordered = OrderedMapUtils.reorder(
+    final reordered = MulatschakHelper.reorderPlayers(
       mulatschakPlayers,
       oldIndex,
       newIndex,
@@ -534,15 +573,13 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       mulatschakPlayers = reordered;
     });
-    _saveCounters();
   }
 
   void _reorderHosnObePlayers(int oldIndex, int newIndex) {
-    final reordered = OrderedMapUtils.reorder(
+    final reordered = HosnObeHelper.reorderPlayers(
       hosnObePlayers,
       oldIndex,
       newIndex,
@@ -551,52 +588,53 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       hosnObePlayers = reordered;
     });
-    _saveCounters();
   }
 
   void _reorderWattenGames(int oldIndex, int newIndex) {
-    final reordered = OrderedMapUtils.reorder(wattenGames, oldIndex, newIndex);
+    final reordered = WattenHelper.reorderGames(
+      wattenGames,
+      oldIndex,
+      newIndex,
+    );
     if (reordered == null) {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       wattenGames = reordered;
     });
-    _saveCounters();
   }
 
   void _addWattenGame(String gameName) {
-    _pushUndoSnapshot();
-    setState(() {
-      wattenGames[gameName] = const WattenGame(me: 0, you: 0);
-      currentWattenGame = gameName;
-      selectedWattenSide = WattenSide.me;
+    _updateWithUndoAndSave(() {
+      final result = WattenHelper.addGame(
+        games: wattenGames,
+        gameName: gameName,
+      );
+      wattenGames = result.games;
+      currentWattenGame = result.currentGame;
+      selectedWattenSide = result.selectedSide;
     });
-    _saveCounters();
   }
 
   void _deleteWattenGame(String gameName) {
     if (wattenGames.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At least one game must remain.')),
-      );
+      _showMessage('At least one game must remain.');
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      wattenGames.remove(gameName);
-      if (currentWattenGame == gameName) {
-        currentWattenGame = wattenGames.keys.first;
-      }
+    _updateWithUndoAndSave(() {
+      final result = WattenHelper.deleteGame(
+        games: wattenGames,
+        currentGame: currentWattenGame,
+        gameName: gameName,
+      );
+      wattenGames = result.games;
+      currentWattenGame = result.currentGame;
     });
-    _saveCounters();
   }
 
   void _selectMulatschakPlayer(String playerName) {
@@ -604,10 +642,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    setState(() {
+    _updateAndSave(() {
       currentMulatschakPlayer = playerName;
     });
-    _saveCounters();
   }
 
   void _selectHosnObePlayer(String playerName) {
@@ -615,70 +652,71 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    setState(() {
+    _updateAndSave(() {
       currentHosnObePlayer = playerName;
     });
-    _saveCounters();
   }
 
   void _addMulatschakPlayer(String playerName) {
-    _pushUndoSnapshot();
-    setState(() {
-      mulatschakPlayers[playerName] = GameRules.mulatschakStartingScore;
-      currentMulatschakPlayer = playerName;
-      mulatschakRoundPlayers.remove(playerName);
+    _updateWithUndoAndSave(() {
+      final result = MulatschakHelper.addPlayer(
+        players: mulatschakPlayers,
+        roundPlayers: mulatschakRoundPlayers,
+        playerName: playerName,
+      );
+      mulatschakPlayers = result.players;
+      currentMulatschakPlayer = result.currentPlayer;
+      mulatschakRoundPlayers = result.roundPlayers;
     });
-    _saveCounters();
   }
 
   void _addHosnObePlayer(String playerName) {
-    _pushUndoSnapshot();
-    setState(() {
-      hosnObePlayers[playerName] = GameRules.hosnObeStartingLives;
-      currentHosnObePlayer = playerName;
+    _updateWithUndoAndSave(() {
+      final result = HosnObeHelper.addPlayer(
+        players: hosnObePlayers,
+        playerName: playerName,
+      );
+      hosnObePlayers = result.players;
+      currentHosnObePlayer = result.currentPlayer;
     });
-    _saveCounters();
   }
 
   void _deleteMulatschakPlayer(String playerName) {
     if (mulatschakPlayers.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At least one player must remain.')),
-      );
+      _showMessage('At least one player must remain.');
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      mulatschakPlayers.remove(playerName);
-      mulatschakRoundPlayers.remove(playerName);
-      if (mulatschakRoundPlayers.length >= mulatschakPlayers.length) {
-        mulatschakHistoryRound += 1;
-        mulatschakRoundPlayers = {};
-      }
-      if (currentMulatschakPlayer == playerName) {
-        currentMulatschakPlayer = mulatschakPlayers.keys.first;
-      }
+    _updateWithUndoAndSave(() {
+      final result = MulatschakHelper.deletePlayer(
+        players: mulatschakPlayers,
+        currentPlayer: currentMulatschakPlayer,
+        roundPlayers: mulatschakRoundPlayers,
+        historyRound: mulatschakHistoryRound,
+        playerName: playerName,
+      );
+      mulatschakPlayers = result.players;
+      currentMulatschakPlayer = result.currentPlayer;
+      mulatschakRoundPlayers = result.roundPlayers;
+      mulatschakHistoryRound = result.historyRound;
     });
-    _saveCounters();
   }
 
   void _deleteHosnObePlayer(String playerName) {
     if (hosnObePlayers.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At least one player must remain.')),
-      );
+      _showMessage('At least one player must remain.');
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      hosnObePlayers.remove(playerName);
-      if (currentHosnObePlayer == playerName) {
-        currentHosnObePlayer = hosnObePlayers.keys.first;
-      }
+    _updateWithUndoAndSave(() {
+      final result = HosnObeHelper.deletePlayer(
+        players: hosnObePlayers,
+        currentPlayer: currentHosnObePlayer,
+        playerName: playerName,
+      );
+      hosnObePlayers = result.players;
+      currentHosnObePlayer = result.currentPlayer;
     });
-    _saveCounters();
   }
 
   void _updateHosnObeScore(int delta) {
@@ -689,11 +727,13 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      hosnObePlayers[currentHosnObePlayer] = nextValue;
+    _updateWithUndoAndSave(() {
+      hosnObePlayers = HosnObeHelper.updateScore(
+        players: hosnObePlayers,
+        currentPlayer: currentHosnObePlayer,
+        score: nextValue,
+      );
     });
-    _saveCounters();
   }
 
   void _resetHosnObePlayers() {
@@ -703,38 +743,27 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      hosnObePlayers.updateAll((key, value) => GameRules.hosnObeStartingLives);
+    _updateWithUndoAndSave(() {
+      hosnObePlayers = HosnObeHelper.resetPlayers(hosnObePlayers);
     });
-    _saveCounters();
   }
 
   void _updateMulatschakScore(int baseDelta) {
     final playerName = currentMulatschakPlayer;
     final currentValue = mulatschakPlayers[playerName]!;
-    final delta = baseDelta * mulatschakMultiplier;
-    final rawNextValue = currentValue + delta;
-
-    _pushUndoSnapshot();
-    final clampedNextValue = GameRules.clampAtZero(rawNextValue);
-    final nextValue = muleqackEnabled
-        ? _applyMuleqackReset(clampedNextValue)
-        : clampedNextValue;
-
-    setState(() {
-      mulatschakPlayers[playerName] = nextValue;
-      _recordMulatschakHistory(playerName, nextValue - currentValue);
-    });
-    _saveCounters();
-  }
-
-  int _applyMuleqackReset(int score) {
-    return GameRules.applyResetLoop(
-      score: score,
+    final nextValue = MulatschakHelper.nextScore(
+      currentValue: currentValue,
+      baseDelta: baseDelta,
+      multiplier: mulatschakMultiplier,
+      muleqackEnabled: muleqackEnabled,
       triggerPoints: muleqackTriggerPoints,
       resetPoints: muleqackResetPoints,
     );
+
+    _updateWithUndoAndSave(() {
+      mulatschakPlayers[playerName] = nextValue;
+      _recordMulatschakHistory(playerName, nextValue - currentValue);
+    });
   }
 
   void _resetMulatschakPlayers() {
@@ -744,15 +773,13 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       mulatschakPlayers.updateAll((playerName, value) {
         const resetValue = GameRules.mulatschakStartingScore;
         _recordMulatschakHistory(playerName, resetValue - value);
         return resetValue;
       });
     });
-    _saveCounters();
   }
 
   void _setMulatschakMultiplier(int multiplier) {
@@ -760,11 +787,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       mulatschakMultiplier = multiplier;
     });
-    _saveCounters();
   }
 
   void _setMuleqackEnabled(bool enabled) {
@@ -772,11 +797,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       muleqackEnabled = enabled;
     });
-    _saveCounters();
   }
 
   void _setMuleqackTriggerPoints(int points) {
@@ -784,11 +807,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       muleqackTriggerPoints = points;
     });
-    _saveCounters();
   }
 
   void _setMuleqackResetPoints(int points) {
@@ -796,11 +817,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       muleqackResetPoints = points;
     });
-    _saveCounters();
   }
 
   void _setCounterHistoryEnabled(bool enabled) {
@@ -808,11 +827,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       counterHistoryEnabled = enabled;
     });
-    _saveCounters();
   }
 
   void _setCounterNegativeEnabled(bool enabled) {
@@ -820,11 +837,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       counterNegativeEnabled = enabled;
     });
-    _saveCounters();
   }
 
   void _setMulatschakHistoryEnabled(bool enabled) {
@@ -832,50 +847,59 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
+    _updateWithUndoAndSave(() {
       mulatschakHistoryEnabled = enabled;
     });
-    _saveCounters();
   }
 
   void _updateWattenScore(int delta) {
     final currentGame = wattenGames[currentWattenGame]!;
-    final currentValue = selectedWattenSide == WattenSide.me
-        ? currentGame.me
-        : currentGame.you;
+    final currentValue = WattenHelper.sideScore(
+      currentGame,
+      selectedWattenSide,
+    );
     final nextValue = currentValue + delta;
 
     if (nextValue < 0) {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      wattenGames[currentWattenGame] = selectedWattenSide == WattenSide.me
-          ? currentGame.copyWith(me: nextValue)
-          : currentGame.copyWith(you: nextValue);
+    _updateWithUndoAndSave(() {
+      wattenGames[currentWattenGame] = WattenHelper.updateSideScore(
+        game: currentGame,
+        side: selectedWattenSide,
+        delta: delta,
+      );
     });
-    _saveCounters();
   }
 
   void _resetWattenSelectedSide() {
     final currentGame = wattenGames[currentWattenGame]!;
-    final currentValue = selectedWattenSide == WattenSide.me
-        ? currentGame.me
-        : currentGame.you;
+    final currentValue = WattenHelper.sideScore(
+      currentGame,
+      selectedWattenSide,
+    );
 
     if (currentValue == 0) {
       return;
     }
 
-    _pushUndoSnapshot();
-    setState(() {
-      wattenGames[currentWattenGame] = selectedWattenSide == WattenSide.me
-          ? currentGame.copyWith(me: 0)
-          : currentGame.copyWith(you: 0);
+    _updateWithUndoAndSave(() {
+      wattenGames[currentWattenGame] = WattenHelper.resetSideScore(
+        game: currentGame,
+        side: selectedWattenSide,
+      );
     });
-    _saveCounters();
+  }
+
+  void _selectWattenSide(WattenSide side) {
+    if (selectedWattenSide == side) {
+      return;
+    }
+
+    setState(() {
+      selectedWattenSide = side;
+    });
   }
 
   void _showAddCounterDialog() {
@@ -1089,98 +1113,78 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  _DrawerConfig _drawerConfig() {
+    switch (widget.appMode) {
+      case AppMode.counter:
+        return _DrawerConfig(
+          items: counters.keys.toList(),
+          selectedItem: currentCounter,
+          addButtonLabel: 'New Counter',
+          addButtonIcon: Icons.add,
+          closeDrawerOnAdd: true,
+          onAddNewItem: _showAddCounterDialog,
+          onSelectItem: _selectCounter,
+          onRenameItem: _showRenameCounterDialog,
+          onDeleteItem: _showDeleteCounterDialog,
+          onReorderItems: _reorderCounters,
+        );
+      case AppMode.watten:
+        return _DrawerConfig(
+          items: wattenGames.keys.toList(),
+          selectedItem: currentWattenGame,
+          addButtonLabel: 'Add Game',
+          addButtonIcon: Icons.add,
+          closeDrawerOnAdd: true,
+          onAddNewItem: _showAddWattenGameDialog,
+          onSelectItem: _selectWattenGame,
+          onRenameItem: _showRenameWattenGameDialog,
+          onDeleteItem: _showDeleteWattenGameDialog,
+          onReorderItems: _reorderWattenGames,
+        );
+      case AppMode.mulatschak:
+        return _DrawerConfig(
+          items: mulatschakPlayers.keys.toList(),
+          selectedItem: currentMulatschakPlayer,
+          addButtonLabel: 'Add Player',
+          addButtonIcon: Icons.person_add_alt_1,
+          closeDrawerOnAdd: false,
+          onAddNewItem: _showAddMulatschakPlayerDialog,
+          onSelectItem: _selectMulatschakPlayer,
+          onRenameItem: _showRenameMulatschakPlayerDialog,
+          onDeleteItem: _showDeleteMulatschakPlayerDialog,
+          onReorderItems: _reorderMulatschakPlayers,
+        );
+      case AppMode.hosnObe:
+        return _DrawerConfig(
+          items: hosnObePlayers.keys.toList(),
+          selectedItem: currentHosnObePlayer,
+          addButtonLabel: 'Add Player',
+          addButtonIcon: Icons.person_add_alt_1,
+          closeDrawerOnAdd: false,
+          onAddNewItem: _showAddHosnObePlayerDialog,
+          onSelectItem: _selectHosnObePlayer,
+          onRenameItem: _showRenameHosnObePlayerDialog,
+          onDeleteItem: _showDeleteHosnObePlayerDialog,
+          onReorderItems: _reorderHosnObePlayers,
+        );
+    }
+  }
+
   Widget _buildDrawer() {
-    final isWattenMode = widget.appMode == AppMode.watten;
-    final isMulatschakMode = widget.appMode == AppMode.mulatschak;
-    final isHosnObeMode = widget.appMode == AppMode.hosnObe;
-    final isPlayerMode = isMulatschakMode || isHosnObeMode;
+    final config = _drawerConfig();
 
     return CounterDrawer(
-      items: isWattenMode
-          ? wattenGames.keys.toList()
-          : isMulatschakMode
-          ? mulatschakPlayers.keys.toList()
-          : isHosnObeMode
-          ? hosnObePlayers.keys.toList()
-          : counters.keys.toList(),
-      selectedItem: isWattenMode
-          ? currentWattenGame
-          : isMulatschakMode
-          ? currentMulatschakPlayer
-          : isHosnObeMode
-          ? currentHosnObePlayer
-          : currentCounter,
-      addButtonLabel: isWattenMode
-          ? 'Add Game'
-          : isPlayerMode
-          ? 'Add Player'
-          : 'New Counter',
-      addButtonIcon: isWattenMode
-          ? Icons.add
-          : isPlayerMode
-          ? Icons.person_add_alt_1
-          : Icons.add,
-      closeDrawerOnAdd: !isPlayerMode,
+      items: config.items,
+      selectedItem: config.selectedItem,
+      addButtonLabel: config.addButtonLabel,
+      addButtonIcon: config.addButtonIcon,
+      closeDrawerOnAdd: config.closeDrawerOnAdd,
       enableReorder: true,
-      onAddNewItem: isWattenMode
-          ? _showAddWattenGameDialog
-          : isMulatschakMode
-          ? _showAddMulatschakPlayerDialog
-          : isHosnObeMode
-          ? _showAddHosnObePlayerDialog
-          : _showAddCounterDialog,
-      onSelectItem: (item) {
-        if (isWattenMode) {
-          _selectWattenGame(item);
-          return;
-        }
-        if (isMulatschakMode) {
-          _selectMulatschakPlayer(item);
-          return;
-        }
-        if (isHosnObeMode) {
-          _selectHosnObePlayer(item);
-          return;
-        }
-        _selectCounter(item);
-      },
-      onRenameItem: isWattenMode
-          ? (game) {
-              _showRenameWattenGameDialog(game);
-            }
-          : isMulatschakMode
-          ? (player) {
-              _showRenameMulatschakPlayerDialog(player);
-            }
-          : isHosnObeMode
-          ? (player) {
-              _showRenameHosnObePlayerDialog(player);
-            }
-          : (counter) {
-              _showRenameCounterDialog(counter);
-            },
-      onDeleteItem: (item) {
-        if (isWattenMode) {
-          _showDeleteWattenGameDialog(item);
-          return;
-        }
-        if (isMulatschakMode) {
-          _showDeleteMulatschakPlayerDialog(item);
-          return;
-        }
-        if (isHosnObeMode) {
-          _showDeleteHosnObePlayerDialog(item);
-          return;
-        }
-        _showDeleteCounterDialog(item);
-      },
-      onReorderItems: isWattenMode
-          ? _reorderWattenGames
-          : isMulatschakMode
-          ? _reorderMulatschakPlayers
-          : isHosnObeMode
-          ? _reorderHosnObePlayers
-          : _reorderCounters,
+      onAddNewItem: config.onAddNewItem,
+      onSelectItem: config.onSelectItem,
+      onRenameItem: config.onRenameItem,
+      onDeleteItem: config.onDeleteItem,
+      onReorderItems: config.onReorderItems,
       onOpenSettings: () {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -1223,6 +1227,11 @@ class _HomePageState extends State<HomePage> {
     return const SizedBox.shrink();
   }
 
+  bool get _hasEndDrawer {
+    return widget.appMode == AppMode.counter && counterHistoryEnabled ||
+        widget.appMode == AppMode.mulatschak && mulatschakHistoryEnabled;
+  }
+
   Widget _buildBody() {
     switch (widget.appMode) {
       case AppMode.counter:
@@ -1243,11 +1252,7 @@ class _HomePageState extends State<HomePage> {
           currentGame: currentGame,
           selectedSide: selectedWattenSide,
           winner: _wattenWinner(currentGame),
-          onSelectedSideChanged: (side) {
-            setState(() {
-              selectedWattenSide = side;
-            });
-          },
+          onSelectedSideChanged: _selectWattenSide,
           onScoreChanged: _updateWattenScore,
           onResetSelectedSide: _resetWattenSelectedSide,
         );
@@ -1286,11 +1291,7 @@ class _HomePageState extends State<HomePage> {
       key: _scaffoldKey,
       appBar: _buildAppBar(),
       drawer: _buildDrawer(),
-      endDrawer:
-          widget.appMode == AppMode.counter && counterHistoryEnabled ||
-              widget.appMode == AppMode.mulatschak && mulatschakHistoryEnabled
-          ? _buildEndDrawer()
-          : null,
+      endDrawer: _hasEndDrawer ? _buildEndDrawer() : null,
       drawerEdgeDragWidth: isMobileDrawerGesture ? screenWidth * 0.5 : null,
       body: SafeArea(top: false, child: body),
     );

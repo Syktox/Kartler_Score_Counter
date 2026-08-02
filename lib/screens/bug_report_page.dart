@@ -120,7 +120,7 @@ class _BugReportPageState extends State<BugReportPage> {
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: _sendReport,
-                icon: const Icon(Icons.send),
+                icon: const Icon(Icons.open_in_new),
                 label: const Text('Send bug report'),
               ),
             ],
