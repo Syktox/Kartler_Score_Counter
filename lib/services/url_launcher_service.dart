@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/app_constants.dart';
+
 class UrlLauncherService {
   UrlLauncherService._();
 
@@ -37,7 +39,7 @@ class UrlLauncherService {
     required String deviceInfo,
   }) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final subject = '[Counter App Bug] $title';
+    final subject = '${AppConstants.bugReportSubjectPrefix} $title';
     final body =
         '''
 Description

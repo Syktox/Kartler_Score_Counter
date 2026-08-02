@@ -1,0 +1,432 @@
+import 'package:flutter/material.dart';
+
+import '../../utils/responsive_utils.dart';
+import '../../widgets/score_button.dart';
+import '../../widgets/score_card.dart';
+import '../../widgets/winner_banner.dart';
+
+class MulatschakBody extends StatelessWidget {
+  final bool isLoading;
+  final Map<String, int> players;
+  final String currentPlayer;
+  final int multiplier;
+  final String? winner;
+  final ValueChanged<String> onPlayerSelected;
+  final ValueChanged<int> onScoreChanged;
+  final ValueChanged<int> onMultiplierChanged;
+  final VoidCallback onResetPlayers;
+
+  const MulatschakBody({
+    super.key,
+    required this.isLoading,
+    required this.players,
+    required this.currentPlayer,
+    required this.multiplier,
+    required this.winner,
+    required this.onPlayerSelected,
+    required this.onScoreChanged,
+    required this.onMultiplierChanged,
+    required this.onResetPlayers,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final entries = players.entries.toList();
+    final isLandscape = ResponsiveUtils.isHandsetLandscape(
+      MediaQuery.of(context).size,
+    );
+
+    if (isLandscape) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 18, 12),
+        child: Row(
+          children: [
+            Expanded(child: _buildCompactPlayerWrap(entries)),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 216,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (winner != null) ...[
+                      WinnerBanner(winner: winner!, compact: true),
+                      const SizedBox(height: 6),
+                    ],
+                    MulatschakControls(
+                      compact: true,
+                      multiplier: multiplier,
+                      onScoreChanged: onScoreChanged,
+                      onMultiplierChanged: onMultiplierChanged,
+                      onResetPlayers: onResetPlayers,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      child: Column(
+        children: [
+          if (winner != null) WinnerBanner(winner: winner!),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (ResponsiveUtils.isHandsetWidth(constraints.maxWidth) &&
+                    entries.length >= 2) {
+                  return _buildPlayersGrid(entries);
+                }
+
+                return _buildPlayersWrap(entries);
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+          MulatschakControls(
+            multiplier: multiplier,
+            onScoreChanged: onScoreChanged,
+            onMultiplierChanged: onMultiplierChanged,
+            onResetPlayers: onResetPlayers,
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayersWrap(List<MapEntry<String, int>> entries) {
+    return SingleChildScrollView(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 12,
+        runSpacing: 12,
+        children: entries
+            .map(
+              (entry) => SizedBox(
+                width: 196,
+                child: _PlayerCard(
+                  name: entry.key,
+                  score: entry.value,
+                  isSelected: entry.key == currentPlayer,
+                  onSelected: onPlayerSelected,
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildCompactPlayerWrap(List<MapEntry<String, int>> entries) {
+    return SingleChildScrollView(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 10,
+        runSpacing: 10,
+        children: entries
+            .map(
+              (entry) => SizedBox(
+                width: 148,
+                child: _PlayerCard(
+                  name: entry.key,
+                  score: entry.value,
+                  isSelected: entry.key == currentPlayer,
+                  compact: true,
+                  onSelected: onPlayerSelected,
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildPlayersGrid(List<MapEntry<String, int>> entries) {
+    final columnCount = entries.length >= 3 ? 3 : entries.length;
+
+    return GridView.count(
+      crossAxisCount: columnCount,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 0.62,
+      children: entries
+          .map(
+            (entry) => _PlayerCard(
+              name: entry.key,
+              score: entry.value,
+              isSelected: entry.key == currentPlayer,
+              compact: true,
+              onSelected: onPlayerSelected,
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class MulatschakControls extends StatelessWidget {
+  final bool compact;
+  final int multiplier;
+  final ValueChanged<int> onScoreChanged;
+  final ValueChanged<int> onMultiplierChanged;
+  final VoidCallback onResetPlayers;
+
+  const MulatschakControls({
+    super.key,
+    this.compact = false,
+    required this.multiplier,
+    required this.onScoreChanged,
+    required this.onMultiplierChanged,
+    required this.onResetPlayers,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (compact) {
+      final buttons = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ScoreButton(
+            label: '-5',
+            onPressed: () => onScoreChanged(-5),
+            minimumSize: const Size(128, 48),
+            fontSize: 20,
+            width: 128,
+          ),
+          const SizedBox(height: 8),
+          ScoreButton(
+            label: '-1',
+            onPressed: () => onScoreChanged(-1),
+            minimumSize: const Size(128, 48),
+            fontSize: 20,
+            width: 128,
+          ),
+          const SizedBox(height: 8),
+          ScoreButton(
+            label: '+1',
+            onPressed: () => onScoreChanged(1),
+            minimumSize: const Size(128, 48),
+            fontSize: 20,
+            width: 128,
+          ),
+          const SizedBox(height: 8),
+          ScoreButton(
+            label: '+5',
+            onPressed: () => onScoreChanged(5),
+            minimumSize: const Size(128, 48),
+            fontSize: 20,
+            width: 128,
+          ),
+          const SizedBox(height: 8),
+          ScoreButton(
+            label: 'Reset',
+            onPressed: onResetPlayers,
+            minimumSize: const Size(128, 48),
+            fontSize: 17,
+            width: 128,
+          ),
+        ],
+      );
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          MulatschakMultiplierSelector(
+            multiplier: multiplier,
+            onChanged: onMultiplierChanged,
+          ),
+          const SizedBox(width: 8),
+          buttons,
+        ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = 8.0;
+        final buttonWidth = ((constraints.maxWidth - gap * 3) / 4).clamp(
+          0.0,
+          116.0,
+        );
+
+        return Column(
+          children: [
+            _MultiplierRow(
+              multiplier: multiplier,
+              onChanged: onMultiplierChanged,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ScoreButton(
+                  label: '-5',
+                  onPressed: () => onScoreChanged(-5),
+                  minimumSize: const Size(0, 84),
+                  width: buttonWidth,
+                ),
+                const SizedBox(width: gap),
+                ScoreButton(
+                  label: '-1',
+                  onPressed: () => onScoreChanged(-1),
+                  minimumSize: const Size(0, 84),
+                  width: buttonWidth,
+                ),
+                const SizedBox(width: gap),
+                ScoreButton(
+                  label: '+1',
+                  onPressed: () => onScoreChanged(1),
+                  minimumSize: const Size(0, 84),
+                  width: buttonWidth,
+                ),
+                const SizedBox(width: gap),
+                ScoreButton(
+                  label: '+5',
+                  onPressed: () => onScoreChanged(5),
+                  minimumSize: const Size(0, 84),
+                  width: buttonWidth,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ScoreButton(
+              label: 'Reset',
+              onPressed: onResetPlayers,
+              minimumSize: const Size(132, 84),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class MulatschakMultiplierSelector extends StatelessWidget {
+  static const multipliers = [1, 2, 4, 8, 16, 32, 64, 128];
+
+  final int multiplier;
+  final ValueChanged<int> onChanged;
+
+  const MulatschakMultiplierSelector({
+    super.key,
+    required this.multiplier,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: 76,
+      child: PopupMenuButton<int>(
+        key: const Key('mulatschakMultiplierButton'),
+        tooltip: 'Multiplier',
+        initialValue: multipliers.contains(multiplier) ? multiplier : null,
+        constraints: const BoxConstraints.tightFor(width: 76),
+        position: PopupMenuPosition.over,
+        onSelected: onChanged,
+        itemBuilder: (context) => multipliers
+            .map(
+              (value) => PopupMenuItem<int>(
+                value: value,
+                height: 44,
+                child: Center(child: Text('${value}x')),
+              ),
+            )
+            .toList(),
+        child: Container(
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            border: Border.all(color: Theme.of(context).dividerColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            '${multiplier}x',
+            style: TextStyle(
+              color: colorScheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MultiplierRow extends StatelessWidget {
+  final int multiplier;
+  final ValueChanged<int> onChanged;
+
+  const _MultiplierRow({required this.multiplier, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    const label = Text(
+      'Multiplier',
+      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final selector = MulatschakMultiplierSelector(
+          multiplier: multiplier,
+          onChanged: onChanged,
+        );
+
+        if (ResponsiveUtils.isHandsetWidth(constraints.maxWidth)) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [label, selector],
+          );
+        }
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [label, const SizedBox(width: 16), selector],
+        );
+      },
+    );
+  }
+}
+
+class _PlayerCard extends StatelessWidget {
+  final String name;
+  final int score;
+  final bool isSelected;
+  final bool compact;
+  final ValueChanged<String> onSelected;
+
+  const _PlayerCard({
+    required this.name,
+    required this.score,
+    required this.isSelected,
+    required this.onSelected,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ScoreCard(
+      title: name,
+      score: score,
+      isSelected: isSelected,
+      compact: compact,
+      onTap: () {
+        FocusScope.of(context).unfocus();
+        onSelected(name);
+      },
+    );
+  }
+}

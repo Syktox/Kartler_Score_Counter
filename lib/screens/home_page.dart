@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:convert';
 import 'dart:collection';
+
+import '../features/counter/counter_body.dart';
+import '../features/hosn_obe/hosn_obe_body.dart';
+import '../features/mulatschak/mulatschak_body.dart';
+import '../features/watten/watten_body.dart';
 import '../models/app_mode.dart';
 import '../models/game_rules.dart';
+import '../models/mulatschak_history_entry.dart';
 import '../models/watten_game.dart';
+import '../models/watten_side.dart';
 import '../services/counter_storage_service.dart';
-import '../widgets/counter_controls.dart';
+import '../utils/history_utils.dart';
+import '../utils/name_utils.dart';
+import '../utils/ordered_map_utils.dart';
+import '../utils/responsive_utils.dart';
+import '../widgets/app_dialogs.dart';
+import '../widgets/counter_history_drawer.dart';
 import '../widgets/counter_drawer.dart';
-import '../widgets/score_button.dart';
-import '../widgets/score_card.dart';
-import '../widgets/winner_banner.dart';
+import '../widgets/mulatschak_history_drawer.dart';
 import 'settings_page.dart';
-
-enum WattenSide { me, you }
 
 class _HomePageSnapshot {
   final Map<String, int> counters;
@@ -60,20 +66,6 @@ class _HomePageSnapshot {
     required this.mulatschakHistoryRound,
     required this.mulatschakRoundPlayers,
     required this.appMode,
-  });
-}
-
-class _MulatschakHistoryEntry {
-  final int round;
-  final String time;
-  final String playerName;
-  final int points;
-
-  const _MulatschakHistoryEntry({
-    required this.round,
-    required this.time,
-    required this.playerName,
-    required this.points,
   });
 }
 
@@ -172,7 +164,9 @@ class _HomePageState extends State<HomePage> {
       muleqackResetPoints = storedData.muleqackResetPoints;
       counterHistoryEnabled = storedData.counterHistoryEnabled;
       counterNegativeEnabled = storedData.counterNegativeEnabled;
-      counterHistory = _copyCounterHistory(storedData.counterHistory);
+      counterHistory = HistoryUtils.copyCounterHistory(
+        storedData.counterHistory,
+      );
       mulatschakHistoryEnabled = storedData.mulatschakHistoryEnabled;
       mulatschakHistory = List<String>.from(storedData.mulatschakHistory);
       mulatschakHistoryRound = storedData.mulatschakHistoryRound;
@@ -225,7 +219,7 @@ class _HomePageState extends State<HomePage> {
       muleqackResetPoints: muleqackResetPoints,
       counterHistoryEnabled: counterHistoryEnabled,
       counterNegativeEnabled: counterNegativeEnabled,
-      counterHistory: _copyCounterHistory(counterHistory),
+      counterHistory: HistoryUtils.copyCounterHistory(counterHistory),
       mulatschakHistoryEnabled: mulatschakHistoryEnabled,
       mulatschakHistory: List<String>.from(mulatschakHistory),
       mulatschakHistoryRound: mulatschakHistoryRound,
@@ -264,7 +258,9 @@ class _HomePageState extends State<HomePage> {
         currentCounter = snapshot.currentCounter;
         counterHistoryEnabled = snapshot.counterHistoryEnabled;
         counterNegativeEnabled = snapshot.counterNegativeEnabled;
-        counterHistory = _copyCounterHistory(snapshot.counterHistory);
+        counterHistory = HistoryUtils.copyCounterHistory(
+          snapshot.counterHistory,
+        );
       case AppMode.watten:
         wattenGames = LinkedHashMap<String, WattenGame>.from(
           snapshot.wattenGames,
@@ -346,67 +342,9 @@ class _HomePageState extends State<HomePage> {
     final currentHistory = counterHistory[currentCounter] ?? const <String>[];
     counterHistory = Map<String, List<String>>.from(counterHistory)
       ..[currentCounter] = [
-        '${_formatHistoryTime(DateTime.now())} - $action.',
+        '${HistoryUtils.formatTime(DateTime.now())} - $action.',
         ...currentHistory,
       ];
-  }
-
-  Map<String, List<String>> _copyCounterHistory(
-    Map<String, List<String>> history,
-  ) {
-    return history.map(
-      (counterName, entries) =>
-          MapEntry(counterName, List<String>.from(entries)),
-    );
-  }
-
-  String _formatHistoryTime(DateTime time) {
-    String twoDigits(int value) => value.toString().padLeft(2, '0');
-
-    return '${twoDigits(time.hour)}:${twoDigits(time.minute)}:${twoDigits(time.second)}';
-  }
-
-  String _formatSignedPoints(int points) {
-    return points > 0 ? '+$points' : '$points';
-  }
-
-  String _encodeMulatschakHistoryEntry(_MulatschakHistoryEntry entry) {
-    return jsonEncode({
-      'round': entry.round,
-      'time': entry.time,
-      'player': entry.playerName,
-      'points': entry.points,
-    });
-  }
-
-  _MulatschakHistoryEntry? _decodeMulatschakHistoryEntry(String entry) {
-    try {
-      final decoded = jsonDecode(entry);
-      if (decoded is! Map<String, dynamic>) {
-        return null;
-      }
-
-      final round = decoded['round'];
-      final time = decoded['time'];
-      final playerName = decoded['player'];
-      final points = decoded['points'];
-
-      if (round is int &&
-          time is String &&
-          playerName is String &&
-          points is int) {
-        return _MulatschakHistoryEntry(
-          round: round,
-          time: time,
-          playerName: playerName,
-          points: points,
-        );
-      }
-    } catch (_) {
-      return null;
-    }
-
-    return null;
   }
 
   void _recordMulatschakHistory(String playerName, int points) {
@@ -416,14 +354,12 @@ class _HomePageState extends State<HomePage> {
 
     mulatschakHistory = [
       ...mulatschakHistory,
-      _encodeMulatschakHistoryEntry(
-        _MulatschakHistoryEntry(
-          round: mulatschakHistoryRound,
-          time: _formatHistoryTime(DateTime.now()),
-          playerName: playerName,
-          points: points,
-        ),
-      ),
+      MulatschakHistoryEntry(
+        round: mulatschakHistoryRound,
+        time: HistoryUtils.formatTime(DateTime.now()),
+        playerName: playerName,
+        points: points,
+      ).encode(),
     ];
 
     mulatschakRoundPlayers = Set<String>.from(mulatschakRoundPlayers)
@@ -446,49 +382,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _isCounterNameValid(String counterName) {
-    return _isUniqueName(counterName, counters.keys);
+    return NameUtils.isUnique(counterName, counters.keys);
   }
 
   bool _isWattenGameNameValid(String gameName) {
-    return _isUniqueName(gameName, wattenGames.keys);
+    return NameUtils.isUnique(gameName, wattenGames.keys);
   }
 
   bool _isMulatschakPlayerNameValid(String playerName) {
-    return _isUniqueName(playerName, mulatschakPlayers.keys);
+    return NameUtils.isUnique(playerName, mulatschakPlayers.keys);
   }
 
   bool _isHosnObePlayerNameValid(String playerName) {
-    return _isUniqueName(playerName, hosnObePlayers.keys);
-  }
-
-  bool _isUniqueName(String name, Iterable<String> existingNames) {
-    final normalizedName = _normalizeName(name);
-    return normalizedName.isNotEmpty &&
-        !existingNames.map(_normalizeName).contains(normalizedName);
-  }
-
-  bool _isUniqueNameExcept(
-    String name,
-    Iterable<String> existingNames,
-    String ignoredName,
-  ) {
-    final normalizedName = _normalizeName(name);
-    final normalizedIgnoredName = _normalizeName(ignoredName);
-    return normalizedName.isNotEmpty &&
-        !existingNames
-            .where((existingName) {
-              return _normalizeName(existingName) != normalizedIgnoredName;
-            })
-            .map(_normalizeName)
-            .contains(normalizedName);
-  }
-
-  String _normalizeName(String name) {
-    return _cleanName(name).toLowerCase();
-  }
-
-  String _cleanName(String name) {
-    return name.trim().replaceAll(RegExp(r'\s+'), ' ');
+    return NameUtils.isUnique(playerName, hosnObePlayers.keys);
   }
 
   String? _wattenWinner(WattenGame game) {
@@ -515,8 +421,13 @@ class _HomePageState extends State<HomePage> {
   void _renameCounter(String oldName, String newName) {
     _pushUndoSnapshot();
     setState(() {
-      counters = _renameCounterEntry(counters, oldName, newName);
-      counterHistory = _renameHistoryEntry(counterHistory, oldName, newName);
+      counters = OrderedMapUtils.renameKey(counters, oldName, newName);
+      counterHistory = OrderedMapUtils.renameKey(
+        counterHistory,
+        oldName,
+        newName,
+        copyValue: List<String>.from,
+      );
       if (currentCounter == oldName) {
         currentCounter = newName;
       }
@@ -558,14 +469,7 @@ class _HomePageState extends State<HomePage> {
   void _renameWattenGame(String oldName, String newName) {
     _pushUndoSnapshot();
     setState(() {
-      wattenGames = LinkedHashMap<String, WattenGame>.fromEntries(
-        wattenGames.entries.map((entry) {
-          if (entry.key == oldName) {
-            return MapEntry(newName, entry.value);
-          }
-          return entry;
-        }),
-      );
+      wattenGames = OrderedMapUtils.renameKey(wattenGames, oldName, newName);
       if (currentWattenGame == oldName) {
         currentWattenGame = newName;
       }
@@ -576,7 +480,7 @@ class _HomePageState extends State<HomePage> {
   void _renameMulatschakPlayer(String oldName, String newName) {
     _pushUndoSnapshot();
     setState(() {
-      mulatschakPlayers = _renameCounterEntry(
+      mulatschakPlayers = OrderedMapUtils.renameKey(
         mulatschakPlayers,
         oldName,
         newName,
@@ -595,7 +499,11 @@ class _HomePageState extends State<HomePage> {
   void _renameHosnObePlayer(String oldName, String newName) {
     _pushUndoSnapshot();
     setState(() {
-      hosnObePlayers = _renameCounterEntry(hosnObePlayers, oldName, newName);
+      hosnObePlayers = OrderedMapUtils.renameKey(
+        hosnObePlayers,
+        oldName,
+        newName,
+      );
       if (currentHosnObePlayer == oldName) {
         currentHosnObePlayer = newName;
       }
@@ -603,38 +511,8 @@ class _HomePageState extends State<HomePage> {
     _saveCounters();
   }
 
-  LinkedHashMap<String, int> _renameCounterEntry(
-    Map<String, int> values,
-    String oldName,
-    String newName,
-  ) {
-    return LinkedHashMap<String, int>.fromEntries(
-      values.entries.map((entry) {
-        if (entry.key == oldName) {
-          return MapEntry(newName, entry.value);
-        }
-        return entry;
-      }),
-    );
-  }
-
-  LinkedHashMap<String, List<String>> _renameHistoryEntry(
-    Map<String, List<String>> values,
-    String oldName,
-    String newName,
-  ) {
-    return LinkedHashMap<String, List<String>>.fromEntries(
-      values.entries.map((entry) {
-        if (entry.key == oldName) {
-          return MapEntry(newName, List<String>.from(entry.value));
-        }
-        return MapEntry(entry.key, List<String>.from(entry.value));
-      }),
-    );
-  }
-
   void _reorderCounters(int oldIndex, int newIndex) {
-    final reordered = _reorderEntries(counters, oldIndex, newIndex);
+    final reordered = OrderedMapUtils.reorder(counters, oldIndex, newIndex);
     if (reordered == null) {
       return;
     }
@@ -647,7 +525,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _reorderMulatschakPlayers(int oldIndex, int newIndex) {
-    final reordered = _reorderEntries(mulatschakPlayers, oldIndex, newIndex);
+    final reordered = OrderedMapUtils.reorder(
+      mulatschakPlayers,
+      oldIndex,
+      newIndex,
+    );
     if (reordered == null) {
       return;
     }
@@ -660,7 +542,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _reorderHosnObePlayers(int oldIndex, int newIndex) {
-    final reordered = _reorderEntries(hosnObePlayers, oldIndex, newIndex);
+    final reordered = OrderedMapUtils.reorder(
+      hosnObePlayers,
+      oldIndex,
+      newIndex,
+    );
     if (reordered == null) {
       return;
     }
@@ -673,7 +559,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _reorderWattenGames(int oldIndex, int newIndex) {
-    final reordered = _reorderEntries(wattenGames, oldIndex, newIndex);
+    final reordered = OrderedMapUtils.reorder(wattenGames, oldIndex, newIndex);
     if (reordered == null) {
       return;
     }
@@ -683,31 +569,6 @@ class _HomePageState extends State<HomePage> {
       wattenGames = reordered;
     });
     _saveCounters();
-  }
-
-  LinkedHashMap<String, T>? _reorderEntries<T>(
-    Map<String, T> values,
-    int oldIndex,
-    int newIndex,
-  ) {
-    final entries = values.entries.toList();
-    if (oldIndex < 0 || oldIndex >= entries.length) {
-      return null;
-    }
-
-    var targetIndex = newIndex;
-    if (targetIndex > oldIndex) {
-      targetIndex -= 1;
-    }
-    if (targetIndex < 0 ||
-        targetIndex >= entries.length ||
-        targetIndex == oldIndex) {
-      return null;
-    }
-
-    final movedEntry = entries.removeAt(oldIndex);
-    entries.insert(targetIndex, movedEntry);
-    return LinkedHashMap<String, T>.fromEntries(entries);
   }
 
   void _addWattenGame(String gameName) {
@@ -998,84 +859,6 @@ class _HomePageState extends State<HomePage> {
     _saveCounters();
   }
 
-  Widget _buildWattenControls({bool compact = false, bool fillHeight = false}) {
-    if (compact) {
-      final buttons = [
-        ScoreButton(
-          label: '+2',
-          onPressed: () => _updateWattenScore(2),
-          minimumSize: const Size(120, 54),
-          fontSize: 22,
-          width: 120,
-        ),
-        ScoreButton(
-          label: '+3',
-          onPressed: () => _updateWattenScore(3),
-          minimumSize: const Size(120, 54),
-          fontSize: 22,
-          width: 120,
-        ),
-        ScoreButton(
-          label: 'Reset',
-          onPressed: _resetWattenSelectedSide,
-          minimumSize: const Size(120, 54),
-          fontSize: 18,
-          width: 120,
-        ),
-      ];
-
-      if (fillHeight) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final button in buttons) ...[
-              Expanded(child: button),
-              if (button != buttons.last) const SizedBox(height: 8),
-            ],
-          ],
-        );
-      }
-
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          buttons[0],
-          const SizedBox(height: 8),
-          buttons[1],
-          const SizedBox(height: 8),
-          buttons[2],
-        ],
-      );
-    }
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScoreButton(
-              label: '+2',
-              onPressed: () => _updateWattenScore(2),
-              fontSize: 28,
-            ),
-            const SizedBox(width: 20),
-            ScoreButton(
-              label: '+3',
-              onPressed: () => _updateWattenScore(3),
-              fontSize: 28,
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        ScoreButton(
-          label: 'Reset',
-          onPressed: _resetWattenSelectedSide,
-          minimumSize: const Size(120, 80),
-        ),
-      ],
-    );
-  }
-
   void _resetWattenSelectedSide() {
     final currentGame = wattenGames[currentWattenGame]!;
     final currentValue = selectedWattenSide == WattenSide.me
@@ -1096,92 +879,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showAddCounterDialog() {
-    final controller = TextEditingController();
-    final focusNode = FocusNode();
-
-    showDialog(
+    AppDialogs.showAddItemDialog(
       context: context,
-      builder: (BuildContext context) {
-        void submit() {
-          final trimmedName = _cleanName(controller.text);
-          if (_isCounterNameValid(trimmedName)) {
-            _addCounterToList(trimmedName);
-            Navigator.of(context).pop();
-            return;
-          }
-
-          focusNode.requestFocus();
-        }
-
-        return AlertDialog(
-          scrollable: true,
-          title: const Text('Add Counter'),
-          content: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => submit(),
-            decoration: const InputDecoration(hintText: 'Counter name'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(onPressed: submit, child: const Text('Add')),
-          ],
-          actionsOverflowDirection: VerticalDirection.up,
-        );
-      },
+      title: 'Add Counter',
+      hintText: 'Counter name',
+      isValidName: _isCounterNameValid,
+      onAdd: _addCounterToList,
     );
   }
 
   void _showAddWattenGameDialog() {
-    final controller = TextEditingController();
-    final focusNode = FocusNode();
-
-    showDialog(
+    AppDialogs.showAddItemDialog(
       context: context,
-      builder: (BuildContext context) {
-        void submit() {
-          final trimmedName = _cleanName(controller.text);
-          if (_isWattenGameNameValid(trimmedName)) {
-            _addWattenGame(trimmedName);
-            Navigator.of(context).pop();
-            return;
-          }
-
-          focusNode.requestFocus();
-        }
-
-        return AlertDialog(
-          scrollable: true,
-          title: const Text('Add Game'),
-          content: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => submit(),
-            decoration: const InputDecoration(hintText: 'Game name'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(onPressed: submit, child: const Text('Add')),
-          ],
-          actionsOverflowDirection: VerticalDirection.up,
-        );
-      },
+      title: 'Add Game',
+      hintText: 'Game name',
+      isValidName: _isWattenGameNameValid,
+      onAdd: _addWattenGame,
     );
   }
 
@@ -1203,58 +916,25 @@ class _HomePageState extends State<HomePage> {
     required bool Function(String playerName) isValidName,
     required ValueChanged<String> onAdd,
   }) {
-    final controller = TextEditingController();
-    final focusNode = FocusNode();
-
-    showDialog(
+    AppDialogs.showAddItemDialog(
       context: context,
-      builder: (BuildContext context) {
-        void submit() {
-          final trimmedName = _cleanName(controller.text);
-          if (isValidName(trimmedName)) {
-            onAdd(trimmedName);
-            Navigator.of(context).pop();
-            return;
-          }
-
-          focusNode.requestFocus();
-        }
-
-        return AlertDialog(
-          scrollable: true,
-          title: const Text('Add Player'),
-          content: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => submit(),
-            decoration: const InputDecoration(hintText: 'Player name'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(onPressed: submit, child: const Text('Add')),
-          ],
-          actionsOverflowDirection: VerticalDirection.up,
-        );
-      },
+      title: 'Add Player',
+      hintText: 'Player name',
+      isValidName: isValidName,
+      onAdd: onAdd,
     );
   }
 
   void _showRenameCounterDialog(String oldName) {
-    _showRenameItemDialog(
+    AppDialogs.showRenameItemDialog(
+      context: context,
       title: 'Rename Counter',
       initialValue: oldName,
       hintText: 'New counter name',
       duplicateNameMessage: 'This counter name can only be used once.',
-      isValidName: (newName) =>
-          _isUniqueNameExcept(newName, counters.keys, oldName),
+      isValidName: (newName) {
+        return NameUtils.isUniqueExcept(newName, counters.keys, oldName);
+      },
       onRename: (newName) {
         if (newName != oldName) {
           _renameCounter(oldName, newName);
@@ -1264,13 +944,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showRenameWattenGameDialog(String oldName) {
-    _showRenameItemDialog(
+    AppDialogs.showRenameItemDialog(
+      context: context,
       title: 'Rename Game',
       initialValue: oldName,
       hintText: 'New game name',
       duplicateNameMessage: 'This game name can only be used once.',
-      isValidName: (newName) =>
-          _isUniqueNameExcept(newName, wattenGames.keys, oldName),
+      isValidName: (newName) {
+        return NameUtils.isUniqueExcept(newName, wattenGames.keys, oldName);
+      },
       onRename: (newName) {
         if (newName != oldName) {
           _renameWattenGame(oldName, newName);
@@ -1280,13 +962,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showRenameMulatschakPlayerDialog(String oldName) {
-    _showRenameItemDialog(
+    AppDialogs.showRenameItemDialog(
+      context: context,
       title: 'Rename Player',
       initialValue: oldName,
       hintText: 'New player name',
       duplicateNameMessage: 'This player name can only be used once.',
-      isValidName: (newName) =>
-          _isUniqueNameExcept(newName, mulatschakPlayers.keys, oldName),
+      isValidName: (newName) {
+        return NameUtils.isUniqueExcept(
+          newName,
+          mulatschakPlayers.keys,
+          oldName,
+        );
+      },
       onRename: (newName) {
         if (newName != oldName) {
           _renameMulatschakPlayer(oldName, newName);
@@ -1296,13 +984,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showRenameHosnObePlayerDialog(String oldName) {
-    _showRenameItemDialog(
+    AppDialogs.showRenameItemDialog(
+      context: context,
       title: 'Rename Player',
       initialValue: oldName,
       hintText: 'New player name',
       duplicateNameMessage: 'This player name can only be used once.',
-      isValidName: (newName) =>
-          _isUniqueNameExcept(newName, hosnObePlayers.keys, oldName),
+      isValidName: (newName) {
+        return NameUtils.isUniqueExcept(newName, hosnObePlayers.keys, oldName);
+      },
       onRename: (newName) {
         if (newName != oldName) {
           _renameHosnObePlayer(oldName, newName);
@@ -1311,120 +1001,22 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showRenameItemDialog({
-    required String title,
-    required String initialValue,
-    required String hintText,
-    required String duplicateNameMessage,
-    required bool Function(String newName) isValidName,
-    required ValueChanged<String> onRename,
-  }) {
-    final focusNode = FocusNode();
-    final controller = TextEditingController(text: initialValue)
-      ..selection = TextSelection(
-        baseOffset: 0,
-        extentOffset: initialValue.length,
-      );
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        void submit() {
-          final trimmedName = _cleanName(controller.text);
-          if (trimmedName.isNotEmpty && isValidName(trimmedName)) {
-            onRename(trimmedName);
-            Navigator.of(context).pop();
-            return;
-          }
-
-          focusNode.requestFocus();
-
-          if (trimmedName.isNotEmpty) {
-            ScaffoldMessenger.of(
-              this.context,
-            ).showSnackBar(SnackBar(content: Text(duplicateNameMessage)));
-          }
-        }
-
-        return AlertDialog(
-          scrollable: true,
-          title: Text(title),
-          content: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => submit(),
-            decoration: InputDecoration(hintText: hintText),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(onPressed: submit, child: const Text('Rename')),
-          ],
-          actionsOverflowDirection: VerticalDirection.up,
-        );
-      },
-    );
-  }
-
   void _showDeleteCounterDialog(String counterName) {
-    showDialog(
+    AppDialogs.showDeleteItemDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Counter'),
-          content: Text('Do you really want to delete "$counterName"?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              autofocus: true,
-              onPressed: () {
-                _deleteCounter(counterName);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+      title: 'Delete Counter',
+      itemName: counterName,
+      autofocusDelete: true,
+      onDelete: _deleteCounter,
     );
   }
 
   void _showDeleteWattenGameDialog(String gameName) {
-    showDialog(
+    AppDialogs.showDeleteItemDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Game'),
-          content: Text('Do you really want to delete "$gameName"?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                _deleteWattenGame(gameName);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+      title: 'Delete Game',
+      itemName: gameName,
+      onDelete: _deleteWattenGame,
     );
   }
 
@@ -1446,30 +1038,12 @@ class _HomePageState extends State<HomePage> {
     required String playerName,
     required ValueChanged<String> onDelete,
   }) {
-    showDialog(
+    AppDialogs.showDeleteItemDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Player'),
-          content: Text('Do you really want to delete "$playerName"?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              autofocus: true,
-              onPressed: () {
-                onDelete(playerName);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+      title: 'Delete Player',
+      itemName: playerName,
+      autofocusDelete: true,
+      onDelete: onDelete,
     );
   }
 
@@ -1634,779 +1208,88 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildHistoryDrawer() {
-    final currentHistory = counterHistory[currentCounter] ?? const <String>[];
-
-    return Drawer(
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text('Counter history'),
-              subtitle: Text(currentCounter),
-            ),
-            const Divider(),
-            Expanded(
-              child: currentHistory.isEmpty
-                  ? const Center(child: Text('No counter changes yet.'))
-                  : ListView.separated(
-                      itemCount: currentHistory.length,
-                      separatorBuilder: (context, index) => const Divider(),
-                      itemBuilder: (context, index) {
-                        return ListTile(title: Text(currentHistory[index]));
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMulatschakHistoryDrawer() {
-    final entries = mulatschakHistory
-        .map(_decodeMulatschakHistoryEntry)
-        .whereType<_MulatschakHistoryEntry>()
-        .toList();
-    final rounds = SplayTreeMap<int, List<_MulatschakHistoryEntry>>(
-      (left, right) => right.compareTo(left),
-    );
-
-    for (final entry in entries) {
-      rounds.putIfAbsent(entry.round, () => []).add(entry);
-    }
-
-    return Drawer(
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const ListTile(
-              leading: Icon(Icons.history),
-              title: Text('Mulatschak history'),
-              subtitle: Text('Player changes by round'),
-            ),
-            const Divider(),
-            Expanded(
-              child: rounds.isEmpty
-                  ? const Center(child: Text('No player changes yet.'))
-                  : ListView.separated(
-                      itemCount: rounds.length,
-                      separatorBuilder: (context, index) => const Divider(),
-                      itemBuilder: (context, index) {
-                        final roundEntry = rounds.entries.elementAt(index);
-                        final roundEntries = roundEntry.value.reversed.toList();
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                              child: Text(
-                                'Round ${roundEntry.key}',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                            ...roundEntries.map(
-                              (entry) => ListTile(
-                                dense: true,
-                                title: Text(entry.playerName),
-                                subtitle: Text(entry.time),
-                                trailing: Text(
-                                  '${_formatSignedPoints(entry.points)} points',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCounterBody() {
-    if (_isLoadingCounters) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final isLandscape = _isHandsetLandscape(MediaQuery.of(context).size);
-    final title = Text(
-      currentCounter,
-      textAlign: TextAlign.center,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontSize: isLandscape ? 40 : 56,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-    final score = Text(
-      '${counters[currentCounter]}',
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: isLandscape ? 104 : 136,
-        fontWeight: FontWeight.w900,
-      ),
-    );
-
-    if (isLandscape) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [title, const SizedBox(height: 8), score],
-              ),
-            ),
-            const SizedBox(width: 16),
-            CounterControls(
-              compact: true,
-              onIncrement: _increment,
-              onDecrement: _decrement,
-              onReset: _reset,
-            ),
-          ],
-        ),
+  Widget _buildEndDrawer() {
+    if (widget.appMode == AppMode.counter && counterHistoryEnabled) {
+      return CounterHistoryDrawer(
+        currentCounter: currentCounter,
+        currentHistory: counterHistory[currentCounter] ?? const <String>[],
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 16),
-          title,
-          Expanded(child: Center(child: score)),
-          CounterControls(
-            onIncrement: _increment,
-            onDecrement: _decrement,
-            onReset: _reset,
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWattenSideCard({
-    required String title,
-    required int score,
-    required bool isSelected,
-    required VoidCallback onTap,
-    bool compact = false,
-    bool fillHeight = false,
-  }) {
-    final isDesktopCard =
-        !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.windows ||
-            defaultTargetPlatform == TargetPlatform.macOS);
-
-    return Expanded(
-      child: ScoreCard(
-        title: title,
-        score: score,
-        isSelected: isSelected,
-        compact: compact,
-        onTap: onTap,
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        constraints: fillHeight
-            ? null
-            : BoxConstraints(
-                minHeight: compact ? 120 : (isDesktopCard ? 260 : 220),
-                maxHeight: compact ? 180 : (isDesktopCard ? 300 : 260),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildWattenBody() {
-    if (_isLoadingCounters) {
-      return const Center(child: CircularProgressIndicator());
+    if (widget.appMode == AppMode.mulatschak && mulatschakHistoryEnabled) {
+      return MulatschakHistoryDrawer(history: mulatschakHistory);
     }
 
-    final currentGame = wattenGames[currentWattenGame]!;
-    final winner = _wattenWinner(currentGame);
-    final isLandscape = _isHandsetLandscape(MediaQuery.of(context).size);
-    final scoreCards = Row(
-      crossAxisAlignment: isLandscape
-          ? CrossAxisAlignment.stretch
-          : CrossAxisAlignment.center,
-      children: [
-        _buildWattenSideCard(
-          title: 'Me',
-          score: currentGame.me,
-          isSelected: selectedWattenSide == WattenSide.me,
-          fillHeight: isLandscape,
-          onTap: () {
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildBody() {
+    switch (widget.appMode) {
+      case AppMode.counter:
+        return CounterBody(
+          isLoading: _isLoadingCounters,
+          counterName: currentCounter,
+          score: counters[currentCounter] ?? 0,
+          onIncrement: _increment,
+          onDecrement: _decrement,
+          onReset: _reset,
+        );
+      case AppMode.watten:
+        final currentGame =
+            wattenGames[currentWattenGame] ?? const WattenGame(me: 0, you: 0);
+
+        return WattenBody(
+          isLoading: _isLoadingCounters,
+          currentGame: currentGame,
+          selectedSide: selectedWattenSide,
+          winner: _wattenWinner(currentGame),
+          onSelectedSideChanged: (side) {
             setState(() {
-              selectedWattenSide = WattenSide.me;
+              selectedWattenSide = side;
             });
           },
-        ),
-        _buildWattenSideCard(
-          title: 'You',
-          score: currentGame.you,
-          isSelected: selectedWattenSide == WattenSide.you,
-          fillHeight: isLandscape,
-          onTap: () {
-            setState(() {
-              selectedWattenSide = WattenSide.you;
-            });
-          },
-        ),
-      ],
-    );
-
-    if (isLandscape) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 18, 0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: scoreCards,
-              ),
-            ),
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 132,
-              child: Column(
-                children: [
-                  if (winner != null) ...[
-                    WinnerBanner(winner: winner, compact: true),
-                    const SizedBox(height: 6),
-                  ],
-                  Expanded(
-                    child: _buildWattenControls(
-                      compact: true,
-                      fillHeight: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (winner != null) WinnerBanner(winner: winner),
-          Expanded(child: scoreCards),
-          const SizedBox(height: 24),
-          _buildWattenControls(),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMulatschakPlayerCard(
-    String playerName,
-    int score, {
-    bool compact = false,
-  }) {
-    final isSelected = playerName == currentMulatschakPlayer;
-
-    return ScoreCard(
-      title: playerName,
-      score: score,
-      isSelected: isSelected,
-      compact: compact,
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        _selectMulatschakPlayer(playerName);
-      },
-    );
-  }
-
-  Widget _buildMulatschakMultiplierSelector() {
-    const multipliers = [1, 2, 4, 8, 16, 32, 64, 128];
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return SizedBox(
-      width: 76,
-      child: PopupMenuButton<int>(
-        key: const Key('mulatschakMultiplierButton'),
-        tooltip: 'Multiplier',
-        initialValue: multipliers.contains(mulatschakMultiplier)
-            ? mulatschakMultiplier
-            : null,
-        constraints: const BoxConstraints.tightFor(width: 76),
-        position: PopupMenuPosition.over,
-        onSelected: _setMulatschakMultiplier,
-        itemBuilder: (context) => multipliers
-            .map(
-              (multiplier) => PopupMenuItem<int>(
-                value: multiplier,
-                height: 44,
-                child: Center(child: Text('${multiplier}x')),
-              ),
-            )
-            .toList(),
-        child: Container(
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: Border.all(color: Theme.of(context).dividerColor),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            '${mulatschakMultiplier}x',
-            style: TextStyle(
-              color: colorScheme.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  bool _isHandsetWidth(double width) {
-    final platform = defaultTargetPlatform;
-    final isMobilePlatform =
-        platform == TargetPlatform.android || platform == TargetPlatform.iOS;
-
-    return isMobilePlatform && width < 600;
-  }
-
-  bool _isHandsetLandscape(Size size) {
-    final platform = defaultTargetPlatform;
-    final isMobilePlatform =
-        platform == TargetPlatform.android || platform == TargetPlatform.iOS;
-
-    return isMobilePlatform && size.width > size.height;
-  }
-
-  Widget _buildMulatschakMultiplierRow() {
-    const label = Text(
-      'Multiplier',
-      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (_isHandsetWidth(constraints.maxWidth)) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [label, _buildMulatschakMultiplierSelector()],
-          );
-        }
-
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            label,
-            const SizedBox(width: 16),
-            _buildMulatschakMultiplierSelector(),
-          ],
+          onScoreChanged: _updateWattenScore,
+          onResetSelectedSide: _resetWattenSelectedSide,
         );
-      },
-    );
-  }
-
-  Widget _buildMulatschakControls({bool compact = false}) {
-    if (compact) {
-      final buttons = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ScoreButton(
-            label: '-5',
-            onPressed: () => _updateMulatschakScore(-5),
-            minimumSize: const Size(128, 48),
-            fontSize: 20,
-            width: 128,
-          ),
-          const SizedBox(height: 8),
-          ScoreButton(
-            label: '-1',
-            onPressed: () => _updateMulatschakScore(-1),
-            minimumSize: const Size(128, 48),
-            fontSize: 20,
-            width: 128,
-          ),
-          const SizedBox(height: 8),
-          ScoreButton(
-            label: '+1',
-            onPressed: () => _updateMulatschakScore(1),
-            minimumSize: const Size(128, 48),
-            fontSize: 20,
-            width: 128,
-          ),
-          const SizedBox(height: 8),
-          ScoreButton(
-            label: '+5',
-            onPressed: () => _updateMulatschakScore(5),
-            minimumSize: const Size(128, 48),
-            fontSize: 20,
-            width: 128,
-          ),
-          const SizedBox(height: 8),
-          ScoreButton(
-            label: 'Reset',
-            onPressed: _resetMulatschakPlayers,
-            minimumSize: const Size(128, 48),
-            fontSize: 17,
-            width: 128,
-          ),
-        ],
-      );
-
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildMulatschakMultiplierSelector(),
-          const SizedBox(width: 8),
-          buttons,
-        ],
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const gap = 8.0;
-        final buttonWidth = ((constraints.maxWidth - gap * 3) / 4).clamp(
-          0.0,
-          116.0,
+      case AppMode.mulatschak:
+        return MulatschakBody(
+          isLoading: _isLoadingCounters,
+          players: mulatschakPlayers,
+          currentPlayer: currentMulatschakPlayer,
+          multiplier: mulatschakMultiplier,
+          winner: _mulatschakWinner(),
+          onPlayerSelected: _selectMulatschakPlayer,
+          onScoreChanged: _updateMulatschakScore,
+          onMultiplierChanged: _setMulatschakMultiplier,
+          onResetPlayers: _resetMulatschakPlayers,
         );
-
-        return Column(
-          children: [
-            _buildMulatschakMultiplierRow(),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ScoreButton(
-                  label: '-5',
-                  onPressed: () => _updateMulatschakScore(-5),
-                  minimumSize: const Size(0, 84),
-                  width: buttonWidth,
-                ),
-                const SizedBox(width: gap),
-                ScoreButton(
-                  label: '-1',
-                  onPressed: () => _updateMulatschakScore(-1),
-                  minimumSize: const Size(0, 84),
-                  width: buttonWidth,
-                ),
-                const SizedBox(width: gap),
-                ScoreButton(
-                  label: '+1',
-                  onPressed: () => _updateMulatschakScore(1),
-                  minimumSize: const Size(0, 84),
-                  width: buttonWidth,
-                ),
-                const SizedBox(width: gap),
-                ScoreButton(
-                  label: '+5',
-                  onPressed: () => _updateMulatschakScore(5),
-                  minimumSize: const Size(0, 84),
-                  width: buttonWidth,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            ScoreButton(
-              label: 'Reset',
-              onPressed: _resetMulatschakPlayers,
-              minimumSize: const Size(132, 84),
-            ),
-          ],
+      case AppMode.hosnObe:
+        return HosnObeBody(
+          isLoading: _isLoadingCounters,
+          players: hosnObePlayers,
+          currentPlayer: currentHosnObePlayer,
+          winner: _hosnObeWinner(),
+          onPlayerSelected: _selectHosnObePlayer,
+          onScoreChanged: _updateHosnObeScore,
+          onResetPlayers: _resetHosnObePlayers,
         );
-      },
-    );
-  }
-
-  bool _useHandsetMulatschakGrid(BoxConstraints constraints) {
-    return _isHandsetWidth(constraints.maxWidth);
-  }
-
-  Widget _buildMulatschakPlayersWrap(List<MapEntry<String, int>> entries) {
-    return SingleChildScrollView(
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 12,
-        runSpacing: 12,
-        children: entries
-            .map(
-              (entry) => SizedBox(
-                width: 196,
-                child: _buildMulatschakPlayerCard(entry.key, entry.value),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
-
-  Widget _buildCompactPlayerWrap(List<MapEntry<String, int>> entries) {
-    return SingleChildScrollView(
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 10,
-        runSpacing: 10,
-        children: entries
-            .map(
-              (entry) => SizedBox(
-                width: 148,
-                child: _buildMulatschakPlayerCard(
-                  entry.key,
-                  entry.value,
-                  compact: true,
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
-
-  Widget _buildMulatschakPlayersGrid(List<MapEntry<String, int>> entries) {
-    final columnCount = entries.length >= 3 ? 3 : entries.length;
-
-    return GridView.count(
-      crossAxisCount: columnCount,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 0.62,
-      children: entries
-          .map(
-            (entry) => _buildMulatschakPlayerCard(
-              entry.key,
-              entry.value,
-              compact: true,
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  Widget _buildMulatschakBody() {
-    if (_isLoadingCounters) {
-      return const Center(child: CircularProgressIndicator());
     }
-
-    final winner = _mulatschakWinner();
-    final entries = mulatschakPlayers.entries.toList();
-    final isLandscape = _isHandsetLandscape(MediaQuery.of(context).size);
-
-    if (isLandscape) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 18, 12),
-        child: Row(
-          children: [
-            Expanded(child: _buildCompactPlayerWrap(entries)),
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 216,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (winner != null) ...[
-                      WinnerBanner(winner: winner, compact: true),
-                      const SizedBox(height: 6),
-                    ],
-                    _buildMulatschakControls(compact: true),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      child: Column(
-        children: [
-          if (winner != null) WinnerBanner(winner: winner),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                if (_useHandsetMulatschakGrid(constraints) &&
-                    entries.length >= 2) {
-                  return _buildMulatschakPlayersGrid(entries);
-                }
-
-                return _buildMulatschakPlayersWrap(entries);
-              },
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildMulatschakControls(),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHosnObePlayerCard(
-    String playerName,
-    int score, {
-    bool compact = false,
-  }) {
-    final isSelected = playerName == currentHosnObePlayer;
-
-    return ScoreCard(
-      title: playerName,
-      score: score,
-      isSelected: isSelected,
-      compact: compact,
-      width: compact ? 132 : 180,
-      onTap: () {
-        _selectHosnObePlayer(playerName);
-      },
-    );
-  }
-
-  Widget _buildHosnObeControls({bool compact = false}) {
-    if (compact) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ScoreButton(
-            label: '-1',
-            onPressed: () => _updateHosnObeScore(-1),
-            minimumSize: const Size(120, 56),
-            fontSize: 22,
-            width: 120,
-          ),
-          const SizedBox(height: 8),
-          ScoreButton(
-            label: 'Reset',
-            onPressed: _resetHosnObePlayers,
-            minimumSize: const Size(120, 56),
-            fontSize: 18,
-            width: 120,
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ScoreButton(label: '-1', onPressed: () => _updateHosnObeScore(-1)),
-        const SizedBox(width: 20),
-        ScoreButton(
-          label: 'Reset',
-          onPressed: _resetHosnObePlayers,
-          minimumSize: const Size(120, 80),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildHosnObeBody() {
-    if (_isLoadingCounters) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final winner = _hosnObeWinner();
-    final isLandscape = _isHandsetLandscape(MediaQuery.of(context).size);
-    final playerWrap = SingleChildScrollView(
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 12,
-        runSpacing: 12,
-        children: hosnObePlayers.entries
-            .map(
-              (entry) => _buildHosnObePlayerCard(
-                entry.key,
-                entry.value,
-                compact: isLandscape,
-              ),
-            )
-            .toList(),
-      ),
-    );
-
-    if (isLandscape) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 18, 12),
-        child: Row(
-          children: [
-            Expanded(child: playerWrap),
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 132,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (winner != null) ...[
-                    WinnerBanner(winner: winner, compact: true),
-                    const SizedBox(height: 8),
-                  ],
-                  _buildHosnObeControls(compact: true),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      child: Column(
-        children: [
-          if (winner != null) WinnerBanner(winner: winner),
-          Expanded(child: playerWrap),
-          const SizedBox(height: 20),
-          _buildHosnObeControls(),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobileDrawerGesture =
-        !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.android ||
-            defaultTargetPlatform == TargetPlatform.iOS);
-    final body = widget.appMode == AppMode.watten
-        ? _buildWattenBody()
-        : widget.appMode == AppMode.mulatschak
-        ? _buildMulatschakBody()
-        : widget.appMode == AppMode.hosnObe
-        ? _buildHosnObeBody()
-        : _buildCounterBody();
+    final isMobileDrawerGesture = ResponsiveUtils.isMobilePlatform;
+    final body = _buildBody();
 
     return Scaffold(
       key: _scaffoldKey,
       appBar: _buildAppBar(),
       drawer: _buildDrawer(),
-      endDrawer: widget.appMode == AppMode.counter && counterHistoryEnabled
-          ? _buildHistoryDrawer()
-          : widget.appMode == AppMode.mulatschak && mulatschakHistoryEnabled
-          ? _buildMulatschakHistoryDrawer()
+      endDrawer:
+          widget.appMode == AppMode.counter && counterHistoryEnabled ||
+              widget.appMode == AppMode.mulatschak && mulatschakHistoryEnabled
+          ? _buildEndDrawer()
           : null,
       drawerEdgeDragWidth: isMobileDrawerGesture ? screenWidth * 0.5 : null,
       body: SafeArea(top: false, child: body),

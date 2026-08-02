@@ -1,11 +1,11 @@
 {
-    "name": "Counter",
-    "short_name": "Counter",
+    "name": "Kartler",
+    "short_name": "Kartler",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#ffffff",
-    "description": "Counter app.",
+    "description": "Scorekeeping app for counters and card games.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

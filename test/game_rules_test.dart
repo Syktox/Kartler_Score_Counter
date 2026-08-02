@@ -1,5 +1,5 @@
-import 'package:counter_app/models/game_rules.dart';
-import 'package:counter_app/models/watten_game.dart';
+import 'package:kartler/models/game_rules.dart';
+import 'package:kartler/models/watten_game.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:counter_app/main.dart';
+import 'package:kartler/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -624,7 +624,7 @@ Future<void> _pumpApp(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   SharedPreferences.setMockInitialValues(sharedPreferences);
-  await tester.pumpWidget(const MyApp());
+  await tester.pumpWidget(const KartlerApp());
   await tester.pumpAndSettle();
 }
 

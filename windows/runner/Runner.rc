@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "Counter" "\0"
+            VALUE "CompanyName", "Raysix" "\0"
+            VALUE "FileDescription", "Kartler" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "Counter" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "Counter.exe" "\0"
-            VALUE "ProductName", "Counter" "\0"
+            VALUE "InternalName", "Kartler" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Raysix. All rights reserved." "\0"
+            VALUE "OriginalFilename", "Kartler.exe" "\0"
+            VALUE "ProductName", "Kartler" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

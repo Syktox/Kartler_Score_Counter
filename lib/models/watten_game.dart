@@ -2,26 +2,14 @@ class WattenGame {
   final int me;
   final int you;
 
-  const WattenGame({
-    required this.me,
-    required this.you,
-  });
+  const WattenGame({required this.me, required this.you});
 
-  WattenGame copyWith({
-    int? me,
-    int? you,
-  }) {
-    return WattenGame(
-      me: me ?? this.me,
-      you: you ?? this.you,
-    );
+  WattenGame copyWith({int? me, int? you}) {
+    return WattenGame(me: me ?? this.me, you: you ?? this.you);
   }
 
   Map<String, int> toJson() {
-    return {
-      'me': me,
-      'you': you,
-    };
+    return {'me': me, 'you': you};
   }
 
   static WattenGame fromJson(Map<String, dynamic> json) {

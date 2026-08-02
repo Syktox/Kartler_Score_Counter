@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'core/app_constants.dart';
 import 'models/app_mode.dart';
 import 'screens/home_page.dart';
 
@@ -13,17 +14,17 @@ void main() {
       overlays: SystemUiOverlay.values,
     ),
   );
-  runApp(const MyApp());
+  runApp(const KartlerApp());
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+class KartlerApp extends StatefulWidget {
+  const KartlerApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<KartlerApp> createState() => _KartlerAppState();
 }
 
-class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+class _KartlerAppState extends State<KartlerApp> with WidgetsBindingObserver {
   ThemeMode _themeMode = ThemeMode.system;
   AppMode _appMode = AppMode.counter;
 
@@ -66,7 +67,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Counter',
+      title: AppConstants.name,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         final theme = Theme.of(context);

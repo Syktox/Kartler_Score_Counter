@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:counter_app/models/app_mode.dart';
-import 'package:counter_app/models/watten_game.dart';
-import 'package:counter_app/services/counter_storage_service.dart';
+import 'package:kartler/models/app_mode.dart';
+import 'package:kartler/models/watten_game.dart';
+import 'package:kartler/services/counter_storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

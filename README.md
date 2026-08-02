@@ -1,4 +1,4 @@
-# Counter
+# Kartler
 
 A Flutter app for tracking different counters and scoreboards in one place. In addition to classic counters, the app includes a Watten mode and a Mulatschak mode with locally persisted game state.
 
@@ -77,7 +77,7 @@ flutter build macos
 The generated app bundle will be available at:
 
 ```bash
-build/macos/Build/Products/Release/counter_app.app
+build/macos/Build/Products/Release/Kartler.app
 ```
 
 If desktop support is not enabled yet:

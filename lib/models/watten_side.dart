@@ -1,0 +1,1 @@
+enum WattenSide { me, you }
