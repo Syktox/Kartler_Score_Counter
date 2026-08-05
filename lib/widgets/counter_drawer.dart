@@ -138,11 +138,8 @@ class CounterDrawer extends StatelessWidget {
                 ),
               ),
             ),
-            Material(
+            KeyedSubtree(
               key: const ValueKey('drawer-settings-footer'),
-              color:
-                  Theme.of(context).drawerTheme.backgroundColor ??
-                  Theme.of(context).canvasColor,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

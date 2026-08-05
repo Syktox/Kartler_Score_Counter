@@ -35,11 +35,7 @@ void main() {
     expect(boundary, findsOneWidget);
     expect(clip, findsWidgets);
     expect(settingsFooter, findsOneWidget);
-    expect(
-      tester.widget<Material>(settingsFooter).color,
-      Theme.of(tester.element(settingsFooter)).drawerTheme.backgroundColor ??
-          Theme.of(tester.element(settingsFooter)).canvasColor,
-    );
+    expect(tester.widget<KeyedSubtree>(settingsFooter).child, isA<Column>());
     expect(
       tester.getBottomRight(boundary).dy,
       lessThanOrEqualTo(tester.getTopLeft(settings).dy),
