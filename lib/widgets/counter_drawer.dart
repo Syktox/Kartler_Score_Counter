@@ -43,7 +43,10 @@ class CounterDrawer extends StatelessWidget {
         selectedTileColor: Theme.of(
           context,
         ).colorScheme.primary.withValues(alpha: 0.08),
-        title: Text(counter),
+        title: Tooltip(
+          message: counter,
+          child: Text(counter, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -76,6 +79,21 @@ class CounterDrawer extends StatelessWidget {
     );
   }
 
+  Widget _buildReorderProxy(
+    Widget child,
+    int index,
+    Animation<double> animation,
+  ) {
+    return ClipRect(
+      key: const ValueKey('drawer-reorder-proxy'),
+      child: Material(
+        key: const ValueKey('drawer-reorder-proxy-material'),
+        elevation: 0,
+        child: child,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -84,46 +102,63 @@ class CounterDrawer extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: ReorderableListView.builder(
-                buildDefaultDragHandles: false,
-                itemCount: items.length + 1,
-                onReorder: (oldIndex, newIndex) {
-                  if (oldIndex == items.length || newIndex > items.length) {
-                    return;
-                  }
-                  if (enableReorder && onReorderItems != null) {
-                    onReorderItems!(oldIndex, newIndex);
-                  }
-                },
-                itemBuilder: (context, index) {
-                  if (index == items.length) {
-                    return ListTile(
-                      key: const ValueKey('add-item-tile'),
-                      leading: Icon(addButtonIcon),
-                      title: Text(addButtonLabel),
-                      onTap: () {
-                        if (closeDrawerOnAdd) {
-                          Navigator.of(context).pop();
-                        }
-                        onAddNewItem();
-                      },
-                    );
-                  }
+              child: ClipRect(
+                child: DragBoundary(
+                  child: ReorderableListView.builder(
+                    buildDefaultDragHandles: false,
+                    dragBoundaryProvider: DragBoundary.forRectOf,
+                    proxyDecorator: _buildReorderProxy,
+                    itemCount: items.length + 1,
+                    onReorder: (oldIndex, newIndex) {
+                      if (oldIndex == items.length || newIndex > items.length) {
+                        return;
+                      }
+                      if (enableReorder && onReorderItems != null) {
+                        onReorderItems!(oldIndex, newIndex);
+                      }
+                    },
+                    itemBuilder: (context, index) {
+                      if (index == items.length) {
+                        return ListTile(
+                          key: const ValueKey('add-item-tile'),
+                          leading: Icon(addButtonIcon),
+                          title: Text(addButtonLabel),
+                          onTap: () {
+                            if (closeDrawerOnAdd) {
+                              Navigator.of(context).pop();
+                            }
+                            onAddNewItem();
+                          },
+                        );
+                      }
 
-                  return _buildCounterTile(context, items[index], index);
-                },
+                      return _buildCounterTile(context, items[index], index);
+                    },
+                  ),
+                ),
               ),
             ),
-            const Divider(),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: ListTile(
-                leading: const Icon(Icons.settings),
-                title: const Text('Settings'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onOpenSettings();
-                },
+            Material(
+              key: const ValueKey('drawer-settings-footer'),
+              color:
+                  Theme.of(context).drawerTheme.backgroundColor ??
+                  Theme.of(context).canvasColor,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: ListTile(
+                      leading: const Icon(Icons.settings),
+                      title: const Text('Settings'),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        onOpenSettings();
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

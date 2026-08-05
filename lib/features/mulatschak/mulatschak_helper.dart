@@ -91,10 +91,16 @@ class MulatschakHelper {
     if (nextRoundPlayers.remove(oldName)) {
       nextRoundPlayers.add(newName);
     }
+    final renamedPlayers = OrderedMapUtils.renameSelectedKey(
+      values: players,
+      selectedKey: currentPlayer,
+      oldKey: oldName,
+      newKey: newName,
+    );
 
     return (
-      players: OrderedMapUtils.renameKey(players, oldName, newName),
-      currentPlayer: currentPlayer == oldName ? newName : currentPlayer,
+      players: renamedPlayers.values,
+      currentPlayer: renamedPlayers.selectedKey,
       roundPlayers: nextRoundPlayers,
     );
   }
@@ -112,20 +118,22 @@ class MulatschakHelper {
     required int historyRound,
     required String playerName,
   }) {
-    final nextPlayers = Map<String, int>.from(players)..remove(playerName);
+    final removedPlayer = OrderedMapUtils.removeSelectedKey(
+      values: players,
+      selectedKey: currentPlayer,
+      key: playerName,
+    );
     var nextRoundPlayers = Set<String>.from(roundPlayers)..remove(playerName);
     var nextHistoryRound = historyRound;
 
-    if (nextRoundPlayers.length >= nextPlayers.length) {
+    if (nextRoundPlayers.length >= removedPlayer.values.length) {
       nextHistoryRound += 1;
       nextRoundPlayers = {};
     }
 
     return (
-      players: nextPlayers,
-      currentPlayer: currentPlayer == playerName
-          ? nextPlayers.keys.first
-          : currentPlayer,
+      players: removedPlayer.values,
+      currentPlayer: removedPlayer.selectedKey,
       roundPlayers: nextRoundPlayers,
       historyRound: nextHistoryRound,
     );

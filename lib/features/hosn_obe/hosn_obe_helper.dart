@@ -54,9 +54,16 @@ class HosnObeHelper {
     required String oldName,
     required String newName,
   }) {
+    final renamedPlayers = OrderedMapUtils.renameSelectedKey(
+      values: players,
+      selectedKey: currentPlayer,
+      oldKey: oldName,
+      newKey: newName,
+    );
+
     return (
-      players: OrderedMapUtils.renameKey(players, oldName, newName),
-      currentPlayer: currentPlayer == oldName ? newName : currentPlayer,
+      players: renamedPlayers.values,
+      currentPlayer: renamedPlayers.selectedKey,
     );
   }
 
@@ -65,13 +72,15 @@ class HosnObeHelper {
     required String currentPlayer,
     required String playerName,
   }) {
-    final nextPlayers = Map<String, int>.from(players)..remove(playerName);
+    final removedPlayer = OrderedMapUtils.removeSelectedKey(
+      values: players,
+      selectedKey: currentPlayer,
+      key: playerName,
+    );
 
     return (
-      players: nextPlayers,
-      currentPlayer: currentPlayer == playerName
-          ? nextPlayers.keys.first
-          : currentPlayer,
+      players: removedPlayer.values,
+      currentPlayer: removedPlayer.selectedKey,
     );
   }
 }

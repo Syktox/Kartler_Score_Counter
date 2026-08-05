@@ -76,15 +76,22 @@ class CounterHelper {
     required String oldName,
     required String newName,
   }) {
+    final renamedCounters = OrderedMapUtils.renameSelectedKey(
+      values: counters,
+      selectedKey: currentCounter,
+      oldKey: oldName,
+      newKey: newName,
+    );
+
     return (
-      counters: OrderedMapUtils.renameKey(counters, oldName, newName),
+      counters: renamedCounters.values,
       history: OrderedMapUtils.renameKey(
         history,
         oldName,
         newName,
         copyValue: List<String>.from,
       ),
-      currentCounter: currentCounter == oldName ? newName : currentCounter,
+      currentCounter: renamedCounters.selectedKey,
     );
   }
 
@@ -99,16 +106,18 @@ class CounterHelper {
     required String currentCounter,
     required String counterName,
   }) {
-    final nextCounters = Map<String, int>.from(counters)..remove(counterName);
+    final removedCounter = OrderedMapUtils.removeSelectedKey(
+      values: counters,
+      selectedKey: currentCounter,
+      key: counterName,
+    );
     final nextHistory = Map<String, List<String>>.from(history)
       ..remove(counterName);
 
     return (
-      counters: nextCounters,
+      counters: removedCounter.values,
       history: nextHistory,
-      currentCounter: currentCounter == counterName
-          ? nextCounters.keys.first
-          : currentCounter,
+      currentCounter: removedCounter.selectedKey,
     );
   }
 

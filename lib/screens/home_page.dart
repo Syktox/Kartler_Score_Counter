@@ -1030,7 +1030,6 @@ class _HomePageState extends State<HomePage> {
       context: context,
       title: 'Delete Counter',
       itemName: counterName,
-      autofocusDelete: true,
       onDelete: _deleteCounter,
     );
   }
@@ -1066,7 +1065,6 @@ class _HomePageState extends State<HomePage> {
       context: context,
       title: 'Delete Player',
       itemName: playerName,
-      autofocusDelete: true,
       onDelete: onDelete,
     );
   }
@@ -1289,6 +1287,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       key: _scaffoldKey,
+      resizeToAvoidBottomInset: false,
       appBar: _buildAppBar(),
       drawer: _buildDrawer(),
       endDrawer: _hasEndDrawer ? _buildEndDrawer() : null,
