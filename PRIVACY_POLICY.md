@@ -2,7 +2,7 @@
 
 Last updated: August 6, 2026
 
-Kartler is a scorekeeping app for counters and card games. This policy explains what data the app stores and how external links are handled.
+Kartler is a scorekeeping app for counters and card games. This policy explains what data the app stores, how optional store donations work, and how external links are handled.
 
 ## Data Stored By The App
 
@@ -17,7 +17,11 @@ This data stays on your device. Kartler does not send these saved scores, names,
 
 ## External Links
 
-Kartler may open external links, such as a donation or support link, with `url_launcher`. When you open an external link, your browser or the target app handles that website or service. Their privacy practices are governed by their own policies.
+Kartler may open external links, such as bug report links, with `url_launcher`. When you open an external link, your browser or the target app handles that website or service. Their privacy practices are governed by their own policies.
+
+## Store Donations
+
+Kartler may offer optional donations through the store billing system. Payment processing is handled by the app store, such as Google Play on Android. The store may provide purchase status updates to Kartler so the transaction can be completed. Donations do not unlock app features.
 
 ## Analytics, Advertising, And Tracking
 

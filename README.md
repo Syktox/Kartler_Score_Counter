@@ -181,7 +181,7 @@ Covered scenarios include:
 
 Kartler stores scores, names, history, and app settings locally on the device with `shared_preferences`. The app does not include analytics, advertising SDKs, or third-party tracking SDKs.
 
-External links, such as donation or support links, are opened with `url_launcher` in the user's browser or target app. Those external websites or services are governed by their own privacy policies.
+Optional donations are handled by the store billing system through `in_app_purchase`. External links, such as bug report links, are opened with `url_launcher` in the user's browser or target app. Those external websites or services are governed by their own privacy policies.
 
 See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for the full privacy policy.
 
@@ -215,7 +215,8 @@ Notes:
 ## Packages Used
 
 - `shared_preferences` for local storage
-- `url_launcher` for the donation link
+- `in_app_purchase` for optional store donations
+- `url_launcher` for bug report links
 - `flutter_launcher_icons` for app icon generation
 
 ## Contributing

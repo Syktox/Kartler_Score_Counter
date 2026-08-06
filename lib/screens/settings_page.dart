@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_mode.dart';
 import 'bug_report_page.dart';
+import 'donation_page.dart';
 import 'privacy_policy_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -328,6 +329,18 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
                 icon: const Icon(Icons.privacy_tip_outlined),
                 label: const Text('Privacy Policy'),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => DonationPage()));
+                },
+                icon: const Icon(Icons.favorite_outline),
+                label: const Text('Send a donation'),
               ),
             ),
             Padding(

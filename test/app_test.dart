@@ -250,6 +250,29 @@ void main() {
       expect(find.text('Data stored by the app'), findsOneWidget);
       expect(find.text('External links'), findsOneWidget);
     });
+
+    testWidgets('shows donation button between privacy and bug report', (
+      tester,
+    ) async {
+      await _pumpApp(tester);
+
+      await _openSettings(tester);
+      final privacyButton = find.text('Privacy Policy');
+      final donationButton = find.text('Send a donation');
+      final reportButton = find.text('Report a bug');
+      await tester.ensureVisible(reportButton);
+      await tester.pumpAndSettle();
+
+      expect(donationButton, findsOneWidget);
+      expect(
+        tester.getTopLeft(donationButton).dy,
+        greaterThan(tester.getTopLeft(privacyButton).dy),
+      );
+      expect(
+        tester.getTopLeft(donationButton).dy,
+        lessThan(tester.getTopLeft(reportButton).dy),
+      );
+    });
   });
 
   group('Watten mode', () {

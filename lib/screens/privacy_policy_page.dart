@@ -32,9 +32,14 @@ class PrivacyPolicyPage extends StatelessWidget {
                   'This data stays on your device. Kartler does not send saved scores, names, settings, or history entries to the developer or to an external server.',
             ),
             _PrivacySection(
+              title: 'Store donations',
+              body:
+                  'Optional donations are handled by the store billing system. The store processes the payment and may provide purchase status updates to the app so the transaction can be completed.',
+            ),
+            _PrivacySection(
               title: 'External links',
               body:
-                  'Kartler may open external links, such as donation or support links, with url_launcher. When you open an external link, your browser or the target app handles that website or service.',
+                  'Kartler may open external links, such as bug report links, with url_launcher. When you open an external link, your browser or the target app handles that website or service.',
             ),
             _PrivacySection(
               title: 'Analytics and tracking',
