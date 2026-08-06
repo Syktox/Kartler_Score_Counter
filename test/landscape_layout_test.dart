@@ -35,7 +35,7 @@ void main() {
     expect(boundary, findsOneWidget);
     expect(clip, findsWidgets);
     expect(settingsFooter, findsOneWidget);
-    expect(tester.widget<KeyedSubtree>(settingsFooter).child, isA<Column>());
+    expect(tester.widget<KeyedSubtree>(settingsFooter).child, isA<Material>());
     expect(
       tester.getBottomRight(boundary).dy,
       lessThanOrEqualTo(tester.getTopLeft(settings).dy),
@@ -77,6 +77,14 @@ void main() {
           )
           .elevation,
       0,
+    );
+    expect(
+      tester.getBottomRight(proxy).dy,
+      lessThanOrEqualTo(
+        tester
+            .getTopLeft(find.byKey(const ValueKey('drawer-settings-footer')))
+            .dy,
+      ),
     );
 
     await gesture.up();

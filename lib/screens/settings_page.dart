@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_mode.dart';
 import 'bug_report_page.dart';
+import 'privacy_policy_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final ThemeMode currentThemeMode;
@@ -316,7 +317,21 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const Divider(),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const PrivacyPolicyPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.privacy_tip_outlined),
+                label: const Text('Privacy Policy'),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: OutlinedButton.icon(
                 onPressed: () {
                   Navigator.of(context).push(

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 typedef CounterNameCallback = void Function(String counterName);
 typedef ReorderItemsCallback = void Function(int oldIndex, int newIndex);
 
+const double _settingsFooterHeight = 80;
+
 class CounterDrawer extends StatelessWidget {
   final List<String> items;
   final String selectedItem;
@@ -33,16 +35,15 @@ class CounterDrawer extends StatelessWidget {
     required this.onOpenSettings,
   });
 
-  Widget _buildCounterTile(BuildContext context, String counter, int index) {
-    final isSelected = counter == selectedItem;
+  void _clearDrawerFocus() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
 
+  Widget _buildCounterTile(BuildContext context, String counter, int index) {
     return Container(
       key: ValueKey(counter),
       child: ListTile(
-        selected: isSelected,
-        selectedTileColor: Theme.of(
-          context,
-        ).colorScheme.primary.withValues(alpha: 0.08),
+        focusColor: Colors.transparent,
         title: Tooltip(
           message: counter,
           child: Text(counter, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -53,12 +54,18 @@ class CounterDrawer extends StatelessWidget {
             if (onRenameItem != null)
               IconButton(
                 icon: const Icon(Icons.edit),
-                onPressed: () => onRenameItem!(counter),
+                onPressed: () {
+                  _clearDrawerFocus();
+                  onRenameItem!(counter);
+                },
                 tooltip: 'Rename item',
               ),
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              onPressed: () => onDeleteItem(counter),
+              onPressed: () {
+                _clearDrawerFocus();
+                onDeleteItem(counter);
+              },
               tooltip: 'Delete item',
             ),
             if (enableReorder)
@@ -72,6 +79,7 @@ class CounterDrawer extends StatelessWidget {
           ],
         ),
         onTap: () {
+          _clearDrawerFocus();
           onSelectItem(counter);
           Navigator.of(context).pop();
         },
@@ -94,69 +102,102 @@ class CounterDrawer extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      child: SafeArea(
-        top: true,
-        child: Column(
-          children: [
-            Expanded(
-              child: ClipRect(
-                child: DragBoundary(
-                  child: ReorderableListView.builder(
-                    buildDefaultDragHandles: false,
-                    dragBoundaryProvider: DragBoundary.forRectOf,
-                    proxyDecorator: _buildReorderProxy,
-                    itemCount: items.length + 1,
-                    onReorder: (oldIndex, newIndex) {
-                      if (oldIndex == items.length || newIndex > items.length) {
-                        return;
-                      }
-                      if (enableReorder && onReorderItems != null) {
-                        onReorderItems!(oldIndex, newIndex);
-                      }
-                    },
-                    itemBuilder: (context, index) {
-                      if (index == items.length) {
-                        return ListTile(
-                          key: const ValueKey('add-item-tile'),
-                          leading: Icon(addButtonIcon),
-                          title: Text(addButtonLabel),
-                          onTap: () {
-                            if (closeDrawerOnAdd) {
-                              Navigator.of(context).pop();
-                            }
-                            onAddNewItem();
-                          },
-                        );
-                      }
+  Widget _buildItemList() {
+    return ClipRect(
+      child: DragBoundary(
+        child: ReorderableListView.builder(
+          buildDefaultDragHandles: false,
+          dragBoundaryProvider: DragBoundary.forRectOf,
+          padding: const EdgeInsets.only(bottom: _settingsFooterHeight),
+          proxyDecorator: _buildReorderProxy,
+          itemCount: items.length + 1,
+          onReorder: (oldIndex, newIndex) {
+            if (oldIndex == items.length || newIndex > items.length) {
+              return;
+            }
+            if (enableReorder && onReorderItems != null) {
+              onReorderItems!(oldIndex, newIndex);
+            }
+          },
+          itemBuilder: (context, index) {
+            if (index == items.length) {
+              return ListTile(
+                key: const ValueKey('add-item-tile'),
+                focusColor: Colors.transparent,
+                leading: Icon(addButtonIcon),
+                title: Text(addButtonLabel),
+                onTap: () {
+                  _clearDrawerFocus();
+                  if (closeDrawerOnAdd) {
+                    Navigator.of(context).pop();
+                  }
+                  onAddNewItem();
+                },
+              );
+            }
 
-                      return _buildCounterTile(context, items[index], index);
-                    },
-                  ),
-                ),
+            return _buildCounterTile(context, items[index], index);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsFooter(BuildContext context) {
+    final drawerBackgroundColor =
+        DrawerTheme.of(context).backgroundColor ??
+        Theme.of(context).colorScheme.surface;
+
+    return KeyedSubtree(
+      key: const ValueKey('drawer-settings-footer'),
+      child: Material(
+        color: drawerBackgroundColor,
+        elevation: 8,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Divider(height: 1),
+            SizedBox(
+              height: _settingsFooterHeight - 1,
+              child: ListTile(
+                focusColor: Colors.transparent,
+                leading: const Icon(Icons.settings),
+                title: const Text('Settings'),
+                onTap: () {
+                  _clearDrawerFocus();
+                  Navigator.of(context).pop();
+                  onOpenSettings();
+                },
               ),
             ),
-            KeyedSubtree(
-              key: const ValueKey('drawer-settings-footer'),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: ListTile(
-                      leading: const Icon(Icons.settings),
-                      title: const Text('Settings'),
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        onOpenSettings();
-                      },
-                    ),
-                  ),
-                ],
-              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final drawerBackgroundColor =
+        DrawerTheme.of(context).backgroundColor ??
+        Theme.of(context).colorScheme.surface;
+
+    return Drawer(
+      backgroundColor: drawerBackgroundColor,
+      child: SafeArea(
+        top: true,
+        bottom: false,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              bottom: _settingsFooterHeight,
+              child: _buildItemList(),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildSettingsFooter(context),
             ),
           ],
         ),

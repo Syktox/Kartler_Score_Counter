@@ -65,6 +65,31 @@ void main() {
       expect(find.text('Reading days'), findsNothing);
     });
 
+    testWidgets('drawer items do not keep a selected or focus highlight', (
+      tester,
+    ) async {
+      await _pumpApp(tester);
+      await _openDrawer(tester);
+
+      final currentCounterTile = tester.widget<ListTile>(
+        _drawerTileForItem('Workout streak'),
+      );
+      final addCounterTile = tester.widget<ListTile>(
+        find.widgetWithText(ListTile, 'New Counter'),
+      );
+      final settingsTile = tester.widget<ListTile>(
+        find.descendant(
+          of: find.byType(Drawer),
+          matching: find.widgetWithText(ListTile, 'Settings'),
+        ),
+      );
+
+      expect(currentCounterTile.selected, isFalse);
+      expect(currentCounterTile.focusColor, Colors.transparent);
+      expect(addCounterTile.focusColor, Colors.transparent);
+      expect(settingsTile.focusColor, Colors.transparent);
+    });
+
     testWidgets('shows counter history when enabled', (tester) async {
       await _pumpApp(tester);
 
@@ -210,6 +235,20 @@ void main() {
       expect(_textFieldWithLabel('Title'), findsOneWidget);
       expect(_textFieldWithLabel('Description'), findsOneWidget);
       expect(find.text('Device information'), findsOneWidget);
+    });
+
+    testWidgets('opens privacy policy page from settings', (tester) async {
+      await _pumpApp(tester);
+
+      await _openSettings(tester);
+      final privacyButton = find.text('Privacy Policy');
+      await tester.ensureVisible(privacyButton);
+      await tester.tap(privacyButton);
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(AppBar, 'Privacy Policy'), findsOneWidget);
+      expect(find.text('Data stored by the app'), findsOneWidget);
+      expect(find.text('External links'), findsOneWidget);
     });
   });
 
@@ -653,14 +692,19 @@ Future<void> _closeDrawer(WidgetTester tester) async {
 }
 
 Finder _drawerActionForItem(String itemName, String tooltip) {
-  final itemTile = find.ancestor(
+  return find.descendant(
+    of: _drawerTileForItem(itemName),
+    matching: find.byTooltip(tooltip),
+  );
+}
+
+Finder _drawerTileForItem(String itemName) {
+  return find.ancestor(
     of: find
         .descendant(of: find.byType(Drawer), matching: find.text(itemName))
         .last,
     matching: find.byType(ListTile),
   );
-
-  return find.descendant(of: itemTile, matching: find.byTooltip(tooltip));
 }
 
 Finder _textFieldWithLabel(String label) {
