@@ -111,8 +111,8 @@ class CounterDrawer extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: _settingsFooterHeight),
           proxyDecorator: _buildReorderProxy,
           itemCount: items.length + 1,
-          onReorder: (oldIndex, newIndex) {
-            if (oldIndex == items.length || newIndex > items.length) {
+          onReorderItem: (oldIndex, newIndex) {
+            if (oldIndex == items.length || newIndex >= items.length) {
               return;
             }
             if (enableReorder && onReorderItems != null) {
