@@ -3,8 +3,7 @@ name: Build And Release
 on:
   push:
     tags:
-      - "v*"
-      - "[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+"
   workflow_dispatch:
     inputs:
       tag:
@@ -131,8 +130,8 @@ jobs:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Install latest dependencies
+        run: flutter pub upgrade --major-versions
 
       - name: Analyze Flutter project
         run: flutter analyze
@@ -177,8 +176,8 @@ jobs:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Install latest dependencies
+        run: flutter pub upgrade --major-versions
 
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
@@ -278,8 +277,8 @@ jobs:
       - name: Enable Windows desktop
         run: flutter config --enable-windows-desktop
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Install latest dependencies
+        run: flutter pub upgrade --major-versions
 
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
@@ -342,8 +341,8 @@ jobs:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Install latest dependencies
+        run: flutter pub upgrade --major-versions
 
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
@@ -463,8 +462,8 @@ jobs:
       - name: Enable macOS desktop
         run: flutter config --enable-macos-desktop
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Install latest dependencies
+        run: flutter pub upgrade --major-versions
 
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
