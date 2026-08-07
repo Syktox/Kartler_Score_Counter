@@ -14,6 +14,7 @@ class _BugReportPageState extends State<BugReportPage> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  bool _includeDeviceInfo = true;
 
   @override
   void dispose() {
@@ -53,7 +54,7 @@ class _BugReportPageState extends State<BugReportPage> {
       context: context,
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
-      deviceInfo: _deviceInfo(context),
+      deviceInfo: _includeDeviceInfo ? _deviceInfo(context) : null,
     );
   }
 
@@ -107,16 +108,31 @@ class _BugReportPageState extends State<BugReportPage> {
                 },
               ),
               const SizedBox(height: 16),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: const Text('Device information'),
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: SelectableText(deviceInfo),
-                  ),
-                ],
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Include device information'),
+                subtitle: const Text('Platform, screen size, orientation, etc.'),
+                value: _includeDeviceInfo,
+                overlayColor: WidgetStatePropertyAll(Colors.transparent),
+                onChanged: (value) {
+                  setState(() {
+                    _includeDeviceInfo = value ?? true;
+                  });
+                },
               ),
+              if (_includeDeviceInfo) ...[
+                const SizedBox(height: 16),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: const Text('Device information'),
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SelectableText(deviceInfo),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: _sendReport,

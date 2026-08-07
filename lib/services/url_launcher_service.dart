@@ -11,18 +11,17 @@ class UrlLauncherService {
     required BuildContext context,
     required String title,
     required String description,
-    required String deviceInfo,
+    String? deviceInfo,
   }) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final issueTitle = '${AppConstants.bugReportSubjectPrefix} $title';
-    final body =
-        '''
+    final body = '''
 ### Description
 $description
-
+${deviceInfo != null ? '''
 ### Device information
 $deviceInfo
-''';
+''' : ''}''';
     final uri = Uri.parse(
       AppConstants.githubIssuesUrl,
     ).replace(queryParameters: {'title': issueTitle, 'body': body});
