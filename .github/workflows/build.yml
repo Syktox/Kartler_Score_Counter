@@ -113,9 +113,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Install macOS pods
-        run: pod install --project-directory=macos
-
       - name: Build macOS app
         run: flutter build macos --release
 
@@ -141,9 +138,6 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Install iOS pods
-        run: pod install --project-directory=ios
 
       - name: Build unsigned iOS app
         run: flutter build ios --release --no-codesign
