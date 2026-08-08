@@ -515,7 +515,7 @@ jobs:
           find release-assets -maxdepth 1 -type f -print | sort
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare_release.outputs.tag_name }}
           name: ${{ needs.prepare_release.outputs.release_name }}
