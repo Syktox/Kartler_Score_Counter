@@ -347,9 +347,6 @@ jobs:
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
 
-      - name: Install iOS pods
-        run: pod install --project-directory=ios
-
       - name: Configure iOS App Store signing
         id: ios_signing
         shell: bash
@@ -467,9 +464,6 @@ jobs:
 
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
-
-      - name: Install macOS pods
-        run: pod install --project-directory=macos
 
       - name: Build macOS app
         run: >
