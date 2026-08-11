@@ -1,0 +1,272 @@
+import 'dart:async';
+import 'dart:collection';
+
+import '../../commands/callback_command.dart';
+import '../../core/haptics_service.dart';
+import '../../persistence/repositories/counter_repository.dart';
+import '../../utils/history_utils.dart';
+import '../feature_controller.dart';
+import '../settings/settings_controller.dart';
+import 'counter_helper.dart';
+
+/// State und Geschäftslogik des freien Zählers.
+///
+/// Änderungen laufen über [UndoableCommand]s durch die [history],
+/// dadurch sind Undo und Redo ohne State-Snapshots möglich.
+class CounterController extends FeatureController {
+  CounterController({
+    required CounterRepository repository,
+    required SettingsController settings,
+    required HapticsService haptics,
+  }) : _repository = repository,
+       _settings = settings,
+       _haptics = haptics;
+
+  final CounterRepository _repository;
+  final SettingsController _settings;
+  final HapticsService _haptics;
+
+  Map<String, int> counters = Map<String, int>.from(
+    CounterRepository.defaultCounters,
+  );
+  String currentCounter = CounterRepository.defaultCurrentCounter;
+  Map<String, List<String>> counterHistory = {};
+  DateTime roundStartedAt = DateTime.now();
+
+  bool get historyEnabled => _settings.counterHistoryEnabled;
+  bool get negativeEnabled => _settings.counterNegativeEnabled;
+
+  @override
+  Future<void> load() async {
+    final data = await _repository.load();
+    counters = data.counters;
+    currentCounter = data.currentCounter;
+    counterHistory = data.history;
+    roundStartedAt = DateTime.now();
+    isLoading = false;
+  }
+
+  void increment() {
+    _changeScore(currentCounter, counters[currentCounter]! + 1, 'erhöht');
+  }
+
+  void decrement() {
+    if (!CounterHelper.canDecrement(
+      score: counters[currentCounter]!,
+      allowNegative: negativeEnabled,
+    )) {
+      return;
+    }
+    _changeScore(currentCounter, counters[currentCounter]! - 1, 'verringert');
+  }
+
+  void reset() {
+    final score = counters[currentCounter]!;
+    if (score == 0) {
+      return;
+    }
+    _changeScore(currentCounter, 0, 'zurückgesetzt');
+  }
+
+  /// Setzt alle Zähler auf 0 (für „Partie abschließen“).
+  void resetBoard() {
+    if (counters.values.every((value) => value == 0)) {
+      return;
+    }
+    _pushUndoable(() {
+      for (final name in counters.keys.toList()) {
+        if (counters[name] != 0) {
+          _applyScoreChange(name, 0, null, recordEntry: false);
+        }
+      }
+      roundStartedAt = DateTime.now();
+    });
+  }
+
+  void _changeScore(String counterName, int newValue, String action) {
+    final oldValue = counters[counterName]!;
+    final changeTime = DateTime.now();
+    _pushUndoable(() {
+      _applyScoreChange(
+        counterName,
+        newValue,
+        '${HistoryUtils.formatTime(changeTime)} - $action.',
+        recordEntry: true,
+      );
+    }, revert: () {
+      _applyScoreChange(
+        counterName,
+        oldValue,
+        '${HistoryUtils.formatTime(changeTime)} - $action.',
+        recordEntry: false,
+      );
+    });
+    unawaited(_haptics.light());
+  }
+
+  /// Wendet eine Punktänderung direkt an (ohne Undo-Verlauf).
+  void _applyScoreChange(
+    String counterName,
+    int newValue,
+    String? entry, {
+    required bool recordEntry,
+  }) {
+    counters = Map<String, int>.from(counters)..[counterName] = newValue;
+    if (entry == null) {
+      // Kein Verlaufseintrag (z. B. Reset von Mehreren).
+    } else if (recordEntry) {
+      if (historyEnabled) {
+        counterHistory = CounterHelper.recordHistory(
+          enabled: true,
+          history: counterHistory,
+          counterName: counterName,
+          entry: entry,
+        );
+      }
+    } else {
+      counterHistory = _removeFirstHistoryEntry(
+        counterHistory,
+        counterName,
+        entry,
+      );
+    }
+    notifyListeners();
+    unawaited(_persist());
+  }
+
+  static Map<String, List<String>> _removeFirstHistoryEntry(
+    Map<String, List<String>> history,
+    String counterName,
+    String entry,
+  ) {
+    final entries = history[counterName] ?? const <String>[];
+    if (!entries.contains(entry)) {
+      return history;
+    }
+    final next = List<String>.from(entries)..remove(entry);
+    return Map<String, List<String>>.from(history)
+      ..[counterName] = next;
+  }
+
+  void selectCounter(String counter) {
+    if (currentCounter == counter || !counters.containsKey(counter)) {
+      return;
+    }
+    _mutate(() => currentCounter = counter);
+  }
+
+  void addCounter(String counterName) {
+    final result = CounterHelper.addCounter(
+      counters: counters,
+      counterName: counterName,
+    );
+    final oldCurrent = currentCounter;
+    _pushUndoable(() {
+      counters = result.counters;
+      currentCounter = result.currentCounter;
+    }, revert: () {
+      counters = LinkedHashMap<String, int>.from(counters)..remove(counterName);
+      currentCounter = oldCurrent;
+    });
+    unawaited(_haptics.light());
+  }
+
+  void renameCounter(String oldName, String newName) {
+    final result = CounterHelper.renameCounter(
+      counters: counters,
+      history: counterHistory,
+      currentCounter: currentCounter,
+      oldName: oldName,
+      newName: newName,
+    );
+    _pushUndoable(() {
+      counters = result.counters;
+      counterHistory = result.history;
+      currentCounter = result.currentCounter;
+    }, revert: () {
+      counters = CounterHelper.renameCounter(
+        counters: counters,
+        history: counterHistory,
+        currentCounter: currentCounter,
+        oldName: newName,
+        newName: oldName,
+      ).counters;
+      counterHistory = CounterHelper.renameCounter(
+        counters: counters,
+        history: counterHistory,
+        currentCounter: currentCounter,
+        oldName: newName,
+        newName: oldName,
+      ).history;
+      currentCounter = oldName;
+    });
+    unawaited(_haptics.light());
+  }
+
+  void deleteCounter(String counterName) {
+    if (counters.length <= 1) {
+      return;
+    }
+    final result = CounterHelper.deleteCounter(
+      counters: counters,
+      history: counterHistory,
+      currentCounter: currentCounter,
+      counterName: counterName,
+    );
+    _pushUndoable(() {
+      counters = result.counters;
+      counterHistory = result.history;
+      currentCounter = result.currentCounter;
+    }, revert: () {
+      final entries = counters.entries.toList();
+      counters = LinkedHashMap<String, int>.fromEntries([
+        ...entries.takeWhile((entry) => entry.key != counterName),
+        MapEntry(counterName, 0),
+        ...entries.skipWhile((entry) => entry.key != counterName),
+      ]);
+      counterHistory = Map<String, List<String>>.from(counterHistory)
+        ..remove(counterName);
+      currentCounter = counterName;
+    });
+    unawaited(_haptics.light());
+  }
+
+  void reorderCounters(int oldIndex, int newIndex) {
+    final reordered = CounterHelper.reorderCounters(counters, oldIndex, newIndex);
+    if (reordered == null) {
+      return;
+    }
+    final original = LinkedHashMap<String, int>.from(counters);
+    _pushUndoable(() => counters = reordered, revert: () => counters = original);
+    unawaited(_haptics.light());
+  }
+
+  void setHistoryEnabled(bool enabled) {
+    _settings.setCounterHistoryEnabled(enabled);
+  }
+
+  void setNegativeEnabled(bool enabled) {
+    _settings.setCounterNegativeEnabled(enabled);
+  }
+
+  /// Führt eine Änderung über den Undo-Verlauf aus.
+  void _pushUndoable(void Function() apply, {void Function()? revert}) {
+    history.execute(
+      CallbackCommand(applyChange: apply, revertChange: revert ?? apply),
+    );
+  }
+
+  void _mutate(void Function() change) {
+    change();
+    notifyListeners();
+    unawaited(_persist());
+  }
+
+  Future<void> _persist() {
+    return _repository.save(
+      counters: counters,
+      currentCounter: currentCounter,
+      history: counterHistory,
+    );
+  }
+}
