@@ -50,14 +50,14 @@ class HosnObeBody extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Füge Spieler hinzu, um Leben zu zählen.',
+              'Verwalte Spieler über die Startseite, um Leben zu zählen.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: onAddPlayer,
                 icon: const Icon(Icons.person_add_alt_1),
-                label: const Text('Spieler hinzufügen'),
+                label: const Text('Spieler verwalten'),
               ),
             ],
           ),

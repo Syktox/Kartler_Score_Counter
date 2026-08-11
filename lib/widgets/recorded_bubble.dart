@@ -1,4 +1,47 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+/// Verwaltet die schwebende Bestätigungs-Blase: ein Overlay-Eintrag, der kurz
+/// nach der AppBar erscheint und sich nach [show] von selbst entfernt.
+class RecordedBubbleHost {
+  OverlayEntry? _entry;
+  Timer? _timer;
+
+  /// Zeigt [message] als kurze Bestätigung. Eine bereits sichtbare Blase wird
+  /// dabei ersetzt.
+  void show(BuildContext context, String message) {
+    _timer?.cancel();
+    _entry?.remove();
+
+    final mediaQuery = MediaQuery.of(context);
+    final top = mediaQuery.padding.top + kToolbarHeight + 14;
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
+        top: top,
+        left: 0,
+        right: 0,
+        child: Center(child: RecordedBubble(message: message)),
+      ),
+    );
+    _entry = entry;
+    Overlay.of(context, rootOverlay: true).insert(entry);
+    _timer = Timer(const Duration(milliseconds: 2200), () {
+      if (entry.mounted) {
+        entry.remove();
+      }
+      if (_entry == entry) {
+        _entry = null;
+      }
+    });
+  }
+
+  void dispose() {
+    _timer?.cancel();
+    _entry?.remove();
+    _entry = null;
+  }
+}
 
 /// Schwebende Bestätigung (z. B. „Partie aufgezeichnet!“), die kurz nach der
 /// AppBar erscheint und sich von selbst wieder ausblendet.

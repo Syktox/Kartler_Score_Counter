@@ -11,16 +11,13 @@ void main() {
       await pumpApp(tester, prefs: mulatschakPrefs());
 
       await openDrawer(tester);
-      await tester.tap(find.text('Spieler hinzufügen'));
+      await tester.tap(find.text('Spieler verwalten'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Name'),
-        'Carla',
-      );
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
 
@@ -60,16 +57,13 @@ void main() {
       await pumpApp(tester, prefs: mulatschakPrefs());
 
       await openDrawer(tester);
-      await tester.tap(find.text('Spieler hinzufügen'));
+      await tester.tap(find.text('Spieler verwalten'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Name'),
-        'Anna',
-      );
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Anna');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
 
@@ -83,16 +77,13 @@ void main() {
       await pumpApp(tester, prefs: mulatschakPrefs());
 
       await openDrawer(tester);
-      await tester.tap(find.text('Spieler hinzufügen'));
+      await tester.tap(find.text('Spieler verwalten'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Name'),
-        'Carla',
-      );
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
       await tester.pageBack();

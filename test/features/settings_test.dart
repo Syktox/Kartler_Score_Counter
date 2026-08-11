@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kartler/main.dart';
+import 'package:kartler/persistence/backup_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/pump_app.dart';
@@ -104,9 +106,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();
-      final profile = jsonDecode(
-        prefs.getString('rule_profile')!,
-      ) as Map<String, dynamic>;
+      final profile =
+          jsonDecode(prefs.getString('rule_profile')!) as Map<String, dynamic>;
       expect(profile['wattenWinningScore'], 15);
     });
 
@@ -131,9 +132,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();
-      final profile = jsonDecode(
-        prefs.getString('rule_profile')!,
-      ) as Map<String, dynamic>;
+      final profile =
+          jsonDecode(prefs.getString('rule_profile')!) as Map<String, dynamic>;
       expect(profile['wattenWinningScore'], 11);
     });
 
@@ -170,23 +170,99 @@ void main() {
     });
   });
 
-  group('Onboarding', () {
-    testWidgets('shows the mode selection on every start, even with saved '
-        'settings', (tester) async {
-      SharedPreferences.setMockInitialValues({'app_mode': 'counter'});
+  group('Backup', () {
+    testWidgets('export copies a valid backup to the clipboard', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: playerPrefs());
+
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText =
+                (call.arguments as Map<Object?, Object?>)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
+      await openSettings(tester);
+      await tester.ensureVisible(find.text('Backup exportieren'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Backup exportieren'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Backup in die Zwischenablage kopiert.'),
+        findsOneWidget,
+      );
+      expect(clipboardText, isNotNull);
+      final document = jsonDecode(clipboardText!) as Map<String, dynamic>;
+      expect(document[BackupService.formatKey], BackupService.formatVersion);
+      final values = document[BackupService.valuesKey] as Map<String, dynamic>;
+      expect(values['players'], contains('Anna'));
+    });
+
+    testWidgets('import restores players from a pasted backup', (tester) async {
+      SharedPreferences.setMockInitialValues(playerPrefs());
+      mockPlatformChannel(tester);
       await tester.pumpWidget(const KartlerApp());
       await tester.pumpAndSettle();
+      await dismissStartScreen(tester);
 
-      expect(find.text('Was möchtest du spielen?'), findsOneWidget);
-      expect(find.text('Watten'), findsOneWidget);
+      final backup = await const BackupService().exportJson();
 
-      await tester.tap(find.text('Mulatschak'));
+      await openSettings(tester);
+      await tester.ensureVisible(find.text('Backup wiederherstellen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Backup wiederherstellen'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Was möchtest du spielen?'), findsNothing);
+      await tester.enterText(find.byType(TextField).last, backup);
+      await tester.tap(find.text('Weiter'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Daten ersetzen?'), findsOneWidget);
+      await tester.tap(find.text('Importieren'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Backup erfolgreich wiederhergestellt.'),
+        findsOneWidget,
+      );
+      expect(find.text('Einstellungen'), findsNothing);
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString('app_mode'), 'mulatschak');
+      expect(prefs.getString('players'), contains('Anna'));
     });
+  });
+
+  group('StartScreen', () {
+    testWidgets(
+      'shows the mode selection on every start, even with saved settings',
+      (tester) async {
+        SharedPreferences.setMockInitialValues({'app_mode': 'counter'});
+        await tester.pumpWidget(const KartlerApp());
+        await tester.pumpAndSettle();
+
+        expect(find.text('Was möchtest du spielen?'), findsOneWidget);
+        expect(find.text('Watten'), findsOneWidget);
+
+        await tester.tap(find.text('Mulatschak'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Was möchtest du spielen?'), findsNothing);
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.getString('app_mode'), 'mulatschak');
+      },
+    );
 
     testWidgets('can be skipped', (tester) async {
       SharedPreferences.setMockInitialValues({});
@@ -201,8 +277,9 @@ void main() {
       expect(find.text('Was möchtest du spielen?'), findsNothing);
     });
 
-    testWidgets('tap on default mode (Watten) dismisses onboarding',
-        (tester) async {
+    testWidgets('tap on default mode (Watten) dismisses the start screen', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(const KartlerApp());
       await tester.pumpAndSettle();

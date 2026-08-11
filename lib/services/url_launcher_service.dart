@@ -15,7 +15,8 @@ class UrlLauncherService {
   }) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final issueTitle = '${AppConstants.bugReportSubjectPrefix} $title';
-    final body = '''
+    final body =
+        '''
 ### Description
 $description
 ${deviceInfo != null ? '''

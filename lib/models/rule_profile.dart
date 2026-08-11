@@ -72,12 +72,18 @@ class RuleProfile {
     }
 
     return RuleProfile(
-      wattenWinningScore: readInt('wattenWinningScore', defaults.wattenWinningScore),
+      wattenWinningScore: readInt(
+        'wattenWinningScore',
+        defaults.wattenWinningScore,
+      ),
       mulatschakStartingScore: readInt(
         'mulatschakStartingScore',
         defaults.mulatschakStartingScore,
       ),
-      hosnObeStartingLives: readInt('hosnObeStartingLives', defaults.hosnObeStartingLives),
+      hosnObeStartingLives: readInt(
+        'hosnObeStartingLives',
+        defaults.hosnObeStartingLives,
+      ),
       muleqackEnabled: readBool('muleqackEnabled', defaults.muleqackEnabled),
       muleqackTriggerPoints: readInt(
         'muleqackTriggerPoints',

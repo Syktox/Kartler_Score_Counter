@@ -9,10 +9,7 @@ void main() {
     testWidgets('supports winner detection and reset to starting lives', (
       tester,
     ) async {
-      await pumpApp(
-        tester,
-        prefs: hosnObePrefs(lineup: {'p1': 1, 'p2': 1}),
-      );
+      await pumpApp(tester, prefs: hosnObePrefs(lineup: {'p1': 1, 'p2': 1}));
 
       expect(find.text('Ben gewinnt!'), findsNothing);
 

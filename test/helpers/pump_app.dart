@@ -23,7 +23,7 @@ void mockPlatformChannel(WidgetTester tester) {
   });
 }
 
-/// Pumped die App mit Mock-Speicher und überspringt das Onboarding, das bei
+/// Pumped die App mit Mock-Speicher und überspringt den StartScreen, der bei
 /// jedem Start erscheint: Die Tests landen direkt im gewählten Modus.
 Future<void> pumpApp(
   WidgetTester tester, {
@@ -38,18 +38,20 @@ Future<void> pumpApp(
   SharedPreferences.setMockInitialValues(prefs);
   await tester.pumpWidget(const KartlerApp());
   await tester.pumpAndSettle();
-  await dismissOnboarding(tester);
+  await dismissStartScreen(tester);
 }
 
-/// Überspringt das Onboarding (falls sichtbar) und wählt den Modus aus den
+/// Überspringt den StartScreen (falls sichtbar) und wählt den Modus aus den
 /// Mock-Prefs (Standard: Watten).
-Future<void> dismissOnboarding(WidgetTester tester) async {
+Future<void> dismissStartScreen(WidgetTester tester) async {
   if (find.text('Was möchtest du spielen?').evaluate().isEmpty) {
     return;
   }
   final prefs = await SharedPreferences.getInstance();
   final modeName = prefs.getString('app_mode') ?? 'watten';
-  final label = AppMode.values.firstWhere((mode) => mode.name == modeName).label;
+  final label = AppMode.values
+      .firstWhere((mode) => mode.name == modeName)
+      .label;
   await tester.ensureVisible(find.text(label));
   await tester.pumpAndSettle();
   await tester.tap(find.text(label));
@@ -77,16 +79,8 @@ Map<String, Object> wattenPrefs() {
 Map<String, Object> playerPrefs() {
   return {
     'players': jsonEncode([
-      {
-        'id': 'p1',
-        'name': 'Anna',
-        'createdAt': '2024-01-01T00:00:00.000Z',
-      },
-      {
-        'id': 'p2',
-        'name': 'Ben',
-        'createdAt': '2024-01-01T00:00:00.000Z',
-      },
+      {'id': 'p1', 'name': 'Anna', 'createdAt': '2024-01-01T00:00:00.000Z'},
+      {'id': 'p2', 'name': 'Ben', 'createdAt': '2024-01-01T00:00:00.000Z'},
     ]),
   };
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/completed_match.dart';
 import '../../models/game_session.dart';
 import '../players/players_controller.dart';
+import '../../widgets/match_tile.dart';
 
 /// Zusammenfassung eines Spielabends nach dem Beenden.
 class SessionSummaryPage extends StatelessWidget {
@@ -98,81 +99,11 @@ class SessionSummaryPage extends StatelessWidget {
             if (matches.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(
-                  child: Text('Keine Partien aufgezeichnet.'),
-                ),
+                child: Center(child: Text('Keine Partien aufgezeichnet.')),
               )
             else
-              for (final match in matches) _MatchTile(match: match, players: players),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MatchTile extends StatelessWidget {
-  final CompletedMatch match;
-  final PlayersController players;
-
-  const _MatchTile({required this.match, required this.players});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final standings = match.finalStandings.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  match.gameType.label,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                Text(
-                  match.winnerName == '—' ? 'Unentschieden' : 'Sieger: ${match.winnerName}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 16),
-            for (final entry in standings)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        match.participantIds.contains(entry.key)
-                            ? players.displayName(entry.key)
-                            : entry.key,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      '${entry.value}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ),
+              for (final match in matches)
+                MatchTile(match: match, players: players),
           ],
         ),
       ),

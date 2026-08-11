@@ -7,7 +7,6 @@ import '../../core/haptics_service.dart';
 import '../../features/counter/counter_body.dart';
 import '../../features/counter/counter_controller.dart';
 import '../../features/counter/counter_helper.dart';
-import '../../features/game_session/finish_match_sheet.dart';
 import '../../features/game_session/session_controller.dart';
 import '../../features/game_session/session_summary_page.dart';
 import '../../features/game_session/sessions_list_page.dart';
@@ -26,7 +25,6 @@ import '../../features/watten/watten_controller.dart';
 import '../feature_controller.dart';
 import '../../models/app_mode.dart';
 import '../../models/watten_game.dart';
-import '../../models/watten_side.dart';
 import '../../utils/name_utils.dart';
 import '../../persistence/repositories/counter_repository.dart';
 import '../../persistence/repositories/hosn_obe_repository.dart';
@@ -43,12 +41,13 @@ import '../../widgets/counter_history_drawer.dart';
 import '../../widgets/mulatschak_history_drawer.dart';
 import '../../widgets/recorded_bubble.dart';
 import 'hub_page.dart';
-import 'onboarding_page.dart';
+import 'match_recorder.dart';
+import 'start_screen.dart';
 
 /// Zentrale Shell der App.
 ///
 /// Erstellt und lädt alle Feature-Controller, verdrahtet die Spielmodi und
-/// koordiniert Navigation (Hub, Onboarding, Verwaltung), Undo/Redo sowie
+/// koordiniert Navigation (Hub, StartScreen, Verwaltung), Undo/Redo sowie
 /// das Aufzeichnen abgeschlossener Partien.
 class HomePage extends StatefulWidget {
   final ThemeMode themeMode;
@@ -76,12 +75,12 @@ class _HomePageState extends State<HomePage> {
   late final MulatschakController _mulatschak;
   late final HosnObeController _hosnObe;
   late final SessionController _sessions;
+  late final MatchRecorder _recorder;
   late final HapticsService _haptics;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final RecordedBubbleHost _bubbleHost = RecordedBubbleHost();
   bool _ready = false;
-  bool _onboardingDone = false;
-  OverlayEntry? _recordedBubble;
-  Timer? _recordedBubbleTimer;
+  bool _startScreenDone = false;
 
   @override
   void initState() {
@@ -119,6 +118,14 @@ class _HomePageState extends State<HomePage> {
       matchRepository: const MatchHistoryRepository(),
       haptics: _haptics,
     );
+    _recorder = MatchRecorder(
+      counter: _counter,
+      watten: _watten,
+      mulatschak: _mulatschak,
+      hosnObe: _hosnObe,
+      players: _players,
+      sessions: _sessions,
+    );
 
     _settings.addListener(_syncSettingsToApp);
     _syncSettingsToApp();
@@ -127,8 +134,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _recordedBubbleTimer?.cancel();
-    _recordedBubble?.remove();
+    _bubbleHost.dispose();
     _settings.removeListener(_syncSettingsToApp);
     _settings.dispose();
     _players.dispose();
@@ -201,11 +207,11 @@ class _HomePageState extends State<HomePage> {
     _settings.setAppMode(mode);
   }
 
-  /// Beendet das Onboarding für diese Sitzung. Ohne Modusauswahl (Skip)
+  /// Beendet den StartScreen für diese Sitzung. Ohne Modusauswahl (Skip)
   /// bleibt der zuletzt verwendete Modus aktiv.
-  void _finishOnboarding(AppMode? mode) {
+  void _finishStartScreen(AppMode? mode) {
     setState(() {
-      _onboardingDone = true;
+      _startScreenDone = true;
     });
     if (mode != null) {
       _selectMode(mode);
@@ -214,7 +220,10 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openSettings() async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => SettingsPage(settings: _settings)),
+      MaterialPageRoute(
+        builder: (_) =>
+            SettingsPage(settings: _settings, onDataImported: _loadAll),
+      ),
     );
   }
 
@@ -252,6 +261,7 @@ class _HomePageState extends State<HomePage> {
         builder: (_) => SessionsListPage(
           sessions: _sessions.pastSessions,
           players: _players,
+          matchesForSession: _sessions.matchesForSession,
         ),
       ),
     );
@@ -289,136 +299,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _showFinishMatchSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => FinishMatchSheet(
-        initialMode: widget.appMode,
-        previewFor: _previewFor,
-        onRecord: (mode, {required resetBoard}) {
-          _recordMatch(mode, resetBoard: resetBoard);
-        },
-      ),
-    );
-  }
-
-  MatchPreview _previewFor(AppMode mode) {
-    switch (mode) {
-      case AppMode.counter:
-        return MatchPreview(
-          winnerId: null,
-          winnerLabel: null,
-          standings: [
-            for (final entry in _counter.counters.entries)
-              (name: entry.key, score: entry.value),
-          ],
-        );
-      case AppMode.watten:
-        final game =
-            _watten.games[_watten.currentGame] ??
-            const WattenGame(me: 0, you: 0);
-        return MatchPreview(
-          winnerId: null,
-          winnerLabel: _watten.winner(),
-          standings: [
-            (name: WattenSide.me.label, score: game.me),
-            (name: WattenSide.you.label, score: game.you),
-          ],
-        );
-      case AppMode.mulatschak:
-        return MatchPreview(
-          winnerId: _mulatschak.winner(),
-          winnerLabel: null,
-          standings: [
-            for (final entry in _mulatschak.lineup.entries)
-              (name: _players.displayName(entry.key), score: entry.value),
-          ],
-        );
-      case AppMode.hosnObe:
-        return MatchPreview(
-          winnerId: _hosnObe.winner(),
-          winnerLabel: null,
-          standings: [
-            for (final entry in _hosnObe.lineup.entries)
-              (name: _players.displayName(entry.key), score: entry.value),
-          ],
-        );
-    }
-  }
-
   void _recordMatch(AppMode mode, {required bool resetBoard}) {
-    final preview = _previewFor(mode);
-
-    final participantIds = switch (mode) {
-      AppMode.mulatschak => _mulatschak.lineup.keys.toList(),
-      AppMode.hosnObe => _hosnObe.lineup.keys.toList(),
-      _ => const <String>[],
-    };
-
-    final startedAt = switch (mode) {
-      AppMode.watten => _watten.roundStartedAt,
-      _ => DateTime.now(),
-    };
-
-    final standings = {
-      for (final entry in preview.standings) entry.name: entry.score,
-    };
-
-    unawaited(
-      _sessions.recordMatch(
-        gameType: mode,
-        participantIds: participantIds,
-        winnerId: preview.winnerId,
-        winnerLabel: preview.winnerLabel,
-        startedAt: startedAt,
-        endedAt: DateTime.now(),
-        finalStandings: standings,
-      ),
-    );
-
-    if (resetBoard) {
-      switch (mode) {
-        case AppMode.counter:
-          _counter.resetBoard();
-        case AppMode.watten:
-          _watten.resetBoard();
-        case AppMode.mulatschak:
-          _mulatschak.resetPlayers();
-        case AppMode.hosnObe:
-          _hosnObe.resetPlayers();
-      }
-    }
-    _showRecordedBubble('Partie aufgezeichnet!');
-  }
-
-  /// Zeigt eine schwebende Bestätigung unterhalb der AppBar statt am
-  /// unteren Bildschirmrand.
-  void _showRecordedBubble(String message) {
-    _recordedBubbleTimer?.cancel();
-    _recordedBubble?.remove();
-
-    final mediaQuery = MediaQuery.of(context);
-    final top = mediaQuery.padding.top + kToolbarHeight + 14;
-    final entry = OverlayEntry(
-      builder: (_) => Positioned(
-        top: top,
-        left: 0,
-        right: 0,
-        child: Center(child: RecordedBubble(message: message)),
-      ),
-    );
-    _recordedBubble = entry;
-    Overlay.of(context, rootOverlay: true).insert(entry);
-    _recordedBubbleTimer = Timer(const Duration(milliseconds: 2200), () {
-      if (entry.mounted) {
-        entry.remove();
-      }
-      if (_recordedBubble == entry) {
-        _recordedBubble = null;
-      }
-    });
+    unawaited(_recorder.record(mode, resetBoard: resetBoard));
+    _bubbleHost.show(context, 'Partie aufgezeichnet!');
   }
 
   String? get _mulatschakWinnerName {
@@ -559,6 +442,27 @@ class _HomePageState extends State<HomePage> {
     _recordMatch(AppMode.mulatschak, resetBoard: true);
   }
 
+  /// Startet ein neues Hosn-Obe-Spiel wie beim Watten: Die aktuelle Partie
+  /// wird (sofern schon gespielt) aufgezeichnet, danach starten alle Spieler
+  /// wieder mit der Startanzahl an Leben.
+  void _startNewHosnObeGame() {
+    final startingLives = _settings.ruleProfile.hosnObeStartingLives;
+    if (_hosnObe.lineup.isEmpty ||
+        _hosnObe.lineup.values.every((value) => value == startingLives)) {
+      return;
+    }
+    _recordMatch(AppMode.hosnObe, resetBoard: true);
+  }
+
+  /// Startet einen neuen Zähler-Durchgang: Alle Zähler werden auf 0 gesetzt.
+  /// Zähler werden nicht in den Statistiken aufgezeichnet.
+  void _startNewCounterGame() {
+    if (_counter.counters.values.every((value) => value == 0)) {
+      return;
+    }
+    _counter.resetBoard();
+  }
+
   // MARK: - Hosn Obe
 
   // MARK: - Drawer
@@ -567,7 +471,7 @@ class _HomePageState extends State<HomePage> {
     return [
       ListTile(
         leading: const Icon(Icons.home_outlined),
-        title: const Text('Start'),
+        title: const Text('Startseite'),
         onTap: () {
           Navigator.of(context).pop();
           _openHub();
@@ -606,15 +510,18 @@ class _HomePageState extends State<HomePage> {
         return CounterDrawer(
           items: _counter.counters.keys.toList(),
           selectedItem: _counter.currentCounter,
-          addButtonLabel: 'Neuer Zähler',
-          addButtonIcon: Icons.add,
+          addButtonLabel: 'Neues Spiel',
+          addButtonIcon: Icons.play_circle_outline,
           closeDrawerOnAdd: true,
           enableReorder: true,
-          onAddNewItem: _showAddCounterDialog,
+          onAddNewItem: _startNewCounterGame,
           onSelectItem: _counter.selectCounter,
           onRenameItem: _showRenameCounterDialog,
           onDeleteItem: _showDeleteCounterDialog,
           onReorderItems: _counter.reorderCounters,
+          secondaryActionLabel: 'Neuer Zähler',
+          secondaryActionIcon: Icons.add,
+          onSecondaryAction: _showAddCounterDialog,
           extraActions: _buildDrawerExtraActions(),
           pinExtraActions:
               MediaQuery.orientationOf(context) == Orientation.portrait,
@@ -625,7 +532,7 @@ class _HomePageState extends State<HomePage> {
           items: const [],
           selectedItem: '',
           addButtonLabel: 'Neues Spiel',
-          addButtonIcon: Icons.add,
+          addButtonIcon: Icons.play_circle_outline,
           closeDrawerOnAdd: true,
           onAddNewItem: _startNewWattenGame,
           onSelectItem: (_) {},
@@ -651,16 +558,13 @@ class _HomePageState extends State<HomePage> {
             for (final playerId in lineup.keys) _players.displayName(playerId),
           ],
           selectedItem: _players.displayName(currentPlayerId),
-          addButtonLabel: 'Spieler hinzufügen',
-          addButtonIcon: Icons.person_add_alt_1,
+          addButtonLabel: 'Neues Spiel',
+          addButtonIcon: Icons.play_circle_outline,
           closeDrawerOnAdd: true,
           enableReorder: false,
-          onAddNewItem: _openPlayers,
-          secondaryActionLabel: isMulatschak ? 'Neues Spiel' : null,
-          secondaryActionIcon: isMulatschak
-              ? Icons.play_circle_outline
-              : null,
-          onSecondaryAction: isMulatschak ? _startNewMulatschakGame : null,
+          onAddNewItem: isMulatschak
+              ? _startNewMulatschakGame
+              : _startNewHosnObeGame,
           onSelectItem: (name) {
             for (final player in _players.players) {
               if (player.displayName == name) {
@@ -715,11 +619,6 @@ class _HomePageState extends State<HomePage> {
       surfaceTintColor: Colors.transparent,
       title: Text(widget.appMode.label),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.home_outlined),
-          tooltip: 'Start',
-          onPressed: _openHub,
-        ),
         if (widget.appMode == AppMode.watten &&
             MediaQuery.orientationOf(context) == Orientation.landscape)
           IconButton(
@@ -760,9 +659,9 @@ class _HomePageState extends State<HomePage> {
               : null,
         ),
         IconButton(
-          icon: const Icon(Icons.emoji_events_outlined),
-          tooltip: 'Partie abschließen',
-          onPressed: _showFinishMatchSheet,
+          icon: const Icon(Icons.home_outlined),
+          tooltip: 'Startseite',
+          onPressed: _openHub,
         ),
       ],
     );
@@ -842,13 +741,13 @@ class _HomePageState extends State<HomePage> {
         _settings,
       ]),
       builder: (context, _) {
-        if (!_onboardingDone) {
-          return OnboardingPage(
+        if (!_startScreenDone) {
+          return StartScreen(
             onModeSelected: (mode) {
-              _finishOnboarding(mode);
+              _finishStartScreen(mode);
             },
             onSkip: () {
-              _finishOnboarding(null);
+              _finishStartScreen(null);
             },
           );
         }

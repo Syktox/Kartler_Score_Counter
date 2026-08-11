@@ -24,9 +24,7 @@ class SessionRepository {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       StorageKeys.gameSessions,
-      JsonCodec.encode(
-        sessions.map((session) => session.toJson()).toList(),
-      ),
+      JsonCodec.encode(sessions.map((session) => session.toJson()).toList()),
     );
   }
 

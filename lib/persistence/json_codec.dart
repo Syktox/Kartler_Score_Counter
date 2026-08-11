@@ -27,7 +27,10 @@ class JsonCodec {
     return null;
   }
 
-  static List<T>? decodeList<T>(String? json, T Function(Object? item) convert) {
+  static List<T>? decodeList<T>(
+    String? json,
+    T Function(Object? item) convert,
+  ) {
     final decoded = decode(json);
     if (decoded is! List) {
       return null;

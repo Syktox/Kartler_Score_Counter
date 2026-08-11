@@ -32,8 +32,7 @@ class SettingsController extends FeatureController {
     appMode = await _repository.loadAppMode();
     counterHistoryEnabled = await _repository.loadCounterHistoryEnabled();
     counterNegativeEnabled = await _repository.loadCounterNegativeEnabled();
-    mulatschakHistoryEnabled =
-        await _repository.loadMulatschakHistoryEnabled();
+    mulatschakHistoryEnabled = await _repository.loadMulatschakHistoryEnabled();
     ruleProfile = await _repository.loadRuleProfile();
     isLoading = false;
   }

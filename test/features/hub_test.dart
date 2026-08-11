@@ -13,7 +13,7 @@ void main() {
       await pumpApp(tester, prefs: counterPrefs());
 
       await openDrawer(tester);
-      await tester.tap(find.text('Start'));
+      await tester.tap(find.text('Startseite'));
       await tester.pumpAndSettle();
 
       expect(find.text('Spielmodus'), findsOneWidget);
@@ -26,7 +26,7 @@ void main() {
       await pumpApp(tester, prefs: counterPrefs());
 
       await openDrawer(tester);
-      await tester.tap(find.text('Start'));
+      await tester.tap(find.text('Startseite'));
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.text('Mulatschak'));

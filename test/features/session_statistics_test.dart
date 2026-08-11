@@ -52,7 +52,10 @@ void main() {
 
       expect(controller.matches.length, 1);
       expect(controller.activeSession!.matchIds, contains(match.id));
-      expect(controller.matchesForSession(controller.activeSession!.id), hasLength(1));
+      expect(
+        controller.matchesForSession(controller.activeSession!.id),
+        hasLength(1),
+      );
     });
 
     test('records a match without an active session', () async {
@@ -94,9 +97,24 @@ void main() {
     test('counts matches per mode and the most played mode', () {
       final result = StatisticsCalculator.calculate(
         matches: [
-          _match(id: 'm1', winner: null, participants: const ['p1'], mode: AppMode.watten),
-          _match(id: 'm2', winner: null, participants: const ['p1'], mode: AppMode.watten),
-          _match(id: 'm3', winner: null, participants: const ['p1'], mode: AppMode.mulatschak),
+          _match(
+            id: 'm1',
+            winner: null,
+            participants: const ['p1'],
+            mode: AppMode.watten,
+          ),
+          _match(
+            id: 'm2',
+            winner: null,
+            participants: const ['p1'],
+            mode: AppMode.watten,
+          ),
+          _match(
+            id: 'm3',
+            winner: null,
+            participants: const ['p1'],
+            mode: AppMode.mulatschak,
+          ),
         ],
         sessions: const [],
       );
@@ -109,7 +127,12 @@ void main() {
     test('ignores counter matches in the statistics', () {
       final result = StatisticsCalculator.calculate(
         matches: [
-          _match(id: 'm1', winner: null, participants: const ['p1'], mode: AppMode.hosnObe),
+          _match(
+            id: 'm1',
+            winner: null,
+            participants: const ['p1'],
+            mode: AppMode.hosnObe,
+          ),
           _match(
             id: 'm2',
             winner: null,
@@ -169,11 +192,64 @@ void main() {
       );
       final result = StatisticsCalculator.calculate(
         matches: const [],
-        sessions: [finished, _session(id: 's2', start: DateTime(2026, 2, 2))],
+        sessions: [
+          finished,
+          _session(id: 's2', start: DateTime(2026, 2, 2)),
+        ],
       );
 
       expect(result.totalSessions, 1);
       expect(result.lastSession?.id, 's1');
+    });
+
+    test('recentMatches are sorted by end time, newest first', () {
+      final result = StatisticsCalculator.calculate(
+        matches: [
+          _match(id: 'm1', winner: 'p1', participants: const ['p1', 'p2']),
+          _match(
+            id: 'm2',
+            winner: 'p1',
+            participants: const ['p1', 'p2'],
+            endedAt: DateTime(2026, 1, 5),
+            startedAt: DateTime(2026, 1, 5),
+          ),
+        ],
+        sessions: const [],
+      );
+
+      expect(result.recentMatches.map((match) => match.id), ['m2', 'm1']);
+    });
+
+    test('recentMatches exclude counter matches and cap the list', () {
+      final matches = [
+        for (var i = 0; i < 12; i++)
+          _match(
+            id: 'm$i',
+            winner: null,
+            participants: const [],
+            mode: AppMode.watten,
+            standings: const {'Wir': 11, 'Die': 9},
+          ),
+        _match(
+          id: 'counter1',
+          winner: null,
+          participants: const [],
+          mode: AppMode.counter,
+          standings: const {'Punkte': 3},
+        ),
+      ];
+      final result = StatisticsCalculator.calculate(
+        matches: matches,
+        sessions: const [],
+      );
+
+      expect(result.recentMatches.length, recentMatchesLimit);
+      expect(
+        result.recentMatches.every(
+          (match) => match.gameType != AppMode.counter,
+        ),
+        isTrue,
+      );
     });
   });
 }
@@ -184,14 +260,16 @@ CompletedMatch _match({
   required List<String> participants,
   AppMode mode = AppMode.hosnObe,
   Map<String, int> standings = const {'p1': 3, 'p2': 1},
+  DateTime? startedAt,
+  DateTime? endedAt,
 }) {
   return CompletedMatch(
     id: id,
     gameType: mode,
     participantIds: participants,
     winnerId: winner,
-    startedAt: DateTime(2026, 1, 1),
-    endedAt: DateTime(2026, 1, 1, 21),
+    startedAt: startedAt ?? DateTime(2026, 1, 1),
+    endedAt: endedAt ?? DateTime(2026, 1, 1, 21),
     finalStandings: standings,
   );
 }

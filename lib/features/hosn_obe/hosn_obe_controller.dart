@@ -46,7 +46,9 @@ class HosnObeController extends FeatureController {
   }
 
   String? currentPlayerName() {
-    return currentPlayerId.isEmpty ? null : _players.displayName(currentPlayerId);
+    return currentPlayerId.isEmpty
+        ? null
+        : _players.displayName(currentPlayerId);
   }
 
   void selectPlayer(String playerId) {
@@ -78,23 +80,28 @@ class HosnObeController extends FeatureController {
   }
 
   void resetPlayers() {
-    if (lineup.values.every((value) => value == _profile.hosnObeStartingLives)) {
+    if (lineup.values.every(
+      (value) => value == _profile.hosnObeStartingLives,
+    )) {
       return;
     }
     final oldLineup = Map<String, int>.from(lineup);
-    _pushUndoable(() {
-      lineup = HosnObeHelper.resetPlayers(
-        lineup,
-        startingLives: _profile.hosnObeStartingLives,
-      );
-      roundStartedAt = DateTime.now();
-      notifyListeners();
-      unawaited(_persist());
-    }, revert: () {
-      lineup = oldLineup;
-      notifyListeners();
-      unawaited(_persist());
-    });
+    _pushUndoable(
+      () {
+        lineup = HosnObeHelper.resetPlayers(
+          lineup,
+          startingLives: _profile.hosnObeStartingLives,
+        );
+        roundStartedAt = DateTime.now();
+        notifyListeners();
+        unawaited(_persist());
+      },
+      revert: () {
+        lineup = oldLineup;
+        notifyListeners();
+        unawaited(_persist());
+      },
+    );
     unawaited(_haptics.light());
   }
 

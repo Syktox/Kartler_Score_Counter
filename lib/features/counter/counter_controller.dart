@@ -86,21 +86,24 @@ class CounterController extends FeatureController {
   void _changeScore(String counterName, int newValue, String action) {
     final oldValue = counters[counterName]!;
     final changeTime = DateTime.now();
-    _pushUndoable(() {
-      _applyScoreChange(
-        counterName,
-        newValue,
-        '${HistoryUtils.formatTime(changeTime)} - $action.',
-        recordEntry: true,
-      );
-    }, revert: () {
-      _applyScoreChange(
-        counterName,
-        oldValue,
-        '${HistoryUtils.formatTime(changeTime)} - $action.',
-        recordEntry: false,
-      );
-    });
+    _pushUndoable(
+      () {
+        _applyScoreChange(
+          counterName,
+          newValue,
+          '${HistoryUtils.formatTime(changeTime)} - $action.',
+          recordEntry: true,
+        );
+      },
+      revert: () {
+        _applyScoreChange(
+          counterName,
+          oldValue,
+          '${HistoryUtils.formatTime(changeTime)} - $action.',
+          recordEntry: false,
+        );
+      },
+    );
     unawaited(_haptics.light());
   }
 
@@ -144,8 +147,7 @@ class CounterController extends FeatureController {
       return history;
     }
     final next = List<String>.from(entries)..remove(entry);
-    return Map<String, List<String>>.from(history)
-      ..[counterName] = next;
+    return Map<String, List<String>>.from(history)..[counterName] = next;
   }
 
   void selectCounter(String counter) {
@@ -161,13 +163,17 @@ class CounterController extends FeatureController {
       counterName: counterName,
     );
     final oldCurrent = currentCounter;
-    _pushUndoable(() {
-      counters = result.counters;
-      currentCounter = result.currentCounter;
-    }, revert: () {
-      counters = LinkedHashMap<String, int>.from(counters)..remove(counterName);
-      currentCounter = oldCurrent;
-    });
+    _pushUndoable(
+      () {
+        counters = result.counters;
+        currentCounter = result.currentCounter;
+      },
+      revert: () {
+        counters = LinkedHashMap<String, int>.from(counters)
+          ..remove(counterName);
+        currentCounter = oldCurrent;
+      },
+    );
     unawaited(_haptics.light());
   }
 
@@ -179,27 +185,30 @@ class CounterController extends FeatureController {
       oldName: oldName,
       newName: newName,
     );
-    _pushUndoable(() {
-      counters = result.counters;
-      counterHistory = result.history;
-      currentCounter = result.currentCounter;
-    }, revert: () {
-      counters = CounterHelper.renameCounter(
-        counters: counters,
-        history: counterHistory,
-        currentCounter: currentCounter,
-        oldName: newName,
-        newName: oldName,
-      ).counters;
-      counterHistory = CounterHelper.renameCounter(
-        counters: counters,
-        history: counterHistory,
-        currentCounter: currentCounter,
-        oldName: newName,
-        newName: oldName,
-      ).history;
-      currentCounter = oldName;
-    });
+    _pushUndoable(
+      () {
+        counters = result.counters;
+        counterHistory = result.history;
+        currentCounter = result.currentCounter;
+      },
+      revert: () {
+        counters = CounterHelper.renameCounter(
+          counters: counters,
+          history: counterHistory,
+          currentCounter: currentCounter,
+          oldName: newName,
+          newName: oldName,
+        ).counters;
+        counterHistory = CounterHelper.renameCounter(
+          counters: counters,
+          history: counterHistory,
+          currentCounter: currentCounter,
+          oldName: newName,
+          newName: oldName,
+        ).history;
+        currentCounter = oldName;
+      },
+    );
     unawaited(_haptics.light());
   }
 
@@ -213,31 +222,41 @@ class CounterController extends FeatureController {
       currentCounter: currentCounter,
       counterName: counterName,
     );
-    _pushUndoable(() {
-      counters = result.counters;
-      counterHistory = result.history;
-      currentCounter = result.currentCounter;
-    }, revert: () {
-      final entries = counters.entries.toList();
-      counters = LinkedHashMap<String, int>.fromEntries([
-        ...entries.takeWhile((entry) => entry.key != counterName),
-        MapEntry(counterName, 0),
-        ...entries.skipWhile((entry) => entry.key != counterName),
-      ]);
-      counterHistory = Map<String, List<String>>.from(counterHistory)
-        ..remove(counterName);
-      currentCounter = counterName;
-    });
+    _pushUndoable(
+      () {
+        counters = result.counters;
+        counterHistory = result.history;
+        currentCounter = result.currentCounter;
+      },
+      revert: () {
+        final entries = counters.entries.toList();
+        counters = LinkedHashMap<String, int>.fromEntries([
+          ...entries.takeWhile((entry) => entry.key != counterName),
+          MapEntry(counterName, 0),
+          ...entries.skipWhile((entry) => entry.key != counterName),
+        ]);
+        counterHistory = Map<String, List<String>>.from(counterHistory)
+          ..remove(counterName);
+        currentCounter = counterName;
+      },
+    );
     unawaited(_haptics.light());
   }
 
   void reorderCounters(int oldIndex, int newIndex) {
-    final reordered = CounterHelper.reorderCounters(counters, oldIndex, newIndex);
+    final reordered = CounterHelper.reorderCounters(
+      counters,
+      oldIndex,
+      newIndex,
+    );
     if (reordered == null) {
       return;
     }
     final original = LinkedHashMap<String, int>.from(counters);
-    _pushUndoable(() => counters = reordered, revert: () => counters = original);
+    _pushUndoable(
+      () => counters = reordered,
+      revert: () => counters = original,
+    );
     unawaited(_haptics.light());
   }
 

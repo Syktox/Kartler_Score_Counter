@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/app_mode.dart';
+import '../../models/completed_match.dart';
 import '../../models/game_session.dart';
 import '../players/players_controller.dart';
 import 'statistics_calculator.dart';
@@ -55,6 +56,13 @@ class StatisticsPage extends StatelessWidget {
               _SectionTitle(title: 'Beliebteste Modi'),
               const SizedBox(height: 8),
               _ModeBreakdown(result: result),
+              if (result.recentMatches.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _SectionTitle(title: 'Letzte Partien'),
+                const SizedBox(height: 8),
+                for (final match in result.recentMatches)
+                  _RecentMatchTile(match: match, players: players),
+              ],
             ],
             const SizedBox(height: 20),
             _SectionTitle(title: 'Spielabende'),
@@ -89,14 +97,8 @@ class _SummaryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _StatPill(
-                label: 'Partien',
-                value: '${result.totalMatches}',
-              ),
-              _StatPill(
-                label: 'Spielabende',
-                value: '${result.totalSessions}',
-              ),
+              _StatPill(label: 'Partien', value: '${result.totalMatches}'),
+              _StatPill(label: 'Spielabende', value: '${result.totalSessions}'),
               _StatPill(
                 label: 'Größter Sieg',
                 value: '${result.biggestWinMargin}',
@@ -243,6 +245,77 @@ class _ModeBreakdown extends StatelessWidget {
   }
 }
 
+class _RecentMatchTile extends StatelessWidget {
+  final CompletedMatch match;
+  final PlayersController players;
+
+  const _RecentMatchTile({required this.match, required this.players});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final local = match.endedAt.toLocal();
+    final date =
+        '${local.day.toString().padLeft(2, '0')}.'
+        '${local.month.toString().padLeft(2, '0')}.${local.year}';
+
+    final winnerId = match.winnerId;
+    final winnerLabel =
+        winnerId != null && match.participantIds.contains(winnerId)
+        ? players.displayName(winnerId)
+        : match.winnerName;
+    final standings = match.finalStandings.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          radius: 20,
+          backgroundColor: colorScheme.secondaryContainer,
+          child: Icon(
+            _modeIcon(match.gameType),
+            color: colorScheme.onSecondaryContainer,
+          ),
+        ),
+        title: Text(
+          '${match.gameType.label} · $winnerLabel gewinnt',
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          standings
+              .map(
+                (entry) =>
+                    '${match.participantIds.contains(entry.key) ? players.displayName(entry.key) : entry.key}: ${entry.value}',
+              )
+              .join(' · '),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Text(date, style: Theme.of(context).textTheme.bodySmall),
+      ),
+    );
+  }
+
+  static IconData _modeIcon(AppMode mode) {
+    switch (mode) {
+      case AppMode.watten:
+        return Icons.style_outlined;
+      case AppMode.mulatschak:
+        return Icons.casino_outlined;
+      case AppMode.hosnObe:
+        return Icons.emoji_events_outlined;
+      case AppMode.counter:
+        return Icons.numbers;
+    }
+  }
+}
+
 class _SessionsSummary extends StatelessWidget {
   final StatisticsResult result;
 
@@ -256,7 +329,8 @@ class _SessionsSummary extends StatelessWidget {
       return const Text('Noch keine abgeschlossenen Spielabende.');
     }
     final local = lastSession.startTime.toLocal();
-    final date = '${local.day.toString().padLeft(2, '0')}.'
+    final date =
+        '${local.day.toString().padLeft(2, '0')}.'
         '${local.month.toString().padLeft(2, '0')}.${local.year}';
 
     return Column(

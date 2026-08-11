@@ -26,6 +26,7 @@ class StatisticsResult {
   final GameSession? lastSession;
   final int totalSessions;
   final int biggestWinMargin;
+  final List<CompletedMatch> recentMatches;
 
   const StatisticsResult({
     required this.totalMatches,
@@ -35,8 +36,13 @@ class StatisticsResult {
     required this.lastSession,
     required this.totalSessions,
     required this.biggestWinMargin,
+    required this.recentMatches,
   });
 }
+
+/// Anzahl der Partien, die in der Statistik als „Letzte Partien" gezeigt
+/// werden.
+const int recentMatchesLimit = 10;
 
 /// Berechnet Statistiken ausschließlich aus der gespeicherten Match-History
 /// und den Spielabenden – es gibt keine doppelte Datenhaltung.
@@ -78,8 +84,9 @@ class StatisticsCalculator {
               winRate: 0,
             );
         final win = match.winnerId == participantId ? 1 : 0;
-        final loss =
-            match.winnerId != null && match.winnerId != participantId ? 1 : 0;
+        final loss = match.winnerId != null && match.winnerId != participantId
+            ? 1
+            : 0;
         final matches = current.matches + 1;
         final wins = current.wins + win;
         final losses = current.losses + loss;
@@ -119,6 +126,20 @@ class StatisticsCalculator {
     final finished = sessions.where((session) => !session.isActive).toList()
       ..sort((a, b) => b.startTime.compareTo(a.startTime));
 
+    final recent =
+        matches.where((match) => match.gameType != AppMode.counter).toList()
+          ..sort((a, b) {
+            final byEnd = b.endedAt.compareTo(a.endedAt);
+            if (byEnd != 0) {
+              return byEnd;
+            }
+            final byStart = b.startedAt.compareTo(a.startedAt);
+            if (byStart != 0) {
+              return byStart;
+            }
+            return b.id.compareTo(a.id);
+          });
+
     return StatisticsResult(
       totalMatches: matches
           .where((match) => match.gameType != AppMode.counter)
@@ -129,6 +150,7 @@ class StatisticsCalculator {
       lastSession: finished.isEmpty ? null : finished.first,
       totalSessions: finished.length,
       biggestWinMargin: biggestWinMargin,
+      recentMatches: recent.take(recentMatchesLimit).toList(growable: false),
     );
   }
 

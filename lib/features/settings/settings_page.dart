@@ -3,16 +3,18 @@ import 'package:flutter/services.dart';
 
 import '../../models/app_mode.dart';
 import '../../models/rule_profile.dart';
+import '../../persistence/backup_service.dart';
 import '../../screens/bug_report_page.dart';
 import '../../screens/donation_page.dart';
 import '../../screens/privacy_policy_page.dart';
 import 'settings_controller.dart';
 
-/// Einstellungen: Modus, Theme, Haptik, Verlauf und Regelprofil.
+/// Einstellungen: Modus, Theme, Haptik, Verlauf, Regelprofil und Backup.
 class SettingsPage extends StatefulWidget {
   final SettingsController settings;
+  final Future<void> Function()? onDataImported;
 
-  const SettingsPage({super.key, required this.settings});
+  const SettingsPage({super.key, required this.settings, this.onDataImported});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -118,6 +120,95 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
     _commitProfile(_profile.copyWith(muleqackResetPoints: value));
+  }
+
+  // MARK: - Backup
+
+  Future<void> _exportBackup() async {
+    final json = await const BackupService().exportJson();
+    await Clipboard.setData(ClipboardData(text: json));
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Backup in die Zwischenablage kopiert.')),
+    );
+  }
+
+  Future<void> _importBackup() async {
+    String? clipboardText;
+    try {
+      final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+      clipboardText = clipboard?.text;
+    } catch (_) {
+      clipboardText = null;
+    }
+    if (!mounted) {
+      return;
+    }
+    final json = await showDialog<String>(
+      context: context,
+      builder: (_) => _BackupImportDialog(initialText: clipboardText ?? ''),
+    );
+    if (json == null || json.trim().isEmpty || !mounted) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Daten ersetzen?'),
+        content: const Text(
+          'Achtung: Beim Import werden alle aktuellen Spieler, Partien, '
+          'Spielabende und Einstellungen durch die Daten aus dem Backup '
+          'ersetzt. Dieser Vorgang kann nicht rückgängig gemacht werden.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Importieren'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    try {
+      await const BackupService().importJson(json.trim());
+    } on BackupException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Import fehlgeschlagen'),
+          content: Text(error.message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Backup erfolgreich wiederhergestellt.')),
+    );
+    Navigator.of(context).pop();
+    await widget.onDataImported?.call();
   }
 
   @override
@@ -288,6 +379,35 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     ];
 
+    final backupSection = <Widget>[
+      const _SectionHeader(title: 'Daten & Backup'),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: OutlinedButton.icon(
+          onPressed: _exportBackup,
+          icon: const Icon(Icons.file_upload_outlined),
+          label: const Text('Backup exportieren'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: OutlinedButton.icon(
+          onPressed: _importBackup,
+          icon: const Icon(Icons.file_download_outlined),
+          label: const Text('Backup wiederherstellen'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text(
+          'Backups enthalten Spieler, Partien, Spielabende, Einstellungen '
+          'und Spielstände. Ein Export wird als JSON in die Zwischenablage '
+          'kopiert.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ),
+    ];
+
     final utilitySection = <Widget>[
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -352,6 +472,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       const Divider(),
                       ...rulesSection,
                       const Divider(),
+                      ...backupSection,
+                      const Divider(),
                       ...utilitySection,
                     ],
                   ),
@@ -369,11 +491,75 @@ class _SettingsPageState extends State<SettingsPage> {
               const Divider(),
               ...rulesSection,
               const Divider(),
+              ...backupSection,
+              const Divider(),
               ...utilitySection,
             ],
           );
 
     return content;
+  }
+}
+
+/// Dialog zum Einfügen eines Backup-JSONs.
+///
+/// Eigener StatefulWidget, damit der TextEditingController erst entsorgt
+/// wird, wenn auch die Dialog-Animation abgeschlossen ist.
+class _BackupImportDialog extends StatefulWidget {
+  final String initialText;
+
+  const _BackupImportDialog({required this.initialText});
+
+  @override
+  State<_BackupImportDialog> createState() => _BackupImportDialogState();
+}
+
+class _BackupImportDialogState extends State<_BackupImportDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialText,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Backup wiederherstellen'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Füge hier das Backup-JSON ein. Ein Backup bekommst du über '
+            '„Backup exportieren“.',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            maxLines: 8,
+            minLines: 4,
+            decoration: const InputDecoration(
+              hintText: 'Backup-JSON einfügen …',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('Weiter'),
+        ),
+      ],
+    );
   }
 }
 

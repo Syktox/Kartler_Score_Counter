@@ -106,7 +106,10 @@ class SessionController extends FeatureController {
     if (session != null) {
       _sessions = [
         for (final entry in _sessions)
-          if (entry.id == session.id) entry.withMatchRecorded(match.id) else entry,
+          if (entry.id == session.id)
+            entry.withMatchRecorded(match.id)
+          else
+            entry,
       ];
     }
     notifyListeners();

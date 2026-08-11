@@ -37,9 +37,7 @@ class MulatschakRepository {
         ? storedCurrent!
         : (lineup.isEmpty ? '' : lineup.keys.first);
     final storedMultiplier = prefs.getInt(StorageKeys.mulatschakMultiplier);
-    final storedHistoryRound = prefs.getInt(
-      StorageKeys.mulatschakHistoryRound,
-    );
+    final storedHistoryRound = prefs.getInt(StorageKeys.mulatschakHistoryRound);
     final roundPlayerIds = _decodeStringList(
       prefs.getString(StorageKeys.mulatschakRoundPlayers),
     );
@@ -47,13 +45,13 @@ class MulatschakRepository {
     return MulatschakData(
       lineup: lineup,
       currentPlayerId: currentPlayerId,
-      multiplier:
-          storedMultiplier != null && storedMultiplier > 0
-              ? storedMultiplier
-              : defaultMultiplier,
-      history: _decodeStringList(prefs.getString(StorageKeys.mulatschakHistory)),
-      historyRound:
-          storedHistoryRound != null && storedHistoryRound > 0
+      multiplier: storedMultiplier != null && storedMultiplier > 0
+          ? storedMultiplier
+          : defaultMultiplier,
+      history: _decodeStringList(
+        prefs.getString(StorageKeys.mulatschakHistory),
+      ),
+      historyRound: storedHistoryRound != null && storedHistoryRound > 0
           ? storedHistoryRound
           : defaultHistoryRound,
       roundPlayerIds: roundPlayerIds
