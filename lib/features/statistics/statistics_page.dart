@@ -259,6 +259,11 @@ class _RecentMatchTile extends StatelessWidget {
         '${local.day.toString().padLeft(2, '0')}.'
         '${local.month.toString().padLeft(2, '0')}.${local.year}';
 
+    final winnerId = match.winnerId;
+    final winnerLabel =
+        winnerId != null && match.participantIds.contains(winnerId)
+        ? players.displayName(winnerId)
+        : match.winnerName;
     final standings = match.finalStandings.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -279,11 +284,16 @@ class _RecentMatchTile extends StatelessWidget {
           ),
         ),
         title: Text(
-          '${match.gameType.label} · ${match.winnerName} gewinnt',
+          '${match.gameType.label} · $winnerLabel gewinnt',
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          standings.map((entry) => '${entry.key}: ${entry.value}').join(' · '),
+          standings
+              .map(
+                (entry) =>
+                    '${match.participantIds.contains(entry.key) ? players.displayName(entry.key) : entry.key}: ${entry.value}',
+              )
+              .join(' · '),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),

@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../../models/completed_match.dart';
 import '../../models/game_session.dart';
 import '../players/players_controller.dart';
+import '../../widgets/match_tile.dart';
 
 /// Liste aller vergangenen Spielabende.
 class SessionsListPage extends StatelessWidget {
   final List<GameSession> sessions;
   final PlayersController players;
+  final List<CompletedMatch> Function(String sessionId) matchesForSession;
 
   const SessionsListPage({
     super.key,
     required this.sessions,
     required this.players,
+    required this.matchesForSession,
   });
 
   String _formatDate(DateTime time) {
@@ -23,7 +27,8 @@ class SessionsListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = sessions..sort((a, b) => b.startTime.compareTo(a.startTime));
+    final sorted = [...sessions]
+      ..sort((a, b) => b.startTime.compareTo(a.startTime));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Spielabende')),
@@ -71,6 +76,7 @@ class SessionsListPage extends StatelessWidget {
                             builder: (_) => _SessionDetail(
                               session: session,
                               players: players,
+                              matchesForSession: matchesForSession,
                             ),
                           ),
                         );
@@ -87,11 +93,18 @@ class SessionsListPage extends StatelessWidget {
 class _SessionDetail extends StatelessWidget {
   final GameSession session;
   final PlayersController players;
+  final List<CompletedMatch> Function(String sessionId) matchesForSession;
 
-  const _SessionDetail({required this.session, required this.players});
+  const _SessionDetail({
+    required this.session,
+    required this.players,
+    required this.matchesForSession,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final matches = matchesForSession(session.id);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Spielabend')),
       body: SafeArea(
@@ -103,23 +116,20 @@ class _SessionDetail extends StatelessWidget {
               'Teilnehmer: ${session.participantIds.isEmpty ? '—' : session.participantIds.map(players.displayName).join(', ')}',
             ),
             const SizedBox(height: 4),
-            Text('Partien: ${session.matchIds.length}'),
+            Text('Partien: ${matches.length}'),
             const SizedBox(height: 16),
             Text(
-              'Aufgezeichnete Partie-IDs:',
+              'Aufgezeichnete Partien',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            if (session.matchIds.isEmpty)
+            if (matches.isEmpty)
               const Text('Keine Partien aufgezeichnet.')
             else
-              for (final matchId in session.matchIds)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text(matchId, style: const TextStyle(fontSize: 12)),
-                ),
+              for (final match in matches)
+                MatchTile(match: match, players: players),
           ],
         ),
       ),

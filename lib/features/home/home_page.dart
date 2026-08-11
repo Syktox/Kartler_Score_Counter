@@ -260,6 +260,7 @@ class _HomePageState extends State<HomePage> {
         builder: (_) => SessionsListPage(
           sessions: _sessions.pastSessions,
           players: _players,
+          matchesForSession: _sessions.matchesForSession,
         ),
       ),
     );
