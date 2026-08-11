@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kartler/main.dart';
+import 'package:kartler/models/app_mode.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Deaktiviert die Haptik-Plattformkanäle: Im Widget-Test meldet die Flutter
@@ -22,8 +23,8 @@ void mockPlatformChannel(WidgetTester tester) {
   });
 }
 
-/// Pumped die App mit Mock-Speicher. Onboarding ist standardmäßig abgeschlossen,
-/// damit die Tests direkt im gewählten Modus landen.
+/// Pumped die App mit Mock-Speicher und überspringt das Onboarding, das bei
+/// jedem Start erscheint: Die Tests landen direkt im gewählten Modus.
 Future<void> pumpApp(
   WidgetTester tester, {
   Map<String, Object> prefs = const {},
@@ -34,11 +35,24 @@ Future<void> pumpApp(
   addTearDown(tester.view.resetDevicePixelRatio);
   mockPlatformChannel(tester);
 
-  SharedPreferences.setMockInitialValues({
-    'onboarding_completed': true,
-    ...prefs,
-  });
+  SharedPreferences.setMockInitialValues(prefs);
   await tester.pumpWidget(const KartlerApp());
+  await tester.pumpAndSettle();
+  await dismissOnboarding(tester);
+}
+
+/// Überspringt das Onboarding (falls sichtbar) und wählt den Modus aus den
+/// Mock-Prefs (Standard: Watten).
+Future<void> dismissOnboarding(WidgetTester tester) async {
+  if (find.text('Was möchtest du spielen?').evaluate().isEmpty) {
+    return;
+  }
+  final prefs = await SharedPreferences.getInstance();
+  final modeName = prefs.getString('app_mode') ?? 'watten';
+  final label = AppMode.values.firstWhere((mode) => mode.name == modeName).label;
+  await tester.ensureVisible(find.text(label));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label));
   await tester.pumpAndSettle();
 }
 

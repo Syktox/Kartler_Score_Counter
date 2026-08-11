@@ -48,12 +48,12 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     SharedPreferences.setMockInitialValues({
-      'onboarding_completed': true,
       'app_mode': 'counter',
       ...counterPrefs(),
     });
     await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
+    await dismissOnboarding(tester);
 
     expect(find.text('Punkte'), findsOneWidget);
     expect(find.text('+'), findsOneWidget);
@@ -70,13 +70,13 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     SharedPreferences.setMockInitialValues({
-      'onboarding_completed': true,
       'app_mode': 'watten',
       'watten_table_mode': true,
       ...wattenPrefs(),
     });
     await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
+    await dismissOnboarding(tester);
 
     expect(find.text('Wir'), findsWidgets);
     expect(find.text('Die'), findsWidgets);
@@ -115,12 +115,12 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     SharedPreferences.setMockInitialValues({
-      'onboarding_completed': true,
       'app_mode': 'counter',
       ...counterPrefs(),
     });
     await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
+    await dismissOnboarding(tester);
 
     await openSettings(tester);
 
@@ -145,12 +145,12 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     SharedPreferences.setMockInitialValues({
-      'onboarding_completed': true,
       'app_mode': 'counter',
       ...counterPrefs(),
     });
     await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
+    await dismissOnboarding(tester);
 
     await openDrawer(tester);
     await tester.tap(find.text('Neuer Zähler'));

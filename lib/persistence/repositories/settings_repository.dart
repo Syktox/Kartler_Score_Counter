@@ -34,16 +34,6 @@ class SettingsRepository {
     await prefs.setBool(StorageKeys.hapticsEnabled, enabled);
   }
 
-  Future<bool> loadOnboardingCompleted() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(StorageKeys.onboardingCompleted) ?? false;
-  }
-
-  Future<void> saveOnboardingCompleted(bool completed) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(StorageKeys.onboardingCompleted, completed);
-  }
-
   Future<bool> loadWattenTableMode() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(StorageKeys.wattenTableMode) ?? false;

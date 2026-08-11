@@ -79,6 +79,7 @@ class _HomePageState extends State<HomePage> {
   late final HapticsService _haptics;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _ready = false;
+  bool _onboardingDone = false;
   OverlayEntry? _recordedBubble;
   Timer? _recordedBubbleTimer;
 
@@ -198,6 +199,17 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     _settings.setAppMode(mode);
+  }
+
+  /// Beendet das Onboarding für diese Sitzung. Ohne Modusauswahl (Skip)
+  /// bleibt der zuletzt verwendete Modus aktiv.
+  void _finishOnboarding(AppMode? mode) {
+    setState(() {
+      _onboardingDone = true;
+    });
+    if (mode != null) {
+      _selectMode(mode);
+    }
   }
 
   Future<void> _openSettings() async {
@@ -812,14 +824,13 @@ class _HomePageState extends State<HomePage> {
         _settings,
       ]),
       builder: (context, _) {
-        if (!_settings.onboardingCompleted) {
+        if (!_onboardingDone) {
           return OnboardingPage(
             onModeSelected: (mode) {
-              _settings.setOnboardingCompleted();
-              _selectMode(mode);
+              _finishOnboarding(mode);
             },
             onSkip: () {
-              _settings.setOnboardingCompleted();
+              _finishOnboarding(null);
             },
           );
         }

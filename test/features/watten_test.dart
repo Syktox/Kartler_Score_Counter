@@ -156,11 +156,11 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'onboarding_completed': true,
         ...wattenPrefs(),
       });
       await tester.pumpWidget(const KartlerApp());
       await tester.pumpAndSettle();
+      await dismissOnboarding(tester);
 
       await tester.tap(find.byTooltip('Tischmodus').first);
       await tester.pumpAndSettle();

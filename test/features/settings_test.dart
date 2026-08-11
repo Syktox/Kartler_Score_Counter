@@ -141,8 +141,9 @@ void main() {
   });
 
   group('Onboarding', () {
-    testWidgets('shows the mode selection on first launch', (tester) async {
-      SharedPreferences.setMockInitialValues({});
+    testWidgets('shows the mode selection on every start, even with saved '
+        'settings', (tester) async {
+      SharedPreferences.setMockInitialValues({'app_mode': 'counter'});
       await tester.pumpWidget(const KartlerApp());
       await tester.pumpAndSettle();
 
@@ -152,8 +153,8 @@ void main() {
       await tester.tap(find.text('Mulatschak'));
       await tester.pumpAndSettle();
 
+      expect(find.text('Was möchtest du spielen?'), findsNothing);
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getBool('onboarding_completed'), isTrue);
       expect(prefs.getString('app_mode'), 'mulatschak');
     });
 
@@ -167,8 +168,7 @@ void main() {
       await tester.tap(find.text('Überspringen'));
       await tester.pumpAndSettle();
 
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getBool('onboarding_completed'), isTrue);
+      expect(find.text('Was möchtest du spielen?'), findsNothing);
     });
 
     testWidgets('tap on default mode (Watten) dismisses onboarding',
@@ -183,8 +183,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Was möchtest du spielen?'), findsNothing);
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getBool('onboarding_completed'), isTrue);
     });
   });
 }

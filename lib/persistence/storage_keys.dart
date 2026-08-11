@@ -5,7 +5,6 @@ abstract final class StorageKeys {
   // Allgemeine Einstellungen
   static const themeMode = 'theme_mode';
   static const hapticsEnabled = 'haptics_enabled';
-  static const onboardingCompleted = 'onboarding_completed';
   static const wattenTableMode = 'watten_table_mode';
   static const appMode = 'app_mode';
   static const counterHistoryEnabled = 'counter_history_enabled';

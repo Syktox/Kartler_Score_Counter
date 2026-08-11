@@ -144,7 +144,6 @@ void main() {
         'muleqack_enabled': true,
         'muleqack_trigger_points': 100,
         'muleqack_reset_points': 50,
-        'onboarding_completed': true,
       });
       final prefs = await SharedPreferences.getInstance();
 

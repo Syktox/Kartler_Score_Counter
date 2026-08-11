@@ -7,7 +7,7 @@ import '../../models/rule_profile.dart';
 import '../../persistence/repositories/settings_repository.dart';
 import '../feature_controller.dart';
 
-/// Allgemeine App-Einstellungen: Theme, Haptik, Onboarding, Verlauf-Toggles,
+/// Allgemeine App-Einstellungen: Theme, Haptik, Verlauf-Toggles,
 /// Regelprofil und der zuletzt verwendete Spielmodus.
 class SettingsController extends FeatureController {
   SettingsController({required SettingsRepository repository})
@@ -17,7 +17,6 @@ class SettingsController extends FeatureController {
 
   ThemeMode themeMode = ThemeMode.system;
   bool hapticsEnabled = true;
-  bool onboardingCompleted = false;
   bool wattenTableMode = false;
   AppMode appMode = AppMode.watten;
   bool counterHistoryEnabled = false;
@@ -29,7 +28,6 @@ class SettingsController extends FeatureController {
   Future<void> load() async {
     themeMode = await _repository.loadThemeMode();
     hapticsEnabled = await _repository.loadHapticsEnabled();
-    onboardingCompleted = await _repository.loadOnboardingCompleted();
     wattenTableMode = await _repository.loadWattenTableMode();
     appMode = await _repository.loadAppMode();
     counterHistoryEnabled = await _repository.loadCounterHistoryEnabled();
@@ -56,15 +54,6 @@ class SettingsController extends FeatureController {
     hapticsEnabled = enabled;
     notifyListeners();
     unawaited(_repository.saveHapticsEnabled(enabled));
-  }
-
-  void setOnboardingCompleted() {
-    if (onboardingCompleted) {
-      return;
-    }
-    onboardingCompleted = true;
-    notifyListeners();
-    unawaited(_repository.saveOnboardingCompleted(true));
   }
 
   void setWattenTableMode(bool enabled) {
