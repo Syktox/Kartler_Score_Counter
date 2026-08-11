@@ -104,4 +104,14 @@ class SettingsRepository {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(StorageKeys.mulatschakHistoryEnabled, enabled);
   }
+
+  Future<bool> loadOnboardingCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(StorageKeys.onboardingCompleted) ?? false;
+  }
+
+  Future<void> saveOnboardingCompleted(bool completed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(StorageKeys.onboardingCompleted, completed);
+  }
 }

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/app_constants.dart';
 import '../../models/app_mode.dart';
 
-/// App-Start: kurze Auswahl „Was möchtest du spielen?“ bei jedem Start.
+/// App-Start: kurze Auswahl „Was möchtest du spielen?“ beim ersten Start.
+/// Danach ist die Auswahl jederzeit über „Start“ in der AppBar erreichbar.
 class OnboardingPage extends StatelessWidget {
   final ValueChanged<AppMode> onModeSelected;
   final VoidCallback onSkip;
@@ -31,9 +32,9 @@ class OnboardingPage extends StatelessWidget {
               Text(
                 AppConstants.name,
                 textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -80,10 +81,7 @@ class OnboardingPage extends StatelessWidget {
                 onTap: () => onModeSelected(AppMode.counter),
               ),
               const SizedBox(height: 28),
-              TextButton(
-                onPressed: onSkip,
-                child: const Text('Überspringen'),
-              ),
+              TextButton(onPressed: onSkip, child: const Text('Überspringen')),
             ],
           ),
         ),
@@ -117,7 +115,10 @@ class _OnboardingOption extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 10,
+        ),
         leading: CircleAvatar(
           radius: 24,
           backgroundColor: colorScheme.primaryContainer,

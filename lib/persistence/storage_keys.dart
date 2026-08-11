@@ -11,6 +11,7 @@ abstract final class StorageKeys {
   static const counterNegativeEnabled = 'counter_negative_enabled';
   static const mulatschakHistoryEnabled = 'mulatschak_history_enabled';
   static const ruleProfile = 'rule_profile';
+  static const onboardingCompleted = 'onboarding_completed';
 
   // Globale Spieler
   static const players = 'players';

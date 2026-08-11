@@ -79,7 +79,6 @@ class _HomePageState extends State<HomePage> {
   late final HapticsService _haptics;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _ready = false;
-  bool _onboardingDone = false;
   OverlayEntry? _recordedBubble;
   Timer? _recordedBubbleTimer;
 
@@ -201,12 +200,11 @@ class _HomePageState extends State<HomePage> {
     _settings.setAppMode(mode);
   }
 
-  /// Beendet das Onboarding für diese Sitzung. Ohne Modusauswahl (Skip)
-  /// bleibt der zuletzt verwendete Modus aktiv.
+  /// Beendet das Onboarding dauerhaft und wählt – falls gewünscht – den
+  /// angetippten Modus. Ohne Modusauswahl (Skip) bleibt der zuletzt
+  /// verwendete Modus aktiv.
   void _finishOnboarding(AppMode? mode) {
-    setState(() {
-      _onboardingDone = true;
-    });
+    _settings.setHasCompletedOnboarding(true);
     if (mode != null) {
       _selectMode(mode);
     }
@@ -657,9 +655,7 @@ class _HomePageState extends State<HomePage> {
           enableReorder: false,
           onAddNewItem: _openPlayers,
           secondaryActionLabel: isMulatschak ? 'Neues Spiel' : null,
-          secondaryActionIcon: isMulatschak
-              ? Icons.play_circle_outline
-              : null,
+          secondaryActionIcon: isMulatschak ? Icons.play_circle_outline : null,
           onSecondaryAction: isMulatschak ? _startNewMulatschakGame : null,
           onSelectItem: (name) {
             for (final player in _players.players) {
@@ -842,7 +838,7 @@ class _HomePageState extends State<HomePage> {
         _settings,
       ]),
       builder: (context, _) {
-        if (!_onboardingDone) {
+        if (!_settings.hasCompletedOnboarding) {
           return OnboardingPage(
             onModeSelected: (mode) {
               _finishOnboarding(mode);

@@ -293,6 +293,17 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
         child: OutlinedButton.icon(
           onPressed: () {
+            widget.settings.setHasCompletedOnboarding(false);
+            Navigator.of(context).pop();
+          },
+          icon: const Icon(Icons.style_outlined),
+          label: const Text('Einführung erneut anzeigen'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: OutlinedButton.icon(
+          onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
             );

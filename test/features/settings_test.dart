@@ -104,9 +104,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();
-      final profile = jsonDecode(
-        prefs.getString('rule_profile')!,
-      ) as Map<String, dynamic>;
+      final profile =
+          jsonDecode(prefs.getString('rule_profile')!) as Map<String, dynamic>;
       expect(profile['wattenWinningScore'], 15);
     });
 
@@ -131,9 +130,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();
-      final profile = jsonDecode(
-        prefs.getString('rule_profile')!,
-      ) as Map<String, dynamic>;
+      final profile =
+          jsonDecode(prefs.getString('rule_profile')!) as Map<String, dynamic>;
       expect(profile['wattenWinningScore'], 11);
     });
 
@@ -171,8 +169,9 @@ void main() {
   });
 
   group('Onboarding', () {
-    testWidgets('shows the mode selection on every start, even with saved '
-        'settings', (tester) async {
+    testWidgets('shows on first start and persists the chosen mode', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({'app_mode': 'counter'});
       await tester.pumpWidget(const KartlerApp());
       await tester.pumpAndSettle();
@@ -186,9 +185,21 @@ void main() {
       expect(find.text('Was möchtest du spielen?'), findsNothing);
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('app_mode'), 'mulatschak');
+      expect(prefs.getBool('onboarding_completed'), isTrue);
     });
 
-    testWidgets('can be skipped', (tester) async {
+    testWidgets('is skipped on later starts once completed', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'app_mode': 'counter',
+        'onboarding_completed': true,
+      });
+      await tester.pumpWidget(const KartlerApp());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Was möchtest du spielen?'), findsNothing);
+    });
+
+    testWidgets('can be skipped and persists the completion', (tester) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(const KartlerApp());
       await tester.pumpAndSettle();
@@ -199,10 +210,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Was möchtest du spielen?'), findsNothing);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('onboarding_completed'), isTrue);
     });
 
-    testWidgets('tap on default mode (Watten) dismisses onboarding',
-        (tester) async {
+    testWidgets('tap on default mode (Watten) dismisses onboarding', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({});
       await tester.pumpWidget(const KartlerApp());
       await tester.pumpAndSettle();
@@ -213,6 +227,23 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Was möchtest du spielen?'), findsNothing);
+    });
+
+    testWidgets('settings can re-show the introduction', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'app_mode': 'counter',
+        'onboarding_completed': true,
+      });
+      await tester.pumpWidget(const KartlerApp());
+      await tester.pumpAndSettle();
+
+      await openSettings(tester);
+      await tester.ensureVisible(find.text('Einführung erneut anzeigen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Einführung erneut anzeigen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Was möchtest du spielen?'), findsOneWidget);
     });
   });
 }

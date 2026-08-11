@@ -23,8 +23,8 @@ void mockPlatformChannel(WidgetTester tester) {
   });
 }
 
-/// Pumped die App mit Mock-Speicher und überspringt das Onboarding, das bei
-/// jedem Start erscheint: Die Tests landen direkt im gewählten Modus.
+/// Pumped die App mit Mock-Speicher und überspringt das Onboarding, das beim
+/// ersten Start erscheint: Die Tests landen direkt im gewählten Modus.
 Future<void> pumpApp(
   WidgetTester tester, {
   Map<String, Object> prefs = const {},
@@ -49,7 +49,9 @@ Future<void> dismissOnboarding(WidgetTester tester) async {
   }
   final prefs = await SharedPreferences.getInstance();
   final modeName = prefs.getString('app_mode') ?? 'watten';
-  final label = AppMode.values.firstWhere((mode) => mode.name == modeName).label;
+  final label = AppMode.values
+      .firstWhere((mode) => mode.name == modeName)
+      .label;
   await tester.ensureVisible(find.text(label));
   await tester.pumpAndSettle();
   await tester.tap(find.text(label));
@@ -77,16 +79,8 @@ Map<String, Object> wattenPrefs() {
 Map<String, Object> playerPrefs() {
   return {
     'players': jsonEncode([
-      {
-        'id': 'p1',
-        'name': 'Anna',
-        'createdAt': '2024-01-01T00:00:00.000Z',
-      },
-      {
-        'id': 'p2',
-        'name': 'Ben',
-        'createdAt': '2024-01-01T00:00:00.000Z',
-      },
+      {'id': 'p1', 'name': 'Anna', 'createdAt': '2024-01-01T00:00:00.000Z'},
+      {'id': 'p2', 'name': 'Ben', 'createdAt': '2024-01-01T00:00:00.000Z'},
     ]),
   };
 }
