@@ -41,13 +41,7 @@ class V1PlayerMigration implements AppMigration {
         return existing;
       }
       final id = IdGenerator.newId();
-      players.add(
-        Player(
-          id: id,
-          name: name,
-          createdAt: DateTime.now(),
-        ),
-      );
+      players.add(Player(id: id, name: name, createdAt: DateTime.now()));
       idByName[normalized] = id;
       return id;
     }
@@ -113,14 +107,9 @@ class V1PlayerMigration implements AppMigration {
       }
     }
 
-    final counters = _decodeIntMap(
-      prefs.getString(LegacyStorageKeys.counters),
-    );
+    final counters = _decodeIntMap(prefs.getString(LegacyStorageKeys.counters));
     if (counters.isNotEmpty) {
-      await prefs.setString(
-        StorageKeys.counterLineup,
-        jsonEncode(counters),
-      );
+      await prefs.setString(StorageKeys.counterLineup, jsonEncode(counters));
     }
     final wattenGames = _decodeWattenGames(
       prefs.getString(LegacyStorageKeys.wattenGames),
@@ -157,9 +146,7 @@ class V1PlayerMigration implements AppMigration {
       if (decoded is! Map<String, dynamic>) {
         return <String, int>{};
       }
-      return decoded.map(
-        (key, value) => MapEntry(key, (value as num).toInt()),
-      );
+      return decoded.map((key, value) => MapEntry(key, (value as num).toInt()));
     } catch (_) {
       return <String, int>{};
     }

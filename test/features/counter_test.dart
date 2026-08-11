@@ -155,7 +155,10 @@ void main() {
       await openDrawer(tester);
       await tester.tap(find.text('Neuer Zähler'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), '  Doppelte  Leerzeichen ');
+      await tester.enterText(
+        find.byType(TextField),
+        '  Doppelte  Leerzeichen ',
+      );
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
 

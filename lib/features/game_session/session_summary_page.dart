@@ -98,12 +98,11 @@ class SessionSummaryPage extends StatelessWidget {
             if (matches.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(
-                  child: Text('Keine Partien aufgezeichnet.'),
-                ),
+                child: Center(child: Text('Keine Partien aufgezeichnet.')),
               )
             else
-              for (final match in matches) _MatchTile(match: match, players: players),
+              for (final match in matches)
+                _MatchTile(match: match, players: players),
           ],
         ),
       ),
@@ -143,7 +142,9 @@ class _MatchTile extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
                 Text(
-                  match.winnerName == '—' ? 'Unentschieden' : 'Sieger: ${match.winnerName}',
+                  match.winnerName == '—'
+                      ? 'Unentschieden'
+                      : 'Sieger: ${match.winnerName}',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: colorScheme.primary,

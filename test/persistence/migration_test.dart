@@ -63,13 +63,10 @@ void main() {
           player['name'] as String: player['id'] as String,
       };
 
-      final lineup = jsonDecode(
-        prefs.getString(StorageKeys.mulatschakLineup)!,
-      ) as Map<String, dynamic>;
-      expect(
-        lineup.keys.toSet(),
-        {idsByName['Anna'], idsByName['Ben']},
-      );
+      final lineup =
+          jsonDecode(prefs.getString(StorageKeys.mulatschakLineup)!)
+              as Map<String, dynamic>;
+      expect(lineup.keys.toSet(), {idsByName['Anna'], idsByName['Ben']});
       expect(lineup[idsByName['Anna']], 21);
       expect(lineup[idsByName['Ben']], 14);
 
@@ -78,29 +75,29 @@ void main() {
       );
       expect(currentPlayerId, idsByName['Ben']);
 
-      final hosnObeLineup = jsonDecode(
-        prefs.getString(StorageKeys.hosnObeLineup)!,
-      ) as Map<String, dynamic>;
-      expect(
-        hosnObeLineup.keys.toSet(),
-        {idsByName['Anna'], idsByName['Carla']},
-      );
+      final hosnObeLineup =
+          jsonDecode(prefs.getString(StorageKeys.hosnObeLineup)!)
+              as Map<String, dynamic>;
+      expect(hosnObeLineup.keys.toSet(), {
+        idsByName['Anna'],
+        idsByName['Carla'],
+      });
       expect(hosnObeLineup[idsByName['Carla']], 2);
 
-      final roundPlayers = jsonDecode(
-        prefs.getString(StorageKeys.mulatschakRoundPlayers)!,
-      ) as List;
+      final roundPlayers =
+          jsonDecode(prefs.getString(StorageKeys.mulatschakRoundPlayers)!)
+              as List;
       expect(roundPlayers, [idsByName['Anna']]);
       expect(prefs.getInt(StorageKeys.mulatschakHistoryRound), 2);
 
-      final counters = jsonDecode(
-        prefs.getString(StorageKeys.counterLineup)!,
-      ) as Map<String, dynamic>;
+      final counters =
+          jsonDecode(prefs.getString(StorageKeys.counterLineup)!)
+              as Map<String, dynamic>;
       expect(counters, {'Punkte': 3});
 
-      final wattenGames = jsonDecode(
-        prefs.getString(StorageKeys.wattenLineup)!,
-      ) as Map<String, dynamic>;
+      final wattenGames =
+          jsonDecode(prefs.getString(StorageKeys.wattenLineup)!)
+              as Map<String, dynamic>;
       expect((wattenGames['Spiel 1'] as Map)['me'], 5);
 
       // Legacy-Keys wurden entfernt.
@@ -122,9 +119,9 @@ void main() {
 
       await V2RuleProfileMigration().run(prefs);
 
-      final profile = jsonDecode(
-        prefs.getString(StorageKeys.ruleProfile)!,
-      ) as Map<String, dynamic>;
+      final profile =
+          jsonDecode(prefs.getString(StorageKeys.ruleProfile)!)
+              as Map<String, dynamic>;
       expect(profile['muleqackEnabled'], isTrue);
       expect(profile['muleqackTriggerPoints'], 120);
       expect(profile['muleqackResetPoints'], 40);
@@ -159,11 +156,7 @@ void main() {
       SharedPreferences.setMockInitialValues({
         'schema_version': 2,
         'players': jsonEncode([
-          {
-            'id': 'p1',
-            'name': 'Anna',
-            'createdAt': '2024-01-01T00:00:00.000Z',
-          },
+          {'id': 'p1', 'name': 'Anna', 'createdAt': '2024-01-01T00:00:00.000Z'},
         ]),
       });
       final prefs = await SharedPreferences.getInstance();

@@ -6,35 +6,24 @@ class Player {
   final String name;
   final DateTime createdAt;
 
-  const Player({
-    required this.id,
-    required this.name,
-    required this.createdAt,
-  });
+  const Player({required this.id, required this.name, required this.createdAt});
 
   Player copyWith({String? name}) {
-    return Player(
-      id: id,
-      name: name ?? this.name,
-      createdAt: createdAt,
-    );
+    return Player(id: id, name: name ?? this.name, createdAt: createdAt);
   }
 
   String get displayName => name;
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'createdAt': createdAt.toIso8601String(),
-    };
+    return {'id': id, 'name': name, 'createdAt': createdAt.toIso8601String()};
   }
 
   static Player fromJson(Map<String, dynamic> json) {
     return Player(
       id: json['id'] as String? ?? _fallbackId(json),
       name: json['name'] as String? ?? 'Spieler',
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
   }

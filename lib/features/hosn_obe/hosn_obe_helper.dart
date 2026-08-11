@@ -21,8 +21,7 @@ class HosnObeHelper {
     int startingLives = GameRules.defaultHosnObeStartingLives,
   }) {
     return (
-      players: Map<String, int>.from(players)
-        ..[playerName] = startingLives,
+      players: Map<String, int>.from(players)..[playerName] = startingLives,
       currentPlayer: playerName,
     );
   }

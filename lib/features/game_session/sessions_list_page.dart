@@ -23,8 +23,7 @@ class SessionsListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = sessions
-      ..sort((a, b) => b.startTime.compareTo(a.startTime));
+    final sorted = sessions..sort((a, b) => b.startTime.compareTo(a.startTime));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Spielabende')),
@@ -45,7 +44,9 @@ class SessionsListPage extends StatelessWidget {
                   final matchCount = session.matchIds.length;
                   final participants = session.participantIds.isEmpty
                       ? 'Keine Teilnehmer'
-                      : session.participantIds.map(players.displayName).join(', ');
+                      : session.participantIds
+                            .map(players.displayName)
+                            .join(', ');
 
                   return Card(
                     elevation: 0,

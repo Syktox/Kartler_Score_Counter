@@ -78,8 +78,9 @@ class StatisticsCalculator {
               winRate: 0,
             );
         final win = match.winnerId == participantId ? 1 : 0;
-        final loss =
-            match.winnerId != null && match.winnerId != participantId ? 1 : 0;
+        final loss = match.winnerId != null && match.winnerId != participantId
+            ? 1
+            : 0;
         final matches = current.matches + 1;
         final wins = current.wins + win;
         final losses = current.losses + loss;

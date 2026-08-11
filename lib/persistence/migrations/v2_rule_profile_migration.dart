@@ -29,19 +29,20 @@ class V2RuleProfileMigration implements AppMigration {
       muleqackEnabled:
           prefs.getBool(LegacyStorageKeys.muleqackEnabled) ??
           defaults.muleqackEnabled,
-      muleqackTriggerPoints:
-          _positiveInt(
-            prefs.getInt(LegacyStorageKeys.muleqackTriggerPoints),
-            defaults.muleqackTriggerPoints,
-          ),
-      muleqackResetPoints:
-          _nonNegativeInt(
-            prefs.getInt(LegacyStorageKeys.muleqackResetPoints),
-            defaults.muleqackResetPoints,
-          ),
+      muleqackTriggerPoints: _positiveInt(
+        prefs.getInt(LegacyStorageKeys.muleqackTriggerPoints),
+        defaults.muleqackTriggerPoints,
+      ),
+      muleqackResetPoints: _nonNegativeInt(
+        prefs.getInt(LegacyStorageKeys.muleqackResetPoints),
+        defaults.muleqackResetPoints,
+      ),
     );
 
-    await prefs.setString(StorageKeys.ruleProfile, jsonEncode(profile.toJson()));
+    await prefs.setString(
+      StorageKeys.ruleProfile,
+      jsonEncode(profile.toJson()),
+    );
 
     await prefs.remove(LegacyStorageKeys.muleqackEnabled);
     await prefs.remove(LegacyStorageKeys.muleqackTriggerPoints);

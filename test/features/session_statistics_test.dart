@@ -52,7 +52,10 @@ void main() {
 
       expect(controller.matches.length, 1);
       expect(controller.activeSession!.matchIds, contains(match.id));
-      expect(controller.matchesForSession(controller.activeSession!.id), hasLength(1));
+      expect(
+        controller.matchesForSession(controller.activeSession!.id),
+        hasLength(1),
+      );
     });
 
     test('records a match without an active session', () async {
@@ -94,9 +97,24 @@ void main() {
     test('counts matches per mode and the most played mode', () {
       final result = StatisticsCalculator.calculate(
         matches: [
-          _match(id: 'm1', winner: null, participants: const ['p1'], mode: AppMode.watten),
-          _match(id: 'm2', winner: null, participants: const ['p1'], mode: AppMode.watten),
-          _match(id: 'm3', winner: null, participants: const ['p1'], mode: AppMode.mulatschak),
+          _match(
+            id: 'm1',
+            winner: null,
+            participants: const ['p1'],
+            mode: AppMode.watten,
+          ),
+          _match(
+            id: 'm2',
+            winner: null,
+            participants: const ['p1'],
+            mode: AppMode.watten,
+          ),
+          _match(
+            id: 'm3',
+            winner: null,
+            participants: const ['p1'],
+            mode: AppMode.mulatschak,
+          ),
         ],
         sessions: const [],
       );
@@ -109,7 +127,12 @@ void main() {
     test('ignores counter matches in the statistics', () {
       final result = StatisticsCalculator.calculate(
         matches: [
-          _match(id: 'm1', winner: null, participants: const ['p1'], mode: AppMode.hosnObe),
+          _match(
+            id: 'm1',
+            winner: null,
+            participants: const ['p1'],
+            mode: AppMode.hosnObe,
+          ),
           _match(
             id: 'm2',
             winner: null,
@@ -169,7 +192,10 @@ void main() {
       );
       final result = StatisticsCalculator.calculate(
         matches: const [],
-        sessions: [finished, _session(id: 's2', start: DateTime(2026, 2, 2))],
+        sessions: [
+          finished,
+          _session(id: 's2', start: DateTime(2026, 2, 2)),
+        ],
       );
 
       expect(result.totalSessions, 1);

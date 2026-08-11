@@ -17,10 +17,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Name'),
-        'Carla',
-      );
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
 
@@ -66,10 +63,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Name'),
-        'Anna',
-      );
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Anna');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
 
@@ -89,10 +83,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Name'),
-        'Carla',
-      );
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
       await tester.pageBack();

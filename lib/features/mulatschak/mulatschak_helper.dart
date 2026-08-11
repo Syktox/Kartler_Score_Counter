@@ -29,8 +29,7 @@ class MulatschakHelper {
     int startingScore = GameRules.defaultMulatschakStartingScore,
   }) {
     return (
-      players: Map<String, int>.from(players)
-        ..[playerName] = startingScore,
+      players: Map<String, int>.from(players)..[playerName] = startingScore,
       currentPlayer: playerName,
       roundPlayers: Set<String>.from(roundPlayers)..remove(playerName),
     );

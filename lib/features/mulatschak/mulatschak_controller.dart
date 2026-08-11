@@ -61,7 +61,9 @@ class MulatschakController extends FeatureController {
   }
 
   String? currentPlayerName() {
-    return currentPlayerId.isEmpty ? null : _players.displayName(currentPlayerId);
+    return currentPlayerId.isEmpty
+        ? null
+        : _players.displayName(currentPlayerId);
   }
 
   void selectPlayer(String playerId) {
@@ -124,28 +126,31 @@ class MulatschakController extends FeatureController {
     final oldHistory = List<String>.from(historyEntries);
     final oldRound = historyRound;
     final oldRoundPlayers = Set<String>.from(roundPlayerIds);
-    _pushUndoable(() {
-      for (final playerId in lineup.keys) {
-        final oldValue = lineup[playerId]!;
-        final resetValue = _profile.mulatschakStartingScore;
-        if (resetValue != oldValue) {
-          _applyScore(
-            playerId,
-            resetValue,
-            changeTime,
-            (playerId) => resetValue - oldValue,
-          );
+    _pushUndoable(
+      () {
+        for (final playerId in lineup.keys) {
+          final oldValue = lineup[playerId]!;
+          final resetValue = _profile.mulatschakStartingScore;
+          if (resetValue != oldValue) {
+            _applyScore(
+              playerId,
+              resetValue,
+              changeTime,
+              (playerId) => resetValue - oldValue,
+            );
+          }
         }
-      }
-      roundStartedAt = DateTime.now();
-    }, revert: () {
-      lineup = oldLineup;
-      historyEntries = oldHistory;
-      historyRound = oldRound;
-      roundPlayerIds = oldRoundPlayers;
-      notifyListeners();
-      unawaited(_persist());
-    });
+        roundStartedAt = DateTime.now();
+      },
+      revert: () {
+        lineup = oldLineup;
+        historyEntries = oldHistory;
+        historyRound = oldRound;
+        roundPlayerIds = oldRoundPlayers;
+        notifyListeners();
+        unawaited(_persist());
+      },
+    );
     unawaited(_haptics.light());
   }
 

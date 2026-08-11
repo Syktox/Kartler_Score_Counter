@@ -89,14 +89,8 @@ class _SummaryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _StatPill(
-                label: 'Partien',
-                value: '${result.totalMatches}',
-              ),
-              _StatPill(
-                label: 'Spielabende',
-                value: '${result.totalSessions}',
-              ),
+              _StatPill(label: 'Partien', value: '${result.totalMatches}'),
+              _StatPill(label: 'Spielabende', value: '${result.totalSessions}'),
               _StatPill(
                 label: 'Größter Sieg',
                 value: '${result.biggestWinMargin}',
@@ -256,7 +250,8 @@ class _SessionsSummary extends StatelessWidget {
       return const Text('Noch keine abgeschlossenen Spielabende.');
     }
     final local = lastSession.startTime.toLocal();
-    final date = '${local.day.toString().padLeft(2, '0')}.'
+    final date =
+        '${local.day.toString().padLeft(2, '0')}.'
         '${local.month.toString().padLeft(2, '0')}.${local.year}';
 
     return Column(

@@ -111,7 +111,9 @@ class _BugReportPageState extends State<BugReportPage> {
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Include device information'),
-                subtitle: const Text('Platform, screen size, orientation, etc.'),
+                subtitle: const Text(
+                  'Platform, screen size, orientation, etc.',
+                ),
                 value: _includeDeviceInfo,
                 overlayColor: WidgetStatePropertyAll(Colors.transparent),
                 onChanged: (value) {

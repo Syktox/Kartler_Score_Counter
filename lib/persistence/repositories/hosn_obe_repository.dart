@@ -31,10 +31,7 @@ class HosnObeRepository {
     required String currentPlayerId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      StorageKeys.hosnObeLineup,
-      JsonCodec.encode(lineup),
-    );
+    await prefs.setString(StorageKeys.hosnObeLineup, JsonCodec.encode(lineup));
     await prefs.setString(StorageKeys.currentHosnObePlayer, currentPlayerId);
   }
 

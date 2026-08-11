@@ -155,9 +155,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      SharedPreferences.setMockInitialValues({
-        ...wattenPrefs(),
-      });
+      SharedPreferences.setMockInitialValues({...wattenPrefs()});
       await tester.pumpWidget(const KartlerApp());
       await tester.pumpAndSettle();
       await dismissOnboarding(tester);
