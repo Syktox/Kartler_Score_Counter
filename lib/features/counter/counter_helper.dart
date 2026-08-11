@@ -1,6 +1,5 @@
 import 'dart:collection';
 
-import '../../utils/history_utils.dart';
 import '../../utils/name_utils.dart';
 import '../../utils/ordered_map_utils.dart';
 
@@ -19,7 +18,7 @@ class CounterHelper {
     required bool enabled,
     required Map<String, List<String>> history,
     required String counterName,
-    required String action,
+    required String entry,
   }) {
     if (!enabled) {
       return history;
@@ -28,10 +27,7 @@ class CounterHelper {
     final currentHistory = history[counterName] ?? const <String>[];
 
     return Map<String, List<String>>.from(history)
-      ..[counterName] = [
-        '${HistoryUtils.formatTime(DateTime.now())} - $action.',
-        ...currentHistory,
-      ];
+      ..[counterName] = [entry, ...currentHistory];
   }
 
   static ({Map<String, int> counters, Map<String, List<String>> history})
@@ -41,7 +37,7 @@ class CounterHelper {
     required String currentCounter,
     required bool historyEnabled,
     required int score,
-    required String action,
+    required String entry,
   }) {
     return (
       counters: Map<String, int>.from(counters)..[currentCounter] = score,
@@ -49,7 +45,7 @@ class CounterHelper {
         enabled: historyEnabled,
         history: history,
         counterName: currentCounter,
-        action: action,
+        entry: entry,
       ),
     );
   }

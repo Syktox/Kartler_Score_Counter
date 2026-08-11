@@ -1,5 +1,5 @@
 enum AppMode {
-  counter('Counter'),
+  counter('Zähler'),
   watten('Watten'),
   mulatschak('Mulatschak'),
   hosnObe('Hosn Obe');

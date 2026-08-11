@@ -1,0 +1,334 @@
+import 'package:flutter/material.dart';
+
+import '../../models/player.dart';
+import '../../utils/name_utils.dart';
+import '../hosn_obe/hosn_obe_controller.dart';
+import '../mulatschak/mulatschak_controller.dart';
+import '../players/players_controller.dart';
+
+/// Spielerverwaltung: globale Spieler anlegen, umbenennen und löschen.
+class PlayerManagementPage extends StatefulWidget {
+  final PlayersController players;
+  final MulatschakController mulatschak;
+  final HosnObeController hosnObe;
+
+  const PlayerManagementPage({
+    super.key,
+    required this.players,
+    required this.mulatschak,
+    required this.hosnObe,
+  });
+
+  @override
+  State<PlayerManagementPage> createState() => _PlayerManagementPageState();
+}
+
+class _PlayerManagementPageState extends State<PlayerManagementPage> {
+  List<String> _usageOf(Player player) {
+    final usage = <String>[];
+    if (widget.mulatschak.lineup.containsKey(player.id)) {
+      usage.add('Mulatschak');
+    }
+    if (widget.hosnObe.lineup.containsKey(player.id)) {
+      usage.add('Hosn Obe');
+    }
+    return usage;
+  }
+
+  Future<void> _showAddDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _PlayerEditDialog(
+        title: 'Spieler hinzufügen',
+        initialName: '',
+        initialEmoji: '',
+        isValid: (name) => widget.players.isNameValid(name),
+        onSubmit: (name, emoji) async {
+          final player = await widget.players.addPlayer(name, emoji: emoji);
+          if (player == null) {
+            return;
+          }
+          await widget.mulatschak.addPlayerToLineup(player.id);
+          await widget.hosnObe.addPlayerToLineup(player.id);
+        },
+      ),
+    );
+  }
+
+  Future<void> _showEditDialog(Player player) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _PlayerEditDialog(
+        title: 'Spieler umbenennen',
+        initialName: player.name,
+        initialEmoji: player.emoji ?? '',
+        isValid: (name) => widget.players.isNameValid(name, player.id),
+        onSubmit: (name, emoji) async {
+          final cleared = player.emoji != null && emoji.trim().isEmpty;
+          await widget.players.renamePlayer(
+            player.id,
+            name,
+            emoji: emoji,
+            clearEmoji: cleared,
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showDeleteDialog(Player player) async {
+    final usage = _usageOf(player);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final message = usage.isEmpty
+            ? 'Möchtest du "${player.name}" wirklich löschen?'
+            : 'Möchtest du "${player.name}" wirklich löschen?\n'
+                  'Der Spieler wird aus ${usage.join(' und ')} entfernt. '
+                  'Gespielte Partien bleiben in der History erhalten.';
+        return AlertDialog(
+          title: const Text('Spieler löschen'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Abbrechen'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(dialogContext).colorScheme.error,
+              ),
+              onPressed: () {
+                widget.mulatschak.removePlayerFromLineup(player.id);
+                widget.hosnObe.removePlayerFromLineup(player.id);
+                widget.players.deletePlayer(player.id);
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Löschen'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Spieler')),
+      body: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        child: ListenableBuilder(
+          listenable: Listenable.merge([
+            widget.players,
+            widget.mulatschak,
+            widget.hosnObe,
+          ]),
+          builder: (context, _) {
+            final players = widget.players.players;
+            return Column(
+              children: [
+                Expanded(
+                  child: players.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Noch keine Spieler.\nLege deinen ersten Spieler an!',
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: players.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            final player = players[index];
+                            final usage = _usageOf(player);
+
+                            return Card(
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
+                                ),
+                              ),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  radius: 22,
+                                  child: Text(
+                                    _initialOf(player),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(player.displayName),
+                                subtitle: usage.isEmpty
+                                    ? const Text('Nicht in einem Lineup')
+                                    : Text('In Lineup: ${usage.join(', ')}'),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_outlined),
+                                      tooltip: 'Umbenennen',
+                                      onPressed: () => _showEditDialog(player),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline),
+                                      tooltip: 'Löschen',
+                                      onPressed: () =>
+                                          _showDeleteDialog(player),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _showAddDialog,
+                      icon: const Icon(Icons.person_add_alt_1),
+                      label: const Text('Spieler hinzufügen'),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  String _initialOf(Player player) {
+    final emoji = player.emoji?.trim() ?? '';
+    if (emoji.isNotEmpty) {
+      return emoji;
+    }
+    return player.name.isEmpty
+        ? '?'
+        : player.name.characters.first.toUpperCase();
+  }
+}
+
+class _PlayerEditDialog extends StatefulWidget {
+  final String title;
+  final String initialName;
+  final String initialEmoji;
+  final bool Function(String name) isValid;
+  final Future<void> Function(String name, String emoji) onSubmit;
+
+  const _PlayerEditDialog({
+    required this.title,
+    required this.initialName,
+    required this.initialEmoji,
+    required this.isValid,
+    required this.onSubmit,
+  });
+
+  @override
+  State<_PlayerEditDialog> createState() => _PlayerEditDialogState();
+}
+
+class _PlayerEditDialogState extends State<_PlayerEditDialog> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _emojiController;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _emojiController = TextEditingController(text: widget.initialEmoji);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emojiController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final name = NameUtils.clean(_nameController.text);
+    if (!widget.isValid(name)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dieser Spielername ist bereits vergeben.'),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _isSubmitting = true;
+    });
+    await widget.onSubmit(name, _emojiController.text);
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      scrollable: true,
+      title: Text(widget.title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _nameController,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              hintText: 'z. B. Max',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _emojiController,
+            textCapitalization: TextCapitalization.none,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submit(),
+            decoration: const InputDecoration(
+              labelText: 'Emoji (optional)',
+              hintText: 'z. B. 🎩',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: _isSubmitting ? null : _submit,
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(widget.initialName.isEmpty ? 'Hinzufügen' : 'Speichern'),
+        ),
+      ],
+    );
+  }
+}

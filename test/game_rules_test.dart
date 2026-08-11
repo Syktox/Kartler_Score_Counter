@@ -6,9 +6,26 @@ void main() {
   group('GameRules', () {
     test('detects Watten winners at the winning score', () {
       expect(GameRules.wattenWinner(const WattenGame(me: 10, you: 0)), isNull);
-      expect(GameRules.wattenWinner(const WattenGame(me: 11, you: 10)), 'Me');
+      expect(GameRules.wattenWinner(const WattenGame(me: 11, you: 10)), 'Wir');
       expect(GameRules.wattenWinner(const WattenGame(me: 11, you: 11)), isNull);
-      expect(GameRules.wattenWinner(const WattenGame(me: 8, you: 12)), 'You');
+      expect(GameRules.wattenWinner(const WattenGame(me: 8, you: 12)), 'Die');
+    });
+
+    test('detects Watten winners with a custom winning score', () {
+      expect(
+        GameRules.wattenWinner(
+          const WattenGame(me: 15, you: 10),
+          winningScore: 15,
+        ),
+        'Wir',
+      );
+      expect(
+        GameRules.wattenWinner(
+          const WattenGame(me: 14, you: 10),
+          winningScore: 15,
+        ),
+        isNull,
+      );
     });
 
     test('detects Mulatschak winner by the first zero score', () {

@@ -1,0 +1,165 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../helpers/pump_app.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('Counter mode', () {
+    testWidgets('supports increment, reset and undo', (tester) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      expect(find.text('Punkte'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
+
+      await tester.tap(find.text('+'));
+      await tester.pumpAndSettle();
+      expect(find.text('1'), findsOneWidget);
+
+      await tester.tap(find.text('Reset'));
+      await tester.pumpAndSettle();
+      expect(find.text('0'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Rückgängig'));
+      await tester.pumpAndSettle();
+      expect(find.text('1'), findsOneWidget);
+    });
+
+    testWidgets('supports adding, renaming and deleting counters', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neuer Zähler'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Lese-Tage');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lese-Tage'), findsOneWidget);
+
+      await openDrawer(tester);
+      await tester.tap(drawerActionForItem('Lese-Tage', 'Umbenennen'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Lese-Wochen');
+      await tester.tap(find.widgetWithText(TextButton, 'Umbenennen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lese-Wochen'), findsWidgets);
+
+      await openDrawer(tester);
+      await tester.tap(drawerActionForItem('Lese-Wochen', 'Löschen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Löschen'));
+      await tester.pumpAndSettle();
+      await closeDrawer(tester);
+
+      expect(find.text('Punkte'), findsOneWidget);
+      expect(find.text('Lese-Wochen'), findsNothing);
+    });
+
+    testWidgets('shows counter history entries when enabled', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: {...counterPrefs(), 'counter_history_enabled': true},
+      );
+
+      await tester.tap(find.text('+'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reset'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Zähler-Verlauf'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('erhöht'), findsOneWidget);
+      expect(find.textContaining('zurückgesetzt'), findsOneWidget);
+    });
+
+    testWidgets('keeps counter history scoped to the selected counter', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...counterPrefs(),
+          'counter_history_enabled': true,
+          'counter_lineup': jsonEncode({'Punkte': 0, 'Runden': 0}),
+          'current_counter': 'Punkte',
+        },
+      );
+
+      await tester.tap(find.text('+'));
+      await tester.pumpAndSettle();
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Runden'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Zähler-Verlauf'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('erhöht'), findsNothing);
+    });
+
+    testWidgets('keeps undo history separate per mode', (tester) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await tester.tap(find.text('+'));
+      await tester.pumpAndSettle();
+
+      await openDrawer(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(Drawer),
+          matching: find.widgetWithText(ListTile, 'Einstellungen'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Watten'));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      final undoButton = find.ancestor(
+        of: find.byTooltip('Rückgängig'),
+        matching: find.byType(IconButton),
+      );
+      expect(tester.widget<IconButton>(undoButton).onPressed, isNull);
+
+      await openDrawer(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(Drawer),
+          matching: find.widgetWithText(ListTile, 'Einstellungen'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Zähler'));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<IconButton>(undoButton).onPressed, isNotNull);
+    });
+
+    testWidgets('normalizes counter names before saving', (tester) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neuer Zähler'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '  Doppelte  Leerzeichen ');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Doppelte Leerzeichen'), findsOneWidget);
+    });
+  });
+}

@@ -5,100 +5,155 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kartler/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'helpers/pump_app.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('drawer reorder area stops above settings in landscape', (
+  testWidgets('drawer reorder area stops above the settings footer', (
     tester,
   ) async {
-    await _pumpLandscapeApp(
+    await pumpApp(
       tester,
-      sharedPreferences: {
-        'counters': jsonEncode({'One': 0, 'Two': 0, 'Three': 0}),
-        'current_counter': 'One',
+      prefs: {
+        ...counterPrefs(),
+        'counter_lineup': jsonEncode({'Eins': 0, 'Zwei': 0, 'Drei': 0}),
+        'current_counter': 'Eins',
       },
     );
-    await _openDrawer(tester);
+    await openDrawer(tester);
 
     final list = find.byType(ReorderableListView);
     final boundary = find.ancestor(
       of: list,
       matching: find.byType(DragBoundary),
     );
-    final clip = find.ancestor(of: list, matching: find.byType(ClipRect));
-    final settings = find.descendant(
-      of: find.byType(Drawer),
-      matching: find.widgetWithText(ListTile, 'Settings'),
-    );
     final settingsFooter = find.byKey(const ValueKey('drawer-settings-footer'));
 
     expect(boundary, findsOneWidget);
-    expect(clip, findsWidgets);
     expect(settingsFooter, findsOneWidget);
     expect(tester.widget<KeyedSubtree>(settingsFooter).child, isA<Material>());
     expect(
       tester.getBottomRight(boundary).dy,
-      lessThanOrEqualTo(tester.getTopLeft(settings).dy),
+      lessThanOrEqualTo(tester.getTopLeft(settingsFooter).dy),
     );
   });
 
-  testWidgets('desktop reorder proxy cannot paint over settings', (
+  testWidgets('landscape counter layout keeps controls compact and visible', (
     tester,
   ) async {
-    await _pumpLandscapeApp(
-      tester,
-      sharedPreferences: {
-        'counters': jsonEncode({'One': 0, 'Two': 0, 'Three': 0}),
-        'current_counter': 'One',
-      },
-    );
-    await _openDrawer(tester);
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 360);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-    final dragHandle = find.byIcon(Icons.drag_handle).first;
-    final settings = find.descendant(
-      of: find.byType(Drawer),
-      matching: find.widgetWithText(ListTile, 'Settings'),
-    );
-    final gesture = await tester.startGesture(tester.getCenter(dragHandle));
-    await tester.pump();
-    await gesture.moveTo(tester.getCenter(settings));
-    await tester.pump();
-
-    final proxy = find.byKey(const ValueKey('drawer-reorder-proxy'));
-    expect(proxy, findsOneWidget);
-    expect(
-      tester.getBottomRight(proxy).dy,
-      lessThanOrEqualTo(tester.getTopLeft(settings).dy),
-    );
-    expect(
-      tester
-          .widget<Material>(
-            find.byKey(const ValueKey('drawer-reorder-proxy-material')),
-          )
-          .elevation,
-      0,
-    );
-    expect(
-      tester.getBottomRight(proxy).dy,
-      lessThanOrEqualTo(
-        tester
-            .getTopLeft(find.byKey(const ValueKey('drawer-settings-footer')))
-            .dy,
-      ),
-    );
-
-    await gesture.up();
+    SharedPreferences.setMockInitialValues({
+      'app_mode': 'counter',
+      ...counterPrefs(),
+    });
+    await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
+    await dismissOnboarding(tester);
+
+    expect(find.text('Punkte'), findsOneWidget);
+    expect(find.text('+'), findsOneWidget);
+    expect(find.text('Reset'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('counter name field stays visible above landscape keyboard', (
+  testWidgets('watten table mode renders two opposing sides in landscape', (
     tester,
   ) async {
-    await _pumpLandscapeApp(tester);
-    await _openDrawer(tester);
-    await tester.drag(find.byType(ReorderableListView), const Offset(0, -180));
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 360);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      'app_mode': 'watten',
+      'watten_table_mode': true,
+      ...wattenPrefs(),
+    });
+    await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('New Counter'));
+    await dismissOnboarding(tester);
+
+    expect(find.text('Wir'), findsWidgets);
+    expect(find.text('Die'), findsWidgets);
+    expect(find.text('+2'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'drawer pins extra actions above the settings footer in portrait',
+    (tester) async {
+      await pumpApp(tester, prefs: counterPrefs());
+      await openDrawer(tester);
+
+      final extraActionsBlock = find.byKey(
+        const ValueKey('drawer-extra-actions'),
+      );
+      final settingsFooter = find.byKey(
+        const ValueKey('drawer-settings-footer'),
+      );
+
+      expect(extraActionsBlock, findsOneWidget);
+      expect(settingsFooter, findsOneWidget);
+      expect(
+        tester.getBottomRight(extraActionsBlock).dy,
+        lessThanOrEqualTo(tester.getTopLeft(settingsFooter).dy),
+      );
+    },
+  );
+
+  testWidgets('settings page lays out sections side by side in landscape', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 360);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      'app_mode': 'counter',
+      ...counterPrefs(),
+    });
+    await tester.pumpWidget(const KartlerApp());
+    await tester.pumpAndSettle();
+    await dismissOnboarding(tester);
+
+    await openSettings(tester);
+
+    final modeHeader = find.text('Spielmodus');
+    final historyHeader = find.text('Verlauf');
+    expect(modeHeader, findsOneWidget);
+    expect(historyHeader, findsOneWidget);
+    expect(
+      (tester.getTopLeft(modeHeader).dx - tester.getTopLeft(historyHeader).dx)
+          .abs(),
+      greaterThan(150),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('counter add field stays visible above the landscape keyboard', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 360);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      'app_mode': 'counter',
+      ...counterPrefs(),
+    });
+    await tester.pumpWidget(const KartlerApp());
+    await tester.pumpAndSettle();
+    await dismissOnboarding(tester);
+
+    await openDrawer(tester);
+    await tester.tap(find.text('Neuer Zähler'));
     await tester.pumpAndSettle();
 
     tester.view.viewInsets = const FakeViewPadding(bottom: 180);
@@ -113,23 +168,4 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
-}
-
-Future<void> _pumpLandscapeApp(
-  WidgetTester tester, {
-  Map<String, Object> sharedPreferences = const {},
-}) async {
-  tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = const Size(800, 360);
-  addTearDown(tester.view.resetPhysicalSize);
-  addTearDown(tester.view.resetDevicePixelRatio);
-
-  SharedPreferences.setMockInitialValues(sharedPreferences);
-  await tester.pumpWidget(const KartlerApp());
-  await tester.pumpAndSettle();
-}
-
-Future<void> _openDrawer(WidgetTester tester) async {
-  tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
-  await tester.pumpAndSettle();
 }

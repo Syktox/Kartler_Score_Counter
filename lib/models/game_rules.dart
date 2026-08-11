@@ -1,18 +1,21 @@
 import 'watten_game.dart';
 
 class GameRules {
-  static const int wattenWinningScore = 11;
-  static const int mulatschakStartingScore = 21;
-  static const int hosnObeStartingLives = 4;
+  static const int defaultWattenWinningScore = 11;
+  static const int defaultMulatschakStartingScore = 21;
+  static const int defaultHosnObeStartingLives = 4;
 
   const GameRules._();
 
-  static String? wattenWinner(WattenGame game) {
-    if (game.me >= wattenWinningScore && game.me > game.you) {
-      return 'Me';
+  static String? wattenWinner(
+    WattenGame game, {
+    int winningScore = defaultWattenWinningScore,
+  }) {
+    if (game.me >= winningScore && game.me > game.you) {
+      return 'Wir';
     }
-    if (game.you >= wattenWinningScore && game.you > game.me) {
-      return 'You';
+    if (game.you >= winningScore && game.you > game.me) {
+      return 'Die';
     }
     return null;
   }

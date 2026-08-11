@@ -18,10 +18,11 @@ class HosnObeHelper {
   static ({Map<String, int> players, String currentPlayer}) addPlayer({
     required Map<String, int> players,
     required String playerName,
+    int startingLives = GameRules.defaultHosnObeStartingLives,
   }) {
     return (
       players: Map<String, int>.from(players)
-        ..[playerName] = GameRules.hosnObeStartingLives,
+        ..[playerName] = startingLives,
       currentPlayer: playerName,
     );
   }
@@ -34,9 +35,12 @@ class HosnObeHelper {
     return Map<String, int>.from(players)..[currentPlayer] = score;
   }
 
-  static Map<String, int> resetPlayers(Map<String, int> players) {
+  static Map<String, int> resetPlayers(
+    Map<String, int> players, {
+    int startingLives = GameRules.defaultHosnObeStartingLives,
+  }) {
     return Map<String, int>.from(players)
-      ..updateAll((key, value) => GameRules.hosnObeStartingLives);
+      ..updateAll((key, value) => startingLives);
   }
 
   static LinkedHashMap<String, int>? reorderPlayers(

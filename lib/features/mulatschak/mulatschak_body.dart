@@ -7,26 +7,30 @@ import '../../widgets/winner_banner.dart';
 
 class MulatschakBody extends StatelessWidget {
   final bool isLoading;
-  final Map<String, int> players;
-  final String currentPlayer;
+  final Map<String, int> scores;
+  final String currentPlayerId;
+  final String Function(String playerId) nameOf;
   final int multiplier;
   final String? winner;
   final ValueChanged<String> onPlayerSelected;
   final ValueChanged<int> onScoreChanged;
   final ValueChanged<int> onMultiplierChanged;
   final VoidCallback onResetPlayers;
+  final VoidCallback onAddPlayer;
 
   const MulatschakBody({
     super.key,
     required this.isLoading,
-    required this.players,
-    required this.currentPlayer,
+    required this.scores,
+    required this.currentPlayerId,
+    required this.nameOf,
     required this.multiplier,
     required this.winner,
     required this.onPlayerSelected,
     required this.onScoreChanged,
     required this.onMultiplierChanged,
     required this.onResetPlayers,
+    required this.onAddPlayer,
   });
 
   @override
@@ -35,7 +39,11 @@ class MulatschakBody extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final entries = players.entries.toList();
+    if (scores.isEmpty) {
+      return _EmptyLineup(onAddPlayer: onAddPlayer);
+    }
+
+    final entries = scores.entries.toList();
     final isLandscape = ResponsiveUtils.isHandsetLandscape(
       MediaQuery.of(context).size,
     );
@@ -114,9 +122,10 @@ class MulatschakBody extends StatelessWidget {
               (entry) => SizedBox(
                 width: 196,
                 child: _PlayerCard(
-                  name: entry.key,
+                  playerId: entry.key,
+                  name: nameOf(entry.key),
                   score: entry.value,
-                  isSelected: entry.key == currentPlayer,
+                  isSelected: entry.key == currentPlayerId,
                   onSelected: onPlayerSelected,
                 ),
               ),
@@ -137,9 +146,10 @@ class MulatschakBody extends StatelessWidget {
               (entry) => SizedBox(
                 width: 148,
                 child: _PlayerCard(
-                  name: entry.key,
+                  playerId: entry.key,
+                  name: nameOf(entry.key),
                   score: entry.value,
-                  isSelected: entry.key == currentPlayer,
+                  isSelected: entry.key == currentPlayerId,
                   compact: true,
                   onSelected: onPlayerSelected,
                 ),
@@ -161,14 +171,52 @@ class MulatschakBody extends StatelessWidget {
       children: entries
           .map(
             (entry) => _PlayerCard(
-              name: entry.key,
+              playerId: entry.key,
+              name: nameOf(entry.key),
               score: entry.value,
-              isSelected: entry.key == currentPlayer,
+              isSelected: entry.key == currentPlayerId,
               compact: true,
               onSelected: onPlayerSelected,
             ),
           )
           .toList(),
+    );
+  }
+}
+
+class _EmptyLineup extends StatelessWidget {
+  final VoidCallback onAddPlayer;
+
+  const _EmptyLineup({required this.onAddPlayer});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.groups_outlined, size: 64),
+            const SizedBox(height: 16),
+            const Text(
+              'Noch keine Spieler',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Füge Spieler hinzu, um Punkte zu zählen.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: onAddPlayer,
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('Spieler hinzufügen'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -330,7 +378,7 @@ class MulatschakMultiplierSelector extends StatelessWidget {
       width: 76,
       child: PopupMenuButton<int>(
         key: const Key('mulatschakMultiplierButton'),
-        tooltip: 'Multiplier',
+        tooltip: 'Multiplikator',
         initialValue: multipliers.contains(multiplier) ? multiplier : null,
         constraints: const BoxConstraints.tightFor(width: 76),
         position: PopupMenuPosition.over,
@@ -374,7 +422,7 @@ class _MultiplierRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const label = Text(
-      'Multiplier',
+      'Multiplikator',
       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
     );
 
@@ -402,6 +450,7 @@ class _MultiplierRow extends StatelessWidget {
 }
 
 class _PlayerCard extends StatelessWidget {
+  final String playerId;
   final String name;
   final int score;
   final bool isSelected;
@@ -409,6 +458,7 @@ class _PlayerCard extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   const _PlayerCard({
+    required this.playerId,
     required this.name,
     required this.score,
     required this.isSelected,
@@ -425,7 +475,7 @@ class _PlayerCard extends StatelessWidget {
       compact: compact,
       onTap: () {
         FocusScope.of(context).unfocus();
-        onSelected(name);
+        onSelected(playerId);
       },
     );
   }

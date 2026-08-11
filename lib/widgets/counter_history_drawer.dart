@@ -19,13 +19,13 @@ class CounterHistoryDrawer extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.history),
-              title: const Text('Counter history'),
+              title: const Text('Zähler-Verlauf'),
               subtitle: Text(currentCounter),
             ),
             const Divider(),
             Expanded(
               child: currentHistory.isEmpty
-                  ? const Center(child: Text('No counter changes yet.'))
+                  ? const Center(child: Text('Noch keine Änderungen.'))
                   : ListView.separated(
                       itemCount: currentHistory.length,
                       separatorBuilder: (context, index) => const Divider(),

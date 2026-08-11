@@ -4,6 +4,7 @@ typedef CounterNameCallback = void Function(String counterName);
 typedef ReorderItemsCallback = void Function(int oldIndex, int newIndex);
 
 const double _settingsFooterHeight = 80;
+const double _extraActionTileHeight = 56;
 
 class CounterDrawer extends StatelessWidget {
   final List<String> items;
@@ -17,6 +18,8 @@ class CounterDrawer extends StatelessWidget {
   final CounterNameCallback? onRenameItem;
   final CounterNameCallback onDeleteItem;
   final ReorderItemsCallback? onReorderItems;
+  final List<Widget> extraActions;
+  final bool pinExtraActions;
   final VoidCallback onOpenSettings;
 
   const CounterDrawer({
@@ -32,6 +35,8 @@ class CounterDrawer extends StatelessWidget {
     required this.onRenameItem,
     required this.onDeleteItem,
     this.onReorderItems,
+    this.extraActions = const [],
+    this.pinExtraActions = true,
     required this.onOpenSettings,
   });
 
@@ -58,7 +63,7 @@ class CounterDrawer extends StatelessWidget {
                   _clearDrawerFocus();
                   onRenameItem!(counter);
                 },
-                tooltip: 'Rename item',
+                tooltip: 'Umbenennen',
               ),
             IconButton(
               icon: const Icon(Icons.delete_outline),
@@ -66,7 +71,7 @@ class CounterDrawer extends StatelessWidget {
                 _clearDrawerFocus();
                 onDeleteItem(counter);
               },
-              tooltip: 'Delete item',
+              tooltip: 'Löschen',
             ),
             if (enableReorder)
               ReorderableDragStartListener(
@@ -103,14 +108,19 @@ class CounterDrawer extends StatelessWidget {
   }
 
   Widget _buildItemList() {
+    final includeExtraInList = !pinExtraActions;
+
     return ClipRect(
       child: DragBoundary(
         child: ReorderableListView.builder(
           buildDefaultDragHandles: false,
           dragBoundaryProvider: DragBoundary.forRectOf,
-          padding: const EdgeInsets.only(bottom: _settingsFooterHeight),
+          padding: EdgeInsets.only(
+            bottom: includeExtraInList ? _settingsFooterHeight : 16,
+          ),
           proxyDecorator: _buildReorderProxy,
-          itemCount: items.length + 1,
+          itemCount:
+              items.length + 1 + (includeExtraInList ? extraActions.length : 0),
           onReorderItem: (oldIndex, newIndex) {
             if (oldIndex == items.length || newIndex >= items.length) {
               return;
@@ -136,8 +146,43 @@ class CounterDrawer extends StatelessWidget {
               );
             }
 
+            if (includeExtraInList) {
+              final extraIndex = index - items.length - 1;
+              if (extraIndex >= 0 && extraIndex < extraActions.length) {
+                return KeyedSubtree(
+                  key: ValueKey('drawer-extra-action-$extraIndex'),
+                  child: extraActions[extraIndex],
+                );
+              }
+            }
+
             return _buildCounterTile(context, items[index], index);
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExtraActionsBlock(BuildContext context) {
+    final drawerBackgroundColor =
+        DrawerTheme.of(context).backgroundColor ??
+        Theme.of(context).colorScheme.surface;
+
+    return KeyedSubtree(
+      key: const ValueKey('drawer-extra-actions'),
+      child: Material(
+        color: drawerBackgroundColor,
+        elevation: 8,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Divider(height: 1),
+            for (var i = 0; i < extraActions.length; i++)
+              KeyedSubtree(
+                key: ValueKey('drawer-extra-action-$i'),
+                child: extraActions[i],
+              ),
+          ],
         ),
       ),
     );
@@ -162,7 +207,7 @@ class CounterDrawer extends StatelessWidget {
               child: ListTile(
                 focusColor: Colors.transparent,
                 leading: const Icon(Icons.settings),
-                title: const Text('Settings'),
+                title: const Text('Einstellungen'),
                 onTap: () {
                   _clearDrawerFocus();
                   Navigator.of(context).pop();
@@ -181,6 +226,9 @@ class CounterDrawer extends StatelessWidget {
     final drawerBackgroundColor =
         DrawerTheme.of(context).backgroundColor ??
         Theme.of(context).colorScheme.surface;
+    final extraActionsHeight = pinExtraActions
+        ? extraActions.length * _extraActionTileHeight
+        : 0.0;
 
     return Drawer(
       backgroundColor: drawerBackgroundColor,
@@ -190,9 +238,16 @@ class CounterDrawer extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              bottom: _settingsFooterHeight,
+              bottom: extraActionsHeight + _settingsFooterHeight,
               child: _buildItemList(),
             ),
+            if (pinExtraActions && extraActions.isNotEmpty)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: _settingsFooterHeight,
+                child: _buildExtraActionsBlock(context),
+              ),
             Positioned(
               left: 0,
               right: 0,
