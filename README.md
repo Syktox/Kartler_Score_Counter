@@ -1,51 +1,60 @@
 # Kartler
 
-A Flutter app for tracking different counters and scoreboards in one place. In addition to classic counters, the app includes a Watten mode and a Mulatschak mode with locally persisted game state.
+A Flutter app for tracking scores at card game nights. Besides a free counter, Kartler includes scoring modes for Watten, Mulatschak and Hosn Obe, with a German user interface. Game state, global players, match history and settings are stored locally on the device.
 
 This repository contains the source code, assets, and configuration. Generated Flutter artifacts and platform-specific build outputs are recreated locally.
 
 ## Features
 
-- Three modes in one app: `Counter`, `Watten`, and `Mulatschak`
+- Four modes in one app: `Zähler` (free counter), `Watten`, `Mulatschak`, and `Hosn Obe`
+- Global player profiles shared across all modes
 - Local persistence for all values via `shared_preferences`
-- Undo support for the most recent action
+- Undo and redo support for the most recent actions
 - Drawer-based management for creating, selecting, renaming, deleting, and reordering items
-- Settings for app mode, theme, and Mulatschak reset behavior
+- Game sessions („Spielabende“) with match history, summaries, and statistics
+- Settings for app mode, theme, rule profile, haptics, and history
 - Platform folders included for Android, iOS, Web, Windows, Linux, and macOS
 
 ## Modes
 
-### Counter
+### Zähler (Counter)
 
 - Manage multiple counters
 - Add, rename, delete, and reorder counters
 - Track values with `+`, `-`, and `Reset`
-- Default counters on first launch: `Workout streak`, `Days without smoking`, and `Days till my next holidays` with a starting value of `100`
+- Optional history of the last changes, undoable per counter
 
 ### Watten
 
 - Manage multiple games in parallel
-- Separate score tracking for `Me` and `You`
+- Separate score tracking for `Wir` (us) and `Die` (them)
 - Quick scoring buttons for `+2` and `+3`
 - Reset only the currently selected side
-- Winner banner when one side has more than `10` points and leads the other side
+- Winner banner when a side reaches the configurable winning score
+- Optional table mode for landscape: both sides face each other, ideal when the phone lies on the table
 
 ### Mulatschak
 
-- Manage multiple players
-- Select the active player directly from the player cards
-- Score controls for `-1`, `+1`, and `+5`
-- Multipliers `1x`, `2x`, `4x`, `8x`, `16x`, plus extra values via dropdown
-- Optional Muleqack reset with configurable threshold and reset value
-- Winner banner when a player reaches `0`
+- Players selected directly from the player cards
+- Score controls for `-5`, `-1`, `+1`, `+5`, plus a `2x`–`16x` multiplier
+- History grouped per completed round, undoable
+- Optional Muleqack reset: a player is automatically reset to a configurable value once a threshold is reached
+- Winner banner when a player reaches `0` points
+
+### Hosn Obe
+
+- Each player starts with a configurable number of lives
+- The last player with lives remaining wins
+- Reset restores all players to the starting lives
 
 ## Usage
 
 1. Open the drawer from the menu in the app bar.
 2. Select a counter, game, or player, or create a new one.
 3. Adjust the current value using the controls for the active mode.
-4. Use `Undo` to revert the most recent action.
-5. Open `Settings` to change the mode, theme, and Mulatschak reset settings.
+4. Use `Undo` and `Redo` to revert or reapply the most recent actions.
+5. Start a game session („Spielabend starten“) and record matches after each round.
+6. Open `Einstellungen` to change the mode, theme, rule profile, and history options.
 
 ## Requirements
 
@@ -162,7 +171,7 @@ Important note for iOS:
 
 ## Tests
 
-The app includes widget and persistence tests for the main user flows across all modes.
+The app includes widget, layout, and persistence tests for the main user flows across all modes, including the schema migrations from the old storage format.
 
 Run the full test suite with:
 
@@ -172,10 +181,14 @@ flutter test
 
 Covered scenarios include:
 
-- Counter: incrementing, resetting, undo, adding, renaming, and deleting counters
-- Watten: updating scores, switching sides, resetting, winner display, and game management
-- Mulatschak: multipliers, winner logic, player management, and Muleqack reset behavior
-- Persistence: default values, save/load roundtrips, and fallback handling for malformed data
+- Zähler: incrementing, resetting, undo, adding, renaming, deleting, and reordering counters
+- Watten: updating scores, switching sides, resetting, winner display, game management, and table mode
+- Mulatschak: multipliers, winner logic, history, and Muleqack reset behavior
+- Hosn Obe: lives, winner detection, and undo
+- Players: global player management, duplicate name handling, and lineups
+- Game sessions and statistics: recording matches, leaderboards, and per-mode breakdowns
+- Settings: mode, theme, rule profile, history and negative-counter toggles
+- Persistence: storage schema migrations, save/load roundtrips, and fallback handling for malformed data
 
 ## Privacy
 
