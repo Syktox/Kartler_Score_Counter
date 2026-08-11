@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kartler/main.dart';
+import 'package:kartler/persistence/backup_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/pump_app.dart';
@@ -165,6 +167,80 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Backup', () {
+    testWidgets('export copies a valid backup to the clipboard', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: playerPrefs());
+
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText =
+                (call.arguments as Map<Object?, Object?>)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
+      await openSettings(tester);
+      await tester.ensureVisible(find.text('Backup exportieren'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Backup exportieren'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Backup in die Zwischenablage kopiert.'),
+        findsOneWidget,
+      );
+      expect(clipboardText, isNotNull);
+      final document = jsonDecode(clipboardText!) as Map<String, dynamic>;
+      expect(document[BackupService.formatKey], BackupService.formatVersion);
+      final values = document[BackupService.valuesKey] as Map<String, dynamic>;
+      expect(values['players'], contains('Anna'));
+    });
+
+    testWidgets('import restores players from a pasted backup', (tester) async {
+      SharedPreferences.setMockInitialValues(playerPrefs());
+      mockPlatformChannel(tester);
+      await tester.pumpWidget(const KartlerApp());
+      await tester.pumpAndSettle();
+      await dismissOnboarding(tester);
+
+      final backup = await const BackupService().exportJson();
+
+      await openSettings(tester);
+      await tester.ensureVisible(find.text('Backup wiederherstellen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Backup wiederherstellen'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).last, backup);
+      await tester.tap(find.text('Weiter'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Daten ersetzen?'), findsOneWidget);
+      await tester.tap(find.text('Importieren'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Backup erfolgreich wiederhergestellt.'),
+        findsOneWidget,
+      );
+      expect(find.text('Einstellungen'), findsNothing);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('players'), contains('Anna'));
     });
   });
 

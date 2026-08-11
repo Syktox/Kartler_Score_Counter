@@ -219,7 +219,10 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openSettings() async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => SettingsPage(settings: _settings)),
+      MaterialPageRoute(
+        builder: (_) =>
+            SettingsPage(settings: _settings, onDataImported: _loadAll),
+      ),
     );
   }
 
