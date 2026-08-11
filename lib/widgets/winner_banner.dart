@@ -23,7 +23,7 @@ class WinnerBanner extends StatelessWidget {
         ),
       ),
       child: Text(
-        '$winner wins',
+        '$winner gewinnt!',
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: compact ? 16 : 28,

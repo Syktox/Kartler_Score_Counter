@@ -29,13 +29,13 @@ class MulatschakHistoryDrawer extends StatelessWidget {
           children: [
             const ListTile(
               leading: Icon(Icons.history),
-              title: Text('Mulatschak history'),
-              subtitle: Text('Player changes by round'),
+              title: Text('Mulatschak-Verlauf'),
+              subtitle: Text('Spielerwechsel nach Runden'),
             ),
             const Divider(),
             Expanded(
               child: rounds.isEmpty
-                  ? const Center(child: Text('No player changes yet.'))
+                  ? const Center(child: Text('Noch keine Änderungen.'))
                   : ListView.separated(
                       itemCount: rounds.length,
                       separatorBuilder: (context, index) => const Divider(),
@@ -49,7 +49,7 @@ class MulatschakHistoryDrawer extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                               child: Text(
-                                'Round ${roundEntry.key}',
+                                'Runde ${roundEntry.key}',
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
@@ -60,7 +60,7 @@ class MulatschakHistoryDrawer extends StatelessWidget {
                                 title: Text(entry.playerName),
                                 subtitle: Text(entry.time),
                                 trailing: Text(
-                                  '${HistoryUtils.formatSignedPoints(entry.points)} points',
+                                  '${HistoryUtils.formatSignedPoints(entry.points)} Punkte',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                   ),

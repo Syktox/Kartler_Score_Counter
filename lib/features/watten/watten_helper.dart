@@ -13,8 +13,8 @@ class WattenHelper {
     return NameUtils.isUnique(gameName, gameNames);
   }
 
-  static String? winner(WattenGame game) {
-    return GameRules.wattenWinner(game);
+  static String? winner(WattenGame game, {int winningScore = 11}) {
+    return GameRules.wattenWinner(game, winningScore: winningScore);
   }
 
   static ({

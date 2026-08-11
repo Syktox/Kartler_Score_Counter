@@ -17,7 +17,7 @@ class AppDialogs {
       builder: (_) => _ItemNameDialog(
         title: title,
         hintText: hintText,
-        actionLabel: 'Add',
+        actionLabel: 'Hinzufügen',
         isValidName: isValidName,
         onSubmit: onAdd,
       ),
@@ -38,7 +38,7 @@ class AppDialogs {
       builder: (_) => _ItemNameDialog(
         title: title,
         hintText: hintText,
-        actionLabel: 'Rename',
+        actionLabel: 'Umbenennen',
         initialValue: initialValue,
         duplicateNameMessage: duplicateNameMessage,
         messageContext: context,
@@ -64,7 +64,7 @@ class AppDialogs {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Do you really want to delete this item?'),
+              const Text('Möchtest du das wirklich löschen?'),
               const SizedBox(height: 8),
               Tooltip(
                 message: itemName,
@@ -84,7 +84,7 @@ class AppDialogs {
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Cancel'),
+              child: const Text('Abbrechen'),
             ),
             TextButton(
               style: TextButton.styleFrom(
@@ -94,7 +94,7 @@ class AppDialogs {
                 onDelete(itemName);
                 Navigator.of(dialogContext).pop();
               },
-              child: const Text('Delete'),
+              child: const Text('Löschen'),
             ),
           ],
         );
@@ -212,7 +212,7 @@ class _ItemNameDialogState extends State<_ItemNameDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: const Text('Abbrechen'),
         ),
         TextButton(onPressed: _submit, child: Text(widget.actionLabel)),
       ],

@@ -17,6 +17,7 @@ class CounterDrawer extends StatelessWidget {
   final CounterNameCallback? onRenameItem;
   final CounterNameCallback onDeleteItem;
   final ReorderItemsCallback? onReorderItems;
+  final List<Widget> extraActions;
   final VoidCallback onOpenSettings;
 
   const CounterDrawer({
@@ -32,6 +33,7 @@ class CounterDrawer extends StatelessWidget {
     required this.onRenameItem,
     required this.onDeleteItem,
     this.onReorderItems,
+    this.extraActions = const [],
     required this.onOpenSettings,
   });
 
@@ -58,7 +60,7 @@ class CounterDrawer extends StatelessWidget {
                   _clearDrawerFocus();
                   onRenameItem!(counter);
                 },
-                tooltip: 'Rename item',
+                tooltip: 'Umbenennen',
               ),
             IconButton(
               icon: const Icon(Icons.delete_outline),
@@ -66,7 +68,7 @@ class CounterDrawer extends StatelessWidget {
                 _clearDrawerFocus();
                 onDeleteItem(counter);
               },
-              tooltip: 'Delete item',
+              tooltip: 'Löschen',
             ),
             if (enableReorder)
               ReorderableDragStartListener(
@@ -110,7 +112,7 @@ class CounterDrawer extends StatelessWidget {
           dragBoundaryProvider: DragBoundary.forRectOf,
           padding: const EdgeInsets.only(bottom: _settingsFooterHeight),
           proxyDecorator: _buildReorderProxy,
-          itemCount: items.length + 1,
+          itemCount: items.length + 1 + extraActions.length,
           onReorderItem: (oldIndex, newIndex) {
             if (oldIndex == items.length || newIndex >= items.length) {
               return;
@@ -133,6 +135,14 @@ class CounterDrawer extends StatelessWidget {
                   }
                   onAddNewItem();
                 },
+              );
+            }
+
+            final extraIndex = index - items.length - 1;
+            if (extraIndex >= 0 && extraIndex < extraActions.length) {
+              return KeyedSubtree(
+                key: ValueKey('drawer-extra-action-$extraIndex'),
+                child: extraActions[extraIndex],
               );
             }
 
@@ -162,7 +172,7 @@ class CounterDrawer extends StatelessWidget {
               child: ListTile(
                 focusColor: Colors.transparent,
                 leading: const Icon(Icons.settings),
-                title: const Text('Settings'),
+                title: const Text('Einstellungen'),
                 onTap: () {
                   _clearDrawerFocus();
                   Navigator.of(context).pop();
