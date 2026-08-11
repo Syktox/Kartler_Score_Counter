@@ -53,6 +53,9 @@ class StatisticsCalculator {
     var biggestWinMargin = 0;
 
     for (final match in matches) {
+      if (match.gameType == AppMode.counter) {
+        continue;
+      }
       matchesPerMode[match.gameType] =
           (matchesPerMode[match.gameType] ?? 0) + 1;
 
@@ -117,7 +120,9 @@ class StatisticsCalculator {
       ..sort((a, b) => b.startTime.compareTo(a.startTime));
 
     return StatisticsResult(
-      totalMatches: matches.length,
+      totalMatches: matches
+          .where((match) => match.gameType != AppMode.counter)
+          .length,
       leaderboard: leaderboard,
       matchesPerMode: matchesPerMode,
       mostPlayedMode: mostPlayedMode,

@@ -547,7 +547,19 @@ class _HomePageState extends State<HomePage> {
     _recordMatch(AppMode.watten, resetBoard: true);
   }
 
-  // MARK: - Mulatschak / Hosn Obe
+  /// Startet ein neues Mulatschak-Spiel wie beim Watten: Die aktuelle Partie
+  /// wird (sofern schon gespielt) in den Statistiken aufgezeichnet, danach
+  /// starten alle Spieler wieder bei der Startpunktzahl.
+  void _startNewMulatschakGame() {
+    final startingScore = _settings.ruleProfile.mulatschakStartingScore;
+    if (_mulatschak.lineup.isEmpty ||
+        _mulatschak.lineup.values.every((value) => value == startingScore)) {
+      return;
+    }
+    _recordMatch(AppMode.mulatschak, resetBoard: true);
+  }
+
+  // MARK: - Hosn Obe
 
   // MARK: - Drawer
 
@@ -632,6 +644,7 @@ class _HomePageState extends State<HomePage> {
         final currentPlayerId = mode == AppMode.mulatschak
             ? _mulatschak.currentPlayerId
             : _hosnObe.currentPlayerId;
+        final isMulatschak = mode == AppMode.mulatschak;
 
         return CounterDrawer(
           items: [
@@ -643,6 +656,11 @@ class _HomePageState extends State<HomePage> {
           closeDrawerOnAdd: true,
           enableReorder: false,
           onAddNewItem: _openPlayers,
+          secondaryActionLabel: isMulatschak ? 'Neues Spiel' : null,
+          secondaryActionIcon: isMulatschak
+              ? Icons.play_circle_outline
+              : null,
+          onSecondaryAction: isMulatschak ? _startNewMulatschakGame : null,
           onSelectItem: (name) {
             for (final player in _players.players) {
               if (player.displayName == name) {

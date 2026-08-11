@@ -111,5 +111,58 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getInt('mulatschak_multiplier'), 4);
     });
+
+    testWidgets('new game records the finished game and restarts at the '
+        'starting score', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: mulatschakPrefs(lineup: {'p1': 5, 'p2': 21}),
+      );
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neues Spiel'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      final matches = jsonDecode(prefs.getString('match_history')!) as List;
+      expect(matches, hasLength(1));
+      expect(matches.single['gameType'], 'mulatschak');
+      expect(matches.single['winnerId'], isNull);
+      expect(matches.single['standings'], {'Anna': 5, 'Ben': 21});
+
+      expect(find.text('21'), findsNWidgets(2));
+      expect(find.text('Partie aufgezeichnet!'), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('new game records the winner when a player reached zero', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: mulatschakPrefs(lineup: {'p1': 0, 'p2': 21}),
+      );
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neues Spiel'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      final matches = jsonDecode(prefs.getString('match_history')!) as List;
+      expect(matches.single['winnerId'], 'p1');
+    });
+
+    testWidgets('new game on a fresh board does not record anything', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: mulatschakPrefs());
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neues Spiel'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('match_history'), isNull);
+    });
   });
 }

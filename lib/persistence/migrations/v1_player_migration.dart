@@ -45,7 +45,6 @@ class V1PlayerMigration implements AppMigration {
         Player(
           id: id,
           name: name,
-          emoji: null,
           createdAt: DateTime.now(),
         ),
       );

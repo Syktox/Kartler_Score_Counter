@@ -165,7 +165,6 @@ class _LeaderboardTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final player = players.playerById(entry.playerId);
     final name = player?.displayName ?? entry.playerId;
-    final emoji = player?.emoji;
 
     return Card(
       elevation: 0,
@@ -179,7 +178,7 @@ class _LeaderboardTile extends StatelessWidget {
           radius: 20,
           backgroundColor: rank == 1 ? colorScheme.primaryContainer : null,
           child: Text(
-            emoji ?? '$rank',
+            '$rank',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
           ),
         ),
