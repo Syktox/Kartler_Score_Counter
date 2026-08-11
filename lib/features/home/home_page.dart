@@ -26,7 +26,6 @@ import '../../features/watten/watten_controller.dart';
 import '../feature_controller.dart';
 import '../../models/app_mode.dart';
 import '../../models/watten_game.dart';
-import '../../models/watten_side.dart';
 import '../../utils/name_utils.dart';
 import '../../persistence/repositories/counter_repository.dart';
 import '../../persistence/repositories/hosn_obe_repository.dart';
@@ -43,6 +42,7 @@ import '../../widgets/counter_history_drawer.dart';
 import '../../widgets/mulatschak_history_drawer.dart';
 import '../../widgets/recorded_bubble.dart';
 import 'hub_page.dart';
+import 'match_recorder.dart';
 import 'onboarding_page.dart';
 
 /// Zentrale Shell der App.
@@ -76,11 +76,11 @@ class _HomePageState extends State<HomePage> {
   late final MulatschakController _mulatschak;
   late final HosnObeController _hosnObe;
   late final SessionController _sessions;
+  late final MatchRecorder _recorder;
   late final HapticsService _haptics;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final RecordedBubbleHost _bubbleHost = RecordedBubbleHost();
   bool _ready = false;
-  OverlayEntry? _recordedBubble;
-  Timer? _recordedBubbleTimer;
 
   @override
   void initState() {
@@ -118,6 +118,14 @@ class _HomePageState extends State<HomePage> {
       matchRepository: const MatchHistoryRepository(),
       haptics: _haptics,
     );
+    _recorder = MatchRecorder(
+      counter: _counter,
+      watten: _watten,
+      mulatschak: _mulatschak,
+      hosnObe: _hosnObe,
+      players: _players,
+      sessions: _sessions,
+    );
 
     _settings.addListener(_syncSettingsToApp);
     _syncSettingsToApp();
@@ -126,8 +134,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _recordedBubbleTimer?.cancel();
-    _recordedBubble?.remove();
+    _bubbleHost.dispose();
     _settings.removeListener(_syncSettingsToApp);
     _settings.dispose();
     _players.dispose();
@@ -294,7 +301,7 @@ class _HomePageState extends State<HomePage> {
       showDragHandle: true,
       builder: (sheetContext) => FinishMatchSheet(
         initialMode: widget.appMode,
-        previewFor: _previewFor,
+        previewFor: _recorder.previewFor,
         onRecord: (mode, {required resetBoard}) {
           _recordMatch(mode, resetBoard: resetBoard);
         },
@@ -302,121 +309,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  MatchPreview _previewFor(AppMode mode) {
-    switch (mode) {
-      case AppMode.counter:
-        return MatchPreview(
-          winnerId: null,
-          winnerLabel: null,
-          standings: [
-            for (final entry in _counter.counters.entries)
-              (name: entry.key, score: entry.value),
-          ],
-        );
-      case AppMode.watten:
-        final game =
-            _watten.games[_watten.currentGame] ??
-            const WattenGame(me: 0, you: 0);
-        return MatchPreview(
-          winnerId: null,
-          winnerLabel: _watten.winner(),
-          standings: [
-            (name: WattenSide.me.label, score: game.me),
-            (name: WattenSide.you.label, score: game.you),
-          ],
-        );
-      case AppMode.mulatschak:
-        return MatchPreview(
-          winnerId: _mulatschak.winner(),
-          winnerLabel: null,
-          standings: [
-            for (final entry in _mulatschak.lineup.entries)
-              (name: _players.displayName(entry.key), score: entry.value),
-          ],
-        );
-      case AppMode.hosnObe:
-        return MatchPreview(
-          winnerId: _hosnObe.winner(),
-          winnerLabel: null,
-          standings: [
-            for (final entry in _hosnObe.lineup.entries)
-              (name: _players.displayName(entry.key), score: entry.value),
-          ],
-        );
-    }
-  }
-
   void _recordMatch(AppMode mode, {required bool resetBoard}) {
-    final preview = _previewFor(mode);
-
-    final participantIds = switch (mode) {
-      AppMode.mulatschak => _mulatschak.lineup.keys.toList(),
-      AppMode.hosnObe => _hosnObe.lineup.keys.toList(),
-      _ => const <String>[],
-    };
-
-    final startedAt = switch (mode) {
-      AppMode.watten => _watten.roundStartedAt,
-      _ => DateTime.now(),
-    };
-
-    final standings = {
-      for (final entry in preview.standings) entry.name: entry.score,
-    };
-
-    unawaited(
-      _sessions.recordMatch(
-        gameType: mode,
-        participantIds: participantIds,
-        winnerId: preview.winnerId,
-        winnerLabel: preview.winnerLabel,
-        startedAt: startedAt,
-        endedAt: DateTime.now(),
-        finalStandings: standings,
-      ),
-    );
-
-    if (resetBoard) {
-      switch (mode) {
-        case AppMode.counter:
-          _counter.resetBoard();
-        case AppMode.watten:
-          _watten.resetBoard();
-        case AppMode.mulatschak:
-          _mulatschak.resetPlayers();
-        case AppMode.hosnObe:
-          _hosnObe.resetPlayers();
-      }
-    }
-    _showRecordedBubble('Partie aufgezeichnet!');
-  }
-
-  /// Zeigt eine schwebende Bestätigung unterhalb der AppBar statt am
-  /// unteren Bildschirmrand.
-  void _showRecordedBubble(String message) {
-    _recordedBubbleTimer?.cancel();
-    _recordedBubble?.remove();
-
-    final mediaQuery = MediaQuery.of(context);
-    final top = mediaQuery.padding.top + kToolbarHeight + 14;
-    final entry = OverlayEntry(
-      builder: (_) => Positioned(
-        top: top,
-        left: 0,
-        right: 0,
-        child: Center(child: RecordedBubble(message: message)),
-      ),
-    );
-    _recordedBubble = entry;
-    Overlay.of(context, rootOverlay: true).insert(entry);
-    _recordedBubbleTimer = Timer(const Duration(milliseconds: 2200), () {
-      if (entry.mounted) {
-        entry.remove();
-      }
-      if (_recordedBubble == entry) {
-        _recordedBubble = null;
-      }
-    });
+    unawaited(_recorder.record(mode, resetBoard: resetBoard));
+    _bubbleHost.show(context, 'Partie aufgezeichnet!');
   }
 
   String? get _mulatschakWinnerName {
