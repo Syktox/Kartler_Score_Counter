@@ -43,12 +43,12 @@ import '../../widgets/mulatschak_history_drawer.dart';
 import '../../widgets/recorded_bubble.dart';
 import 'hub_page.dart';
 import 'match_recorder.dart';
-import 'onboarding_page.dart';
+import 'start_screen.dart';
 
 /// Zentrale Shell der App.
 ///
 /// Erstellt und lädt alle Feature-Controller, verdrahtet die Spielmodi und
-/// koordiniert Navigation (Hub, Onboarding, Verwaltung), Undo/Redo sowie
+/// koordiniert Navigation (Hub, StartScreen, Verwaltung), Undo/Redo sowie
 /// das Aufzeichnen abgeschlossener Partien.
 class HomePage extends StatefulWidget {
   final ThemeMode themeMode;
@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final RecordedBubbleHost _bubbleHost = RecordedBubbleHost();
   bool _ready = false;
-  bool _onboardingDone = false;
+  bool _startScreenDone = false;
 
   @override
   void initState() {
@@ -208,11 +208,11 @@ class _HomePageState extends State<HomePage> {
     _settings.setAppMode(mode);
   }
 
-  /// Beendet das Onboarding für diese Sitzung. Ohne Modusauswahl (Skip)
+  /// Beendet den StartScreen für diese Sitzung. Ohne Modusauswahl (Skip)
   /// bleibt der zuletzt verwendete Modus aktiv.
-  void _finishOnboarding(AppMode? mode) {
+  void _finishStartScreen(AppMode? mode) {
     setState(() {
-      _onboardingDone = true;
+      _startScreenDone = true;
     });
     if (mode != null) {
       _selectMode(mode);
@@ -739,13 +739,13 @@ class _HomePageState extends State<HomePage> {
         _settings,
       ]),
       builder: (context, _) {
-        if (!_onboardingDone) {
-          return OnboardingPage(
+        if (!_startScreenDone) {
+          return StartScreen(
             onModeSelected: (mode) {
-              _finishOnboarding(mode);
+              _finishStartScreen(mode);
             },
             onSkip: () {
-              _finishOnboarding(null);
+              _finishStartScreen(null);
             },
           );
         }

@@ -4,11 +4,11 @@ import '../../core/app_constants.dart';
 import '../../models/app_mode.dart';
 
 /// App-Start: kurze Auswahl „Was möchtest du spielen?“ bei jedem Start.
-class OnboardingPage extends StatelessWidget {
+class StartScreen extends StatelessWidget {
   final ValueChanged<AppMode> onModeSelected;
   final VoidCallback onSkip;
 
-  const OnboardingPage({
+  const StartScreen({
     super.key,
     required this.onModeSelected,
     required this.onSkip,
@@ -52,28 +52,28 @@ class OnboardingPage extends StatelessWidget {
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 16),
-              _OnboardingOption(
+              _StartOption(
                 icon: Icons.style_outlined,
                 title: AppMode.watten.label,
                 subtitle: 'Zwei Parteien zählen bis zur Zielpunktzahl.',
                 onTap: () => onModeSelected(AppMode.watten),
               ),
               const SizedBox(height: 12),
-              _OnboardingOption(
+              _StartOption(
                 icon: Icons.casino_outlined,
                 title: AppMode.mulatschak.label,
                 subtitle: 'Rundenweise Punkte mit Multiplikator.',
                 onTap: () => onModeSelected(AppMode.mulatschak),
               ),
               const SizedBox(height: 12),
-              _OnboardingOption(
+              _StartOption(
                 icon: Icons.emoji_events_outlined,
                 title: AppMode.hosnObe.label,
                 subtitle: 'Wer seine Leben verliert, verliert.',
                 onTap: () => onModeSelected(AppMode.hosnObe),
               ),
               const SizedBox(height: 12),
-              _OnboardingOption(
+              _StartOption(
                 icon: Icons.numbers,
                 title: AppMode.counter.label,
                 subtitle: 'Ein freier Zähler für alles andere.',
@@ -89,13 +89,13 @@ class OnboardingPage extends StatelessWidget {
   }
 }
 
-class _OnboardingOption extends StatelessWidget {
+class _StartOption extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
-  const _OnboardingOption({
+  const _StartOption({
     required this.icon,
     required this.title,
     required this.subtitle,

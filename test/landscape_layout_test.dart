@@ -53,7 +53,7 @@ void main() {
     });
     await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
-    await dismissOnboarding(tester);
+    await dismissStartScreen(tester);
 
     expect(find.text('Punkte'), findsOneWidget);
     expect(find.text('+'), findsOneWidget);
@@ -76,7 +76,7 @@ void main() {
     });
     await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
-    await dismissOnboarding(tester);
+    await dismissStartScreen(tester);
 
     expect(find.text('Wir'), findsWidgets);
     expect(find.text('Die'), findsWidgets);
@@ -120,7 +120,7 @@ void main() {
     });
     await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
-    await dismissOnboarding(tester);
+    await dismissStartScreen(tester);
 
     await openSettings(tester);
 
@@ -150,7 +150,7 @@ void main() {
     });
     await tester.pumpWidget(const KartlerApp());
     await tester.pumpAndSettle();
-    await dismissOnboarding(tester);
+    await dismissStartScreen(tester);
 
     await openDrawer(tester);
     await tester.tap(find.text('Neuer Zähler'));

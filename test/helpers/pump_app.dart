@@ -23,7 +23,7 @@ void mockPlatformChannel(WidgetTester tester) {
   });
 }
 
-/// Pumped die App mit Mock-Speicher und überspringt das Onboarding, das bei
+/// Pumped die App mit Mock-Speicher und überspringt den StartScreen, der bei
 /// jedem Start erscheint: Die Tests landen direkt im gewählten Modus.
 Future<void> pumpApp(
   WidgetTester tester, {
@@ -38,12 +38,12 @@ Future<void> pumpApp(
   SharedPreferences.setMockInitialValues(prefs);
   await tester.pumpWidget(const KartlerApp());
   await tester.pumpAndSettle();
-  await dismissOnboarding(tester);
+  await dismissStartScreen(tester);
 }
 
-/// Überspringt das Onboarding (falls sichtbar) und wählt den Modus aus den
+/// Überspringt den StartScreen (falls sichtbar) und wählt den Modus aus den
 /// Mock-Prefs (Standard: Watten).
-Future<void> dismissOnboarding(WidgetTester tester) async {
+Future<void> dismissStartScreen(WidgetTester tester) async {
   if (find.text('Was möchtest du spielen?').evaluate().isEmpty) {
     return;
   }

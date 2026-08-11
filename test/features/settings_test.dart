@@ -216,7 +216,7 @@ void main() {
       mockPlatformChannel(tester);
       await tester.pumpWidget(const KartlerApp());
       await tester.pumpAndSettle();
-      await dismissOnboarding(tester);
+      await dismissStartScreen(tester);
 
       final backup = await const BackupService().exportJson();
 
@@ -244,7 +244,7 @@ void main() {
     });
   });
 
-  group('Onboarding', () {
+  group('StartScreen', () {
     testWidgets(
       'shows the mode selection on every start, even with saved settings',
       (tester) async {
@@ -277,7 +277,7 @@ void main() {
       expect(find.text('Was möchtest du spielen?'), findsNothing);
     });
 
-    testWidgets('tap on default mode (Watten) dismisses onboarding', (
+    testWidgets('tap on default mode (Watten) dismisses the start screen', (
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({});
