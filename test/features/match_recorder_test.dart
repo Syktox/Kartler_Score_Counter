@@ -103,8 +103,10 @@ void main() {
       'mulatschak_multiplier': 1,
     });
 
-    final match = await recorder.record(AppMode.mulatschak, resetBoard: true);
+    final result = await recorder.record(AppMode.mulatschak, resetBoard: true);
 
+    expect(result, isNotNull);
+    final match = result!;
     expect(sessions.matches.single.id, match.id);
     expect(match.winnerId, 'p1');
     expect(match.finalStandings, {'Anna': 0, 'Ben': 21});
@@ -124,8 +126,10 @@ void main() {
         'current_watten_game': 'Spiel 1',
       });
 
-      final match = await recorder.record(AppMode.watten, resetBoard: false);
+      final result = await recorder.record(AppMode.watten, resetBoard: false);
 
+      expect(result, isNotNull);
+      final match = result!;
       expect(match.winnerId, isNull);
       expect(match.winnerLabel, 'Wir');
       expect(match.finalStandings, {'Wir': 11, 'Die': 7});
@@ -139,8 +143,10 @@ void main() {
       'current_counter': 'Punkte',
     });
 
-    final match = await recorder.record(AppMode.counter, resetBoard: true);
+    final result = await recorder.record(AppMode.counter, resetBoard: true);
 
+    expect(result, isNotNull);
+    final match = result!;
     expect(match.winnerId, isNull);
     expect(match.winnerLabel, isNull);
     expect(match.participantIds, isEmpty);
@@ -164,7 +170,6 @@ void main() {
     ]);
     expect(sessions.matches, isEmpty);
   });
-
   test('records against the active session and attaches the match', () async {
     await setUpControllers({
       ...playersPrefs(),
@@ -178,5 +183,52 @@ void main() {
 
     expect(sessions.matches.single.sessionId, sessions.activeSession!.id);
     expect(sessions.activeSession!.matchIds, [sessions.matches.single.id]);
+  });
+
+  test('ignores a duplicate record of the same round', () async {
+    await setUpControllers({
+      ...playersPrefs(),
+      'mulatschak_lineup': jsonEncode({'p1': 5, 'p2': 21}),
+      'current_mulatschak_player': 'p1',
+      'mulatschak_multiplier': 1,
+    });
+
+    final first = await recorder.record(AppMode.mulatschak, resetBoard: false);
+    final second = await recorder.record(AppMode.mulatschak, resetBoard: false);
+
+    expect(first, isNotNull);
+    expect(second, isNull);
+    expect(sessions.matches.length, 1);
+  });
+
+  test('allows a new record after the board was reset', () async {
+    await setUpControllers({
+      'watten_lineup': jsonEncode({
+        'Spiel 1': {'me': 11, 'you': 7},
+      }),
+      'current_watten_game': 'Spiel 1',
+    });
+
+    await recorder.record(AppMode.watten, resetBoard: true);
+    watten.changeScore(2);
+    final second = await recorder.record(AppMode.watten, resetBoard: true);
+
+    expect(second, isNotNull);
+    expect(sessions.matches.length, 2);
+  });
+
+  test('allows a new record after the scores changed', () async {
+    await setUpControllers({
+      'counter_lineup': jsonEncode({'Punkte': 12}),
+      'current_counter': 'Punkte',
+    });
+
+    await recorder.record(AppMode.counter, resetBoard: false);
+    counter.increment();
+    final second = await recorder.record(AppMode.counter, resetBoard: false);
+
+    expect(second, isNotNull);
+    expect(sessions.matches.length, 2);
+    expect(sessions.matches.last.finalStandings, {'Punkte': 13});
   });
 }

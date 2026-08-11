@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../models/app_mode.dart';
 import '../../models/completed_match.dart';
 import '../../models/watten_game.dart';
@@ -36,6 +38,11 @@ class MatchRecorder {
   final HosnObeController _hosnObe;
   final PlayersController _players;
   final SessionController _sessions;
+
+  /// Erkennungsschlüssel der zuletzt aufgezeichneten Partie: verhindert,
+  /// dass dieselbe Runde doppelt gespeichert wird (z. B. durch schnelles
+  /// Doppeltippen im Abschluss-Sheet oder im Drawer).
+  ({AppMode mode, DateTime round, String standings})? _lastRecordKey;
 
   /// Vorschau des aktuellen Spielstands für das Abschluss-Sheet.
   MatchPreview previewFor(AppMode mode) {
@@ -83,12 +90,30 @@ class MatchRecorder {
   }
 
   /// Zeichnet die Partie des Modus auf und setzt – falls gewünscht – das
-  /// Board zurück. Rückgabe ist der gespeicherte [CompletedMatch].
-  Future<CompletedMatch> record(
+  /// Board zurück. Rückgabe ist der gespeicherte [CompletedMatch]; wird
+  /// dieselbe Runde ein zweites Mal aufgezeichnet, kommt `null` zurück.
+  Future<CompletedMatch?> record(
     AppMode mode, {
     required bool resetBoard,
   }) async {
     final preview = previewFor(mode);
+
+    final round = switch (mode) {
+      AppMode.counter => _counter.roundStartedAt,
+      AppMode.watten => _watten.roundStartedAt,
+      AppMode.mulatschak => _mulatschak.roundStartedAt,
+      AppMode.hosnObe => _hosnObe.roundStartedAt,
+    };
+
+    final standings = {
+      for (final entry in preview.standings) entry.name: entry.score,
+    };
+
+    final key = (mode: mode, round: round, standings: jsonEncode(standings));
+    if (_lastRecordKey == key) {
+      return null;
+    }
+    _lastRecordKey = key;
 
     final participantIds = switch (mode) {
       AppMode.mulatschak => _mulatschak.lineup.keys.toList(),
@@ -96,21 +121,12 @@ class MatchRecorder {
       _ => const <String>[],
     };
 
-    final startedAt = switch (mode) {
-      AppMode.watten => _watten.roundStartedAt,
-      _ => DateTime.now(),
-    };
-
-    final standings = {
-      for (final entry in preview.standings) entry.name: entry.score,
-    };
-
     final match = await _sessions.recordMatch(
       gameType: mode,
       participantIds: participantIds,
       winnerId: preview.winnerId,
       winnerLabel: preview.winnerLabel,
-      startedAt: startedAt,
+      startedAt: round,
       endedAt: DateTime.now(),
       finalStandings: standings,
     );
