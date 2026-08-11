@@ -22,6 +22,36 @@ void main() {
       expect(prefs.getBool('haptics_enabled'), isFalse);
     });
 
+    testWidgets('reflects toggled switches in the settings UI', (tester) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await openSettings(tester);
+      final switchFinder = find.descendant(
+        of: find.ancestor(
+          of: find.text('Haptisches Feedback'),
+          matching: find.byType(SwitchListTile),
+        ),
+        matching: find.byType(Switch),
+      );
+      expect(tester.widget<Switch>(switchFinder).value, isTrue);
+
+      await tester.tap(find.text('Haptisches Feedback'));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Switch>(switchFinder).value, isFalse);
+    });
+
+    testWidgets('switching the theme persists the selection', (tester) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await openSettings(tester);
+      await tester.tap(find.text('Dunkel'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('theme_mode'), 'dark');
+    });
+
     testWidgets('toggles the counter history and negative counters', (
       tester,
     ) async {

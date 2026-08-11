@@ -122,6 +122,21 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Einstellungen')),
+      body: SafeArea(
+        top: false,
+        child: ListenableBuilder(
+          listenable: widget.settings,
+          builder: (context, _) => _buildContent(context),
+        ),
+      ),
+    );
+  }
+
+  /// Baut den Inhalt bei jeder Controller-Änderung neu, damit Umschalter und
+  /// Radio-Auswahl den aktuellen Einstellungen entsprechen.
+  Widget _buildContent(BuildContext context) {
     final settings = widget.settings;
     final profile = _profile;
     final isLandscape =
@@ -358,16 +373,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           );
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Einstellungen')),
-      body: SafeArea(
-        top: false,
-        child: ListenableBuilder(
-          listenable: settings,
-          builder: (context, _) => content,
-        ),
-      ),
-    );
+    return content;
   }
 }
 
