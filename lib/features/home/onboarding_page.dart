@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_constants.dart';
 import '../../models/app_mode.dart';
 
-/// App-Start: kurze Auswahl „Was möchtest du spielen?“ beim ersten Start.
-/// Danach ist die Auswahl jederzeit über „Start“ in der AppBar erreichbar.
+/// App-Start: kurze Auswahl „Was möchtest du spielen?“ bei jedem Start.
 class OnboardingPage extends StatelessWidget {
   final ValueChanged<AppMode> onModeSelected;
   final VoidCallback onSkip;

@@ -23,7 +23,6 @@ class SettingsController extends FeatureController {
   bool counterNegativeEnabled = false;
   bool mulatschakHistoryEnabled = false;
   RuleProfile ruleProfile = const RuleProfile.defaults();
-  bool hasCompletedOnboarding = false;
 
   @override
   Future<void> load() async {
@@ -35,7 +34,6 @@ class SettingsController extends FeatureController {
     counterNegativeEnabled = await _repository.loadCounterNegativeEnabled();
     mulatschakHistoryEnabled = await _repository.loadMulatschakHistoryEnabled();
     ruleProfile = await _repository.loadRuleProfile();
-    hasCompletedOnboarding = await _repository.loadOnboardingCompleted();
     isLoading = false;
   }
 
@@ -110,14 +108,5 @@ class SettingsController extends FeatureController {
 
   void resetRuleProfile() {
     setRuleProfile(const RuleProfile.defaults());
-  }
-
-  void setHasCompletedOnboarding(bool completed) {
-    if (hasCompletedOnboarding == completed) {
-      return;
-    }
-    hasCompletedOnboarding = completed;
-    notifyListeners();
-    unawaited(_repository.saveOnboardingCompleted(completed));
   }
 }

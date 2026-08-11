@@ -35,7 +35,6 @@ Map<String, Object> _populatedPrefs() {
     ]),
     'theme_mode': 'dark',
     'app_mode': 'mulatschak',
-    'onboarding_completed': true,
     'counter_lineup': jsonEncode({'Punkte': 12}),
     'current_counter': 'Punkte',
     'rule_profile': jsonEncode({
@@ -85,7 +84,6 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('app_mode'), 'mulatschak');
       expect(prefs.getString('theme_mode'), 'dark');
-      expect(prefs.getBool('onboarding_completed'), isTrue);
       expect(prefs.getString('players'), contains('Anna'));
       expect(prefs.getString('game_sessions'), contains('s1'));
       expect(prefs.getString('match_history'), contains('m1'));
@@ -93,17 +91,19 @@ void main() {
       expect(prefs.getString('current_counter'), 'Punkte');
     });
 
-    test('accepts only the known keys and keeps schema version current',
-        () async {
-      SharedPreferences.setMockInitialValues(_populatedPrefs());
-      final exported = await _service.exportJson();
+    test(
+      'accepts only the known keys and keeps schema version current',
+      () async {
+        SharedPreferences.setMockInitialValues(_populatedPrefs());
+        final exported = await _service.exportJson();
 
-      SharedPreferences.setMockInitialValues({});
-      await _service.importJson(exported);
+        SharedPreferences.setMockInitialValues({});
+        await _service.importJson(exported);
 
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('schema_version'), StorageSchema.current);
-    });
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.getInt('schema_version'), StorageSchema.current);
+      },
+    );
 
     test('rejects a backup from a newer app version', () async {
       SharedPreferences.setMockInitialValues({});
@@ -215,9 +215,7 @@ void main() {
         BackupService.formatKey: BackupService.formatVersion,
         BackupService.schemaVersionKey: StorageSchema.current,
         BackupService.exportedAtKey: DateTime.now().toIso8601String(),
-        BackupService.valuesKey: {
-          'players': 'korrupt',
-        },
+        BackupService.valuesKey: {'players': 'korrupt'},
       });
 
       await expectLater(

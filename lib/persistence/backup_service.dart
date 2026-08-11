@@ -47,7 +47,6 @@ class BackupService {
     StorageKeys.counterNegativeEnabled,
     StorageKeys.mulatschakHistoryEnabled,
     StorageKeys.ruleProfile,
-    StorageKeys.onboardingCompleted,
   };
 
   static const Set<String> _gameStateKeys = {

@@ -81,6 +81,7 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final RecordedBubbleHost _bubbleHost = RecordedBubbleHost();
   bool _ready = false;
+  bool _onboardingDone = false;
 
   @override
   void initState() {
@@ -207,11 +208,12 @@ class _HomePageState extends State<HomePage> {
     _settings.setAppMode(mode);
   }
 
-  /// Beendet das Onboarding dauerhaft und wählt – falls gewünscht – den
-  /// angetippten Modus. Ohne Modusauswahl (Skip) bleibt der zuletzt
-  /// verwendete Modus aktiv.
+  /// Beendet das Onboarding für diese Sitzung. Ohne Modusauswahl (Skip)
+  /// bleibt der zuletzt verwendete Modus aktiv.
   void _finishOnboarding(AppMode? mode) {
-    _settings.setHasCompletedOnboarding(true);
+    setState(() {
+      _onboardingDone = true;
+    });
     if (mode != null) {
       _selectMode(mode);
     }
@@ -737,7 +739,7 @@ class _HomePageState extends State<HomePage> {
         _settings,
       ]),
       builder: (context, _) {
-        if (!_settings.hasCompletedOnboarding) {
+        if (!_onboardingDone) {
           return OnboardingPage(
             onModeSelected: (mode) {
               _finishOnboarding(mode);

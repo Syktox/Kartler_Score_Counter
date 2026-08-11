@@ -16,7 +16,8 @@ class MatchTile extends StatelessWidget {
     final standings = match.finalStandings.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final winnerId = match.winnerId;
-    final winnerLabel = winnerId != null && match.participantIds.contains(winnerId)
+    final winnerLabel =
+        winnerId != null && match.participantIds.contains(winnerId)
         ? players.displayName(winnerId)
         : match.winnerName;
 
@@ -40,9 +41,7 @@ class MatchTile extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
                 Text(
-                  winnerLabel == '—'
-                      ? 'Unentschieden'
-                      : 'Sieger: $winnerLabel',
+                  winnerLabel == '—' ? 'Unentschieden' : 'Sieger: $winnerLabel',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: colorScheme.primary,

@@ -23,8 +23,8 @@ void mockPlatformChannel(WidgetTester tester) {
   });
 }
 
-/// Pumped die App mit Mock-Speicher und überspringt das Onboarding, das beim
-/// ersten Start erscheint: Die Tests landen direkt im gewählten Modus.
+/// Pumped die App mit Mock-Speicher und überspringt das Onboarding, das bei
+/// jedem Start erscheint: Die Tests landen direkt im gewählten Modus.
 Future<void> pumpApp(
   WidgetTester tester, {
   Map<String, Object> prefs = const {},
