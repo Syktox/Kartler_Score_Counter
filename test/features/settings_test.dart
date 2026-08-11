@@ -170,5 +170,21 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('onboarding_completed'), isTrue);
     });
+
+    testWidgets('tap on default mode (Watten) dismisses onboarding',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(const KartlerApp());
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Watten'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Watten'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Was möchtest du spielen?'), findsNothing);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('onboarding_completed'), isTrue);
+    });
   });
 }

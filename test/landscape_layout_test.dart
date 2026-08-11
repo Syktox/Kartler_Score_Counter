@@ -28,9 +28,7 @@ void main() {
       of: list,
       matching: find.byType(DragBoundary),
     );
-    final settingsFooter = find.byKey(
-      const ValueKey('drawer-settings-footer'),
-    );
+    final settingsFooter = find.byKey(const ValueKey('drawer-settings-footer'));
 
     expect(boundary, findsOneWidget);
     expect(settingsFooter, findsOneWidget);
@@ -83,6 +81,58 @@ void main() {
     expect(find.text('Wir'), findsWidgets);
     expect(find.text('Die'), findsWidgets);
     expect(find.text('+2'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'drawer pins extra actions above the settings footer in portrait',
+    (tester) async {
+      await pumpApp(tester, prefs: counterPrefs());
+      await openDrawer(tester);
+
+      final extraActionsBlock = find.byKey(
+        const ValueKey('drawer-extra-actions'),
+      );
+      final settingsFooter = find.byKey(
+        const ValueKey('drawer-settings-footer'),
+      );
+
+      expect(extraActionsBlock, findsOneWidget);
+      expect(settingsFooter, findsOneWidget);
+      expect(
+        tester.getBottomRight(extraActionsBlock).dy,
+        lessThanOrEqualTo(tester.getTopLeft(settingsFooter).dy),
+      );
+    },
+  );
+
+  testWidgets('settings page lays out sections side by side in landscape', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 360);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      'onboarding_completed': true,
+      'app_mode': 'counter',
+      ...counterPrefs(),
+    });
+    await tester.pumpWidget(const KartlerApp());
+    await tester.pumpAndSettle();
+
+    await openSettings(tester);
+
+    final modeHeader = find.text('Spielmodus');
+    final historyHeader = find.text('Verlauf');
+    expect(modeHeader, findsOneWidget);
+    expect(historyHeader, findsOneWidget);
+    expect(
+      (tester.getTopLeft(modeHeader).dx - tester.getTopLeft(historyHeader).dx)
+          .abs(),
+      greaterThan(150),
+    );
     expect(tester.takeException(), isNull);
   });
 

@@ -26,7 +26,7 @@ This repository contains the source code, assets, and configuration. Generated F
 
 ### Watten
 
-- Manage multiple games in parallel
+- One active game at a time: `Neues Spiel` records the finished game into the statistics and starts a fresh one at `0:0`
 - Separate score tracking for `Wir` (us) and `Die` (them)
 - Quick scoring buttons for `+2` and `+3`
 - Reset only the currently selected side
@@ -61,6 +61,7 @@ This repository contains the source code, assets, and configuration. Generated F
 - Flutter SDK
 - Dart SDK compatible with the Flutter version used by the project
 - Xcode for iOS and macOS builds on macOS
+- For Android builds, a JDK 17 or newer (Gradle 9.1, AGP 9.0.1, built-in Kotlin); when building on Java 25 the build prints JDK native-access warnings that do not affect the result
 
 ## Play Store Requirements
 
@@ -182,7 +183,7 @@ flutter test
 Covered scenarios include:
 
 - Zähler: incrementing, resetting, undo, adding, renaming, deleting, and reordering counters
-- Watten: updating scores, switching sides, resetting, winner display, game management, and table mode
+- Watten: score updates, winner display, side reset, auto-recording via `Neues Spiel`, and table mode
 - Mulatschak: multipliers, winner logic, history, and Muleqack reset behavior
 - Hosn Obe: lives, winner detection, and undo
 - Players: global player management, duplicate name handling, and lineups

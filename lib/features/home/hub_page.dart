@@ -43,15 +43,18 @@ class HubPage extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Wähle einen Spielmodus oder starte einen Spielabend.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 20),
+          const _SectionHeader(title: 'Spielmodus'),
+          const SizedBox(height: 8),
           _ModeCard(
             icon: Icons.style_outlined,
             title: AppMode.watten.label,
-            subtitle: 'Zwei Parteien, schnell gezählt – perfekt für zwischendurch.',
+            subtitle:
+                'Zwei Parteien, schnell gezählt – perfekt für zwischendurch.',
             onTap: () => onModeSelected(AppMode.watten),
           ),
           const SizedBox(height: 12),
@@ -76,6 +79,8 @@ class HubPage extends StatelessWidget {
             onTap: () => onModeSelected(AppMode.counter),
           ),
           const SizedBox(height: 24),
+          const _SectionHeader(title: 'Spielabend'),
+          const SizedBox(height: 8),
           if (activeSession != null)
             _SessionCard(
               participants: sessionParticipantNames,
@@ -85,13 +90,14 @@ class HubPage extends StatelessWidget {
             _ActionCard(
               icon: Icons.nights_stay_outlined,
               title: 'Spielabend starten',
-              subtitle:
-                  pastSessionCount == 0
-                      ? 'Sammle Partien und sehe danach die Zusammenfassung.'
-                      : 'Bereits $pastSessionCount Spielabende abgeschlossen.',
+              subtitle: pastSessionCount == 0
+                  ? 'Sammle Partien und sehe danach die Zusammenfassung.'
+                  : 'Bereits $pastSessionCount Spielabende abgeschlossen.',
               onTap: onStartSession,
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
+          const _SectionHeader(title: 'Mehr'),
+          const SizedBox(height: 8),
           _ActionCard(
             icon: Icons.bar_chart_outlined,
             title: 'Statistiken',
@@ -106,6 +112,26 @@ class HubPage extends StatelessWidget {
             onTap: onOpenPlayers,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+        color: colorScheme.primary,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.4,
       ),
     );
   }
@@ -136,7 +162,10 @@ class _ModeCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 10,
+        ),
         leading: CircleAvatar(
           radius: 26,
           backgroundColor: colorScheme.primaryContainer,
@@ -179,7 +208,10 @@ class _ActionCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 10,
+        ),
         leading: CircleAvatar(
           radius: 26,
           backgroundColor: colorScheme.secondaryContainer,
@@ -213,9 +245,7 @@ class _SessionCard extends StatelessWidget {
     return Card(
       elevation: 0,
       color: colorScheme.primaryContainer,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

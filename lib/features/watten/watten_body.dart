@@ -9,7 +9,6 @@ import '../../widgets/winner_banner.dart';
 
 class WattenBody extends StatelessWidget {
   final bool isLoading;
-  final String gameName;
   final WattenGame currentGame;
   final WattenSide selectedSide;
   final String? winner;
@@ -22,7 +21,6 @@ class WattenBody extends StatelessWidget {
   const WattenBody({
     super.key,
     required this.isLoading,
-    required this.gameName,
     required this.currentGame,
     required this.selectedSide,
     required this.winner,
@@ -121,15 +119,8 @@ class WattenBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            gameName,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
           if (winner != null) WinnerBanner(winner: winner!),
+          const SizedBox(height: 8),
           Expanded(child: scoreCards),
           const SizedBox(height: 24),
           WattenControls(
@@ -305,7 +296,9 @@ class _TableSide extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onSelect,
-      child: rotated ? RotatedBox(quarterTurns: 2, child: decorated) : decorated,
+      child: rotated
+          ? RotatedBox(quarterTurns: 2, child: decorated)
+          : decorated,
     );
   }
 }

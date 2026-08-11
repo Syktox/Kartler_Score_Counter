@@ -23,7 +23,6 @@ import '../../features/statistics/statistics_calculator.dart';
 import '../../features/statistics/statistics_page.dart';
 import '../../features/watten/watten_body.dart';
 import '../../features/watten/watten_controller.dart';
-import '../../features/watten/watten_helper.dart';
 import '../feature_controller.dart';
 import '../../models/app_mode.dart';
 import '../../models/watten_game.dart';
@@ -42,6 +41,7 @@ import '../../widgets/app_dialogs.dart';
 import '../../widgets/counter_drawer.dart';
 import '../../widgets/counter_history_drawer.dart';
 import '../../widgets/mulatschak_history_drawer.dart';
+import '../../widgets/recorded_bubble.dart';
 import 'hub_page.dart';
 import 'onboarding_page.dart';
 
@@ -79,6 +79,8 @@ class _HomePageState extends State<HomePage> {
   late final HapticsService _haptics;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _ready = false;
+  OverlayEntry? _recordedBubble;
+  Timer? _recordedBubbleTimer;
 
   @override
   void initState() {
@@ -124,6 +126,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    _recordedBubbleTimer?.cancel();
+    _recordedBubble?.remove();
     _settings.removeListener(_syncSettingsToApp);
     _settings.dispose();
     _players.dispose();
@@ -198,9 +202,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openSettings() async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SettingsPage(settings: _settings),
-      ),
+      MaterialPageRoute(builder: (_) => SettingsPage(settings: _settings)),
     );
   }
 
@@ -302,7 +304,8 @@ class _HomePageState extends State<HomePage> {
           ],
         );
       case AppMode.watten:
-        final game = _watten.games[_watten.currentGame] ??
+        final game =
+            _watten.games[_watten.currentGame] ??
             const WattenGame(me: 0, you: 0);
         return MatchPreview(
           winnerId: null,
@@ -375,7 +378,35 @@ class _HomePageState extends State<HomePage> {
           _hosnObe.resetPlayers();
       }
     }
-    _showMessage('Partie aufgezeichnet!');
+    _showRecordedBubble('Partie aufgezeichnet!');
+  }
+
+  /// Zeigt eine schwebende Bestätigung unterhalb der AppBar statt am
+  /// unteren Bildschirmrand.
+  void _showRecordedBubble(String message) {
+    _recordedBubbleTimer?.cancel();
+    _recordedBubble?.remove();
+
+    final mediaQuery = MediaQuery.of(context);
+    final top = mediaQuery.padding.top + kToolbarHeight + 14;
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
+        top: top,
+        left: 0,
+        right: 0,
+        child: Center(child: RecordedBubble(message: message)),
+      ),
+    );
+    _recordedBubble = entry;
+    Overlay.of(context, rootOverlay: true).insert(entry);
+    _recordedBubbleTimer = Timer(const Duration(milliseconds: 2200), () {
+      if (entry.mounted) {
+        entry.remove();
+      }
+      if (_recordedBubble == entry) {
+        _recordedBubble = null;
+      }
+    });
   }
 
   String? get _mulatschakWinnerName {
@@ -460,9 +491,14 @@ class _HomePageState extends State<HomePage> {
       title: 'Zähler umbenennen',
       initialValue: oldName,
       hintText: 'Neuer Zählername',
-      duplicateNameMessage: 'Dieser Zählername darf nur einmal vergeben werden.',
+      duplicateNameMessage:
+          'Dieser Zählername darf nur einmal vergeben werden.',
       isValidName: (newName) {
-        return NameUtils.isUniqueExcept(newName, _counter.counters.keys, oldName);
+        return NameUtils.isUniqueExcept(
+          newName,
+          _counter.counters.keys,
+          oldName,
+        );
       },
       onRename: (newName) {
         if (newName != oldName) {
@@ -487,49 +523,16 @@ class _HomePageState extends State<HomePage> {
 
   // MARK: - Watten
 
-  bool _isWattenGameNameValid(String name) {
-    return WattenHelper.isGameNameValid(name, _watten.games.keys);
-  }
-
-  void _showAddWattenGameDialog() {
-    AppDialogs.showAddItemDialog(
-      context: context,
-      title: 'Spiel hinzufügen',
-      hintText: 'Spielname',
-      isValidName: _isWattenGameNameValid,
-      onAdd: _watten.addGame,
-    );
-  }
-
-  void _showRenameWattenGameDialog(String oldName) {
-    AppDialogs.showRenameItemDialog(
-      context: context,
-      title: 'Spiel umbenennen',
-      initialValue: oldName,
-      hintText: 'Neuer Spielname',
-      duplicateNameMessage: 'Dieser Spielname darf nur einmal vergeben werden.',
-      isValidName: (newName) {
-        return NameUtils.isUniqueExcept(newName, _watten.games.keys, oldName);
-      },
-      onRename: (newName) {
-        if (newName != oldName) {
-          _watten.renameGame(oldName, newName);
-        }
-      },
-    );
-  }
-
-  void _showDeleteWattenGameDialog(String gameName) {
-    if (_watten.games.length <= 1) {
-      _showMessage('Es muss mindestens ein Spiel übrig bleiben.');
+  /// Startet eine neue Watten-Partie: Die aktuelle Partie wird (sofern schon
+  /// Punkte erzielt wurden) in den Statistiken aufgezeichnet, danach beginnt
+  /// eine frische Partie bei 0:0.
+  void _startNewWattenGame() {
+    final game =
+        _watten.games[_watten.currentGame] ?? const WattenGame(me: 0, you: 0);
+    if (game.me == 0 && game.you == 0) {
       return;
     }
-    AppDialogs.showDeleteItemDialog(
-      context: context,
-      title: 'Spiel löschen',
-      itemName: gameName,
-      onDelete: _watten.deleteGame,
-    );
+    _recordMatch(AppMode.watten, resetBoard: true);
   }
 
   // MARK: - Mulatschak / Hosn Obe
@@ -589,22 +592,24 @@ class _HomePageState extends State<HomePage> {
           onDeleteItem: _showDeleteCounterDialog,
           onReorderItems: _counter.reorderCounters,
           extraActions: _buildDrawerExtraActions(),
+          pinExtraActions:
+              MediaQuery.orientationOf(context) == Orientation.portrait,
           onOpenSettings: _openSettings,
         );
       case AppMode.watten:
         return CounterDrawer(
-          items: _watten.games.keys.toList(),
-          selectedItem: _watten.currentGame,
+          items: const [],
+          selectedItem: '',
           addButtonLabel: 'Neues Spiel',
           addButtonIcon: Icons.add,
           closeDrawerOnAdd: true,
-          enableReorder: true,
-          onAddNewItem: _showAddWattenGameDialog,
-          onSelectItem: _watten.selectGame,
-          onRenameItem: _showRenameWattenGameDialog,
-          onDeleteItem: _showDeleteWattenGameDialog,
-          onReorderItems: _watten.reorderGames,
+          onAddNewItem: _startNewWattenGame,
+          onSelectItem: (_) {},
+          onRenameItem: (_) {},
+          onDeleteItem: (_) {},
           extraActions: _buildDrawerExtraActions(),
+          pinExtraActions:
+              MediaQuery.orientationOf(context) == Orientation.portrait,
           onOpenSettings: _openSettings,
         );
       case AppMode.mulatschak:
@@ -618,8 +623,7 @@ class _HomePageState extends State<HomePage> {
 
         return CounterDrawer(
           items: [
-            for (final playerId in lineup.keys)
-              _players.displayName(playerId),
+            for (final playerId in lineup.keys) _players.displayName(playerId),
           ],
           selectedItem: _players.displayName(currentPlayerId),
           addButtonLabel: 'Spieler hinzufügen',
@@ -643,6 +647,8 @@ class _HomePageState extends State<HomePage> {
           onDeleteItem: (_) => _openPlayers(),
           onReorderItems: (_, _) {},
           extraActions: _buildDrawerExtraActions(),
+          pinExtraActions:
+              MediaQuery.orientationOf(context) == Orientation.portrait,
           onOpenSettings: _openSettings,
         );
     }
@@ -684,7 +690,8 @@ class _HomePageState extends State<HomePage> {
           tooltip: 'Start',
           onPressed: _openHub,
         ),
-        if (widget.appMode == AppMode.watten)
+        if (widget.appMode == AppMode.watten &&
+            MediaQuery.orientationOf(context) == Orientation.landscape)
           IconButton(
             icon: Icon(
               _watten.tableMode
@@ -694,7 +701,8 @@ class _HomePageState extends State<HomePage> {
             tooltip: 'Tischmodus',
             onPressed: () => _watten.setTableMode(!_watten.tableMode),
           ),
-        if (widget.appMode == AppMode.counter && _settings.counterHistoryEnabled)
+        if (widget.appMode == AppMode.counter &&
+            _settings.counterHistoryEnabled)
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Zähler-Verlauf',
@@ -746,7 +754,6 @@ class _HomePageState extends State<HomePage> {
       case AppMode.watten:
         return WattenBody(
           isLoading: !_ready,
-          gameName: _watten.currentGame,
           currentGame:
               _watten.games[_watten.currentGame] ??
               const WattenGame(me: 0, you: 0),
@@ -792,21 +799,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     if (!_ready) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (!_settings.onboardingCompleted) {
-      return OnboardingPage(
-        onModeSelected: (mode) {
-          _settings.setOnboardingCompleted();
-          _selectMode(mode);
-        },
-        onSkip: () {
-          _settings.setOnboardingCompleted();
-        },
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -819,6 +812,17 @@ class _HomePageState extends State<HomePage> {
         _settings,
       ]),
       builder: (context, _) {
+        if (!_settings.onboardingCompleted) {
+          return OnboardingPage(
+            onModeSelected: (mode) {
+              _settings.setOnboardingCompleted();
+              _selectMode(mode);
+            },
+            onSkip: () {
+              _settings.setOnboardingCompleted();
+            },
+          );
+        }
         return Scaffold(
           key: _scaffoldKey,
           resizeToAvoidBottomInset: false,
@@ -827,9 +831,7 @@ class _HomePageState extends State<HomePage> {
           endDrawer: _hasEndDrawer(widget.appMode)
               ? _buildEndDrawer(widget.appMode)
               : null,
-          drawerEdgeDragWidth: isMobileDrawerGesture
-              ? screenWidth * 0.5
-              : null,
+          drawerEdgeDragWidth: isMobileDrawerGesture ? screenWidth * 0.5 : null,
           body: SafeArea(top: false, child: _buildBody()),
         );
       },

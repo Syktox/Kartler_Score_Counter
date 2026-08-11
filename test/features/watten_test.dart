@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kartler/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/pump_app.dart';
@@ -38,37 +39,74 @@ void main() {
       expect(find.text('Wir gewinnt!'), findsNothing);
     });
 
-    testWidgets('supports adding, renaming and deleting games', (tester) async {
+    testWidgets('does not show a game title anymore', (tester) async {
+      await pumpApp(tester, prefs: wattenPrefs());
+
+      expect(find.text('Spiel 1'), findsNothing);
+    });
+
+    testWidgets('new game records the finished game and starts a fresh one', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...wattenPrefs(),
+          'watten_lineup': jsonEncode({
+            'Spiel 1': {'me': 10, 'you': 3},
+          }),
+        },
+      );
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neues Spiel'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      final matches = jsonDecode(prefs.getString('match_history')!) as List;
+      expect(matches, hasLength(1));
+      expect(matches.single['gameType'], 'watten');
+      expect(matches.single['winnerLabel'], isNull);
+      expect(matches.single['standings'], {'Wir': 10, 'Die': 3});
+
+      expect(find.text('0'), findsNWidgets(2));
+      expect(find.text('Wir gewinnt!'), findsNothing);
+      expect(find.text('Partie aufgezeichnet!'), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('records the winner when the game is finished', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...wattenPrefs(),
+          'watten_lineup': jsonEncode({
+            'Spiel 1': {'me': 11, 'you': 6},
+          }),
+        },
+      );
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neues Spiel'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      final matches = jsonDecode(prefs.getString('match_history')!) as List;
+      expect(matches, hasLength(1));
+      expect(matches.single['winnerLabel'], 'Wir');
+    });
+
+    testWidgets('new game on an empty board does not record anything', (
+      tester,
+    ) async {
       await pumpApp(tester, prefs: wattenPrefs());
 
       await openDrawer(tester);
       await tester.tap(find.text('Neues Spiel'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'Best of 3');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Best of 3'), findsOneWidget);
-
-      await openDrawer(tester);
-      await tester.tap(drawerActionForItem('Best of 3', 'Umbenennen'));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'Finale');
-      await tester.tap(find.widgetWithText(TextButton, 'Umbenennen'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Finale'), findsWidgets);
-
-      await openDrawer(tester);
-      await tester.tap(drawerActionForItem('Finale', 'Löschen'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Löschen'));
-      await tester.pumpAndSettle();
-      await closeDrawer(tester);
-
-      expect(find.text('Spiel 1'), findsOneWidget);
-      expect(find.text('Finale'), findsNothing);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('match_history'), isNull);
     });
 
     testWidgets('respects a custom winning score from the rule profile', (
@@ -101,10 +139,30 @@ void main() {
       expect(find.text('Wir gewinnt!'), findsOneWidget);
     });
 
-    testWidgets('toggles table mode from the app bar', (tester) async {
+    testWidgets('hides the table mode toggle in the portrait app bar', (
+      tester,
+    ) async {
       await pumpApp(tester, prefs: wattenPrefs());
 
-      await tester.tap(find.byTooltip('Tischmodus'));
+      expect(find.byTooltip('Tischmodus'), findsNothing);
+    });
+
+    testWidgets('toggles table mode from the landscape app bar', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 360);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({
+        'onboarding_completed': true,
+        ...wattenPrefs(),
+      });
+      await tester.pumpWidget(const KartlerApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Tischmodus').first);
       await tester.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();

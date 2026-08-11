@@ -124,209 +124,247 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final settings = widget.settings;
     final profile = _profile;
+    final isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+
+    final modeSection = <Widget>[
+      const _SectionHeader(title: 'Spielmodus'),
+      RadioGroup<AppMode>(
+        groupValue: settings.appMode,
+        onChanged: (value) {
+          if (value != null) {
+            settings.setAppMode(value);
+          }
+        },
+        child: Column(
+          children: [
+            for (final mode in AppMode.values)
+              RadioListTile<AppMode>(title: Text(mode.label), value: mode),
+          ],
+        ),
+      ),
+    ];
+
+    final appearanceSection = <Widget>[
+      const _SectionHeader(title: 'Darstellung'),
+      RadioGroup<ThemeMode>(
+        groupValue: settings.themeMode,
+        onChanged: (value) {
+          if (value != null) {
+            settings.setThemeMode(value);
+          }
+        },
+        child: const Column(
+          children: [
+            RadioListTile<ThemeMode>(
+              title: Text('Hell'),
+              value: ThemeMode.light,
+            ),
+            RadioListTile<ThemeMode>(
+              title: Text('Dunkel'),
+              value: ThemeMode.dark,
+            ),
+            RadioListTile<ThemeMode>(
+              title: Text('System'),
+              value: ThemeMode.system,
+            ),
+          ],
+        ),
+      ),
+      SwitchListTile(
+        title: const Text('Haptisches Feedback'),
+        subtitle: const Text('Leichtes Vibrieren bei Eingaben und Siegen.'),
+        value: settings.hapticsEnabled,
+        onChanged: settings.setHapticsEnabled,
+      ),
+      SwitchListTile(
+        title: const Text('Watten-Tischmodus'),
+        subtitle: const Text(
+          'Im Querformat einander gegenüberliegende Seiten.',
+        ),
+        value: settings.wattenTableMode,
+        onChanged: settings.setWattenTableMode,
+      ),
+    ];
+
+    final historySection = <Widget>[
+      const _SectionHeader(title: 'Verlauf'),
+      SwitchListTile(
+        title: const Text('Zähler-Verlauf'),
+        subtitle: const Text('Zeigt die letzten Änderungen des Zählers.'),
+        value: settings.counterHistoryEnabled,
+        onChanged: settings.setCounterHistoryEnabled,
+      ),
+      SwitchListTile(
+        title: const Text('Negative Zähler erlauben'),
+        subtitle: const Text('Zähler dürfen unter null fallen.'),
+        value: settings.counterNegativeEnabled,
+        onChanged: settings.setCounterNegativeEnabled,
+      ),
+      SwitchListTile(
+        title: const Text('Mulatschak-Verlauf'),
+        subtitle: const Text('Zeigt die letzten Punkteänderungen der Spieler.'),
+        value: settings.mulatschakHistoryEnabled,
+        onChanged: settings.setMulatschakHistoryEnabled,
+      ),
+    ];
+
+    final rulesSection = <Widget>[
+      const _SectionHeader(title: 'Regelprofil'),
+      _NumberField(
+        label: 'Watten: Siegpunktzahl',
+        hint: 'z. B. 11',
+        controller: _wattenScoreController,
+        onCommit: _commitWattenScore,
+      ),
+      _NumberField(
+        label: 'Mulatschak: Startpunkte',
+        hint: 'z. B. 21',
+        controller: _mulatschakStartController,
+        onCommit: _commitMulatschakStart,
+      ),
+      _NumberField(
+        label: 'Hosn Obe: Startleben',
+        hint: 'z. B. 4',
+        controller: _hosnObeLivesController,
+        onCommit: _commitHosnObeLives,
+      ),
+      SwitchListTile(
+        title: const Text('Mulatschak-Reset (Muleqack)'),
+        subtitle: const Text(
+          'Setzt einen Spieler automatisch zurück, wenn die gewählte Punktzahl erreicht wird.',
+        ),
+        value: profile.muleqackEnabled,
+        onChanged: (enabled) {
+          _commitProfile(profile.copyWith(muleqackEnabled: enabled));
+        },
+      ),
+      _NumberField(
+        label: 'Reset bei Punktzahl',
+        hint: 'z. B. 100',
+        controller: _muleqackTriggerController,
+        onCommit: _commitMuleqackTrigger,
+      ),
+      _NumberField(
+        label: 'Zurücksetzen auf',
+        hint: 'z. B. 50',
+        controller: _muleqackResetController,
+        onCommit: _commitMuleqackReset,
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: OutlinedButton.icon(
+          onPressed: () {
+            widget.settings.resetRuleProfile();
+            final reset = widget.settings.ruleProfile;
+            _wattenScoreController.text = reset.wattenWinningScore.toString();
+            _mulatschakStartController.text = reset.mulatschakStartingScore
+                .toString();
+            _hosnObeLivesController.text = reset.hosnObeStartingLives
+                .toString();
+            _muleqackTriggerController.text = reset.muleqackTriggerPoints
+                .toString();
+            _muleqackResetController.text = reset.muleqackResetPoints
+                .toString();
+          },
+          icon: const Icon(Icons.restart_alt),
+          label: const Text('Regeln zurücksetzen'),
+        ),
+      ),
+    ];
+
+    final utilitySection = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: OutlinedButton.icon(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+            );
+          },
+          icon: const Icon(Icons.privacy_tip_outlined),
+          label: const Text('Datenschutz'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: OutlinedButton.icon(
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => DonationPage()));
+          },
+          icon: const Icon(Icons.favorite_outline),
+          label: const Text('Spenden'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: OutlinedButton.icon(
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const BugReportPage()));
+          },
+          icon: const Icon(Icons.bug_report_outlined),
+          label: const Text('Fehler melden'),
+        ),
+      ),
+    ];
+
+    final content = isLandscape
+        ? SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ...modeSection,
+                      const Divider(),
+                      ...appearanceSection,
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ...historySection,
+                      const Divider(),
+                      ...rulesSection,
+                      const Divider(),
+                      ...utilitySection,
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        : ListView(
+            children: [
+              ...modeSection,
+              const Divider(),
+              ...appearanceSection,
+              const Divider(),
+              ...historySection,
+              const Divider(),
+              ...rulesSection,
+              const Divider(),
+              ...utilitySection,
+            ],
+          );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Einstellungen')),
       body: SafeArea(
         top: false,
-        left: false,
-        right: false,
         child: ListenableBuilder(
           listenable: settings,
-          builder: (context, _) {
-            return ListView(
-              children: [
-                const _SectionHeader(title: 'Spielmodus'),
-                RadioGroup<AppMode>(
-                  groupValue: settings.appMode,
-                  onChanged: (value) {
-                    if (value != null) {
-                      settings.setAppMode(value);
-                    }
-                  },
-                  child: Column(
-                    children: [
-                      for (final mode in AppMode.values)
-                        RadioListTile<AppMode>(
-                          title: Text(mode.label),
-                          value: mode,
-                        ),
-                    ],
-                  ),
-                ),
-                const Divider(),
-                const _SectionHeader(title: 'Darstellung'),
-                RadioGroup<ThemeMode>(
-                  groupValue: settings.themeMode,
-                  onChanged: (value) {
-                    if (value != null) {
-                      settings.setThemeMode(value);
-                    }
-                  },
-                  child: const Column(
-                    children: [
-                      RadioListTile<ThemeMode>(
-                        title: Text('Hell'),
-                        value: ThemeMode.light,
-                      ),
-                      RadioListTile<ThemeMode>(
-                        title: Text('Dunkel'),
-                        value: ThemeMode.dark,
-                      ),
-                      RadioListTile<ThemeMode>(
-                        title: Text('System'),
-                        value: ThemeMode.system,
-                      ),
-                    ],
-                  ),
-                ),
-                SwitchListTile(
-                  title: const Text('Haptisches Feedback'),
-                  subtitle: const Text(
-                    'Leichtes Vibrieren bei Eingaben und Siegen.',
-                  ),
-                  value: settings.hapticsEnabled,
-                  onChanged: settings.setHapticsEnabled,
-                ),
-                SwitchListTile(
-                  title: const Text('Watten-Tischmodus'),
-                  subtitle: const Text(
-                    'Im Querformat einander gegenüberliegende Seiten.',
-                  ),
-                  value: settings.wattenTableMode,
-                  onChanged: settings.setWattenTableMode,
-                ),
-                const Divider(),
-                const _SectionHeader(title: 'Verlauf'),
-                SwitchListTile(
-                  title: const Text('Zähler-Verlauf'),
-                  subtitle: const Text(
-                    'Zeigt die letzten Änderungen des Zählers.',
-                  ),
-                  value: settings.counterHistoryEnabled,
-                  onChanged: settings.setCounterHistoryEnabled,
-                ),
-                SwitchListTile(
-                  title: const Text('Negative Zähler erlauben'),
-                  subtitle: const Text(
-                    'Zähler dürfen unter null fallen.',
-                  ),
-                  value: settings.counterNegativeEnabled,
-                  onChanged: settings.setCounterNegativeEnabled,
-                ),
-                SwitchListTile(
-                  title: const Text('Mulatschak-Verlauf'),
-                  subtitle: const Text(
-                    'Zeigt die letzten Punkteänderungen der Spieler.',
-                  ),
-                  value: settings.mulatschakHistoryEnabled,
-                  onChanged: settings.setMulatschakHistoryEnabled,
-                ),
-                const Divider(),
-                const _SectionHeader(title: 'Regelprofil'),
-                _NumberField(
-                  label: 'Watten: Siegpunktzahl',
-                  hint: 'z. B. 11',
-                  controller: _wattenScoreController,
-                  onCommit: _commitWattenScore,
-                ),
-                _NumberField(
-                  label: 'Mulatschak: Startpunkte',
-                  hint: 'z. B. 21',
-                  controller: _mulatschakStartController,
-                  onCommit: _commitMulatschakStart,
-                ),
-                _NumberField(
-                  label: 'Hosn Obe: Startleben',
-                  hint: 'z. B. 4',
-                  controller: _hosnObeLivesController,
-                  onCommit: _commitHosnObeLives,
-                ),
-                SwitchListTile(
-                  title: const Text('Mulatschak-Reset (Muleqack)'),
-                  subtitle: const Text(
-                    'Setzt einen Spieler automatisch zurück, wenn die gewählte Punktzahl erreicht wird.',
-                  ),
-                  value: profile.muleqackEnabled,
-                  onChanged: (enabled) {
-                    _commitProfile(profile.copyWith(muleqackEnabled: enabled));
-                  },
-                ),
-                _NumberField(
-                  label: 'Reset bei Punktzahl',
-                  hint: 'z. B. 100',
-                  controller: _muleqackTriggerController,
-                  onCommit: _commitMuleqackTrigger,
-                ),
-                _NumberField(
-                  label: 'Zurücksetzen auf',
-                  hint: 'z. B. 50',
-                  controller: _muleqackResetController,
-                  onCommit: _commitMuleqackReset,
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      widget.settings.resetRuleProfile();
-                      final reset = widget.settings.ruleProfile;
-                      _wattenScoreController.text =
-                          reset.wattenWinningScore.toString();
-                      _mulatschakStartController.text =
-                          reset.mulatschakStartingScore.toString();
-                      _hosnObeLivesController.text =
-                          reset.hosnObeStartingLives.toString();
-                      _muleqackTriggerController.text =
-                          reset.muleqackTriggerPoints.toString();
-                      _muleqackResetController.text =
-                          reset.muleqackResetPoints.toString();
-                    },
-                    icon: const Icon(Icons.restart_alt),
-                    label: const Text('Regeln zurücksetzen'),
-                  ),
-                ),
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const PrivacyPolicyPage(),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.privacy_tip_outlined),
-                    label: const Text('Datenschutz'),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => DonationPage()),
-                      );
-                    },
-                    icon: const Icon(Icons.favorite_outline),
-                    label: const Text('Spenden'),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const BugReportPage()),
-                      );
-                    },
-                    icon: const Icon(Icons.bug_report_outlined),
-                    label: const Text('Fehler melden'),
-                  ),
-                ),
-              ],
-            );
-          },
+          builder: (context, _) => content,
         ),
       ),
     );

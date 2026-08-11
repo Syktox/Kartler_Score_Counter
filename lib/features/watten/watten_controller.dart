@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 
 import '../../commands/callback_command.dart';
 import '../../core/haptics_service.dart';
@@ -52,13 +51,6 @@ class WattenController extends FeatureController {
 
   int sideScore(WattenSide side) {
     return WattenHelper.sideScore(games[currentGame]!, side);
-  }
-
-  void selectGame(String gameName) {
-    if (currentGame == gameName || !games.containsKey(gameName)) {
-      return;
-    }
-    _mutate(() => currentGame = gameName);
   }
 
   void selectSide(WattenSide side) {
@@ -133,81 +125,6 @@ class WattenController extends FeatureController {
       ..[currentGame] = WattenGame(me: me, you: you);
     notifyListeners();
     unawaited(_persist());
-  }
-
-  void addGame(String gameName) {
-    final result = WattenHelper.addGame(games: games, gameName: gameName);
-    final oldCurrent = currentGame;
-    final oldSide = selectedSide;
-    _pushUndoable(() {
-      games = result.games;
-      currentGame = result.currentGame;
-      selectedSide = result.selectedSide;
-    }, revert: () {
-      games = LinkedHashMap<String, WattenGame>.from(games)
-        ..remove(gameName);
-      currentGame = oldCurrent;
-      selectedSide = oldSide;
-    });
-    unawaited(_haptics.light());
-  }
-
-  void renameGame(String oldName, String newName) {
-    final renamed = WattenHelper.renameGame(
-      games: games,
-      oldName: oldName,
-      newName: newName,
-    );
-    final oldCurrent = currentGame;
-    _pushUndoable(() {
-      games = renamed;
-      if (currentGame == oldName) {
-        currentGame = newName;
-      }
-    }, revert: () {
-      games = WattenHelper.renameGame(
-        games: games,
-        oldName: newName,
-        newName: oldName,
-      );
-      currentGame = oldCurrent == oldName ? oldName : currentGame;
-    });
-    unawaited(_haptics.light());
-  }
-
-  void deleteGame(String gameName) {
-    if (games.length <= 1) {
-      return;
-    }
-    final result = WattenHelper.deleteGame(
-      games: games,
-      currentGame: currentGame,
-      gameName: gameName,
-    );
-    final removed = games[gameName]!;
-    _pushUndoable(() {
-      games = result.games;
-      currentGame = result.currentGame;
-    }, revert: () {
-      final entries = games.entries.toList();
-      games = LinkedHashMap<String, WattenGame>.fromEntries([
-        ...entries.takeWhile((entry) => entry.key != gameName),
-        MapEntry(gameName, removed),
-        ...entries.skipWhile((entry) => entry.key != gameName),
-      ]);
-      currentGame = gameName;
-    });
-    unawaited(_haptics.light());
-  }
-
-  void reorderGames(int oldIndex, int newIndex) {
-    final reordered = WattenHelper.reorderGames(games, oldIndex, newIndex);
-    if (reordered == null) {
-      return;
-    }
-    final original = LinkedHashMap<String, WattenGame>.from(games);
-    _pushUndoable(() => games = reordered, revert: () => games = original);
-    unawaited(_haptics.light());
   }
 
   void setTableMode(bool enabled) {
