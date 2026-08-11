@@ -7,7 +7,6 @@ import '../../core/haptics_service.dart';
 import '../../features/counter/counter_body.dart';
 import '../../features/counter/counter_controller.dart';
 import '../../features/counter/counter_helper.dart';
-import '../../features/game_session/finish_match_sheet.dart';
 import '../../features/game_session/session_controller.dart';
 import '../../features/game_session/session_summary_page.dart';
 import '../../features/game_session/sessions_list_page.dart';
@@ -300,21 +299,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _showFinishMatchSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => FinishMatchSheet(
-        initialMode: widget.appMode,
-        previewFor: _recorder.previewFor,
-        onRecord: (mode, {required resetBoard}) {
-          _recordMatch(mode, resetBoard: resetBoard);
-        },
-      ),
-    );
-  }
-
   void _recordMatch(AppMode mode, {required bool resetBoard}) {
     unawaited(_recorder.record(mode, resetBoard: resetBoard));
     _bubbleHost.show(context, 'Partie aufgezeichnet!');
@@ -458,6 +442,27 @@ class _HomePageState extends State<HomePage> {
     _recordMatch(AppMode.mulatschak, resetBoard: true);
   }
 
+  /// Startet ein neues Hosn-Obe-Spiel wie beim Watten: Die aktuelle Partie
+  /// wird (sofern schon gespielt) aufgezeichnet, danach starten alle Spieler
+  /// wieder mit der Startanzahl an Leben.
+  void _startNewHosnObeGame() {
+    final startingLives = _settings.ruleProfile.hosnObeStartingLives;
+    if (_hosnObe.lineup.isEmpty ||
+        _hosnObe.lineup.values.every((value) => value == startingLives)) {
+      return;
+    }
+    _recordMatch(AppMode.hosnObe, resetBoard: true);
+  }
+
+  /// Startet einen neuen Zähler-Durchgang: Alle Zähler werden auf 0 gesetzt.
+  /// Zähler werden nicht in den Statistiken aufgezeichnet.
+  void _startNewCounterGame() {
+    if (_counter.counters.values.every((value) => value == 0)) {
+      return;
+    }
+    _counter.resetBoard();
+  }
+
   // MARK: - Hosn Obe
 
   // MARK: - Drawer
@@ -466,7 +471,7 @@ class _HomePageState extends State<HomePage> {
     return [
       ListTile(
         leading: const Icon(Icons.home_outlined),
-        title: const Text('Start'),
+        title: const Text('Startseite'),
         onTap: () {
           Navigator.of(context).pop();
           _openHub();
@@ -505,15 +510,18 @@ class _HomePageState extends State<HomePage> {
         return CounterDrawer(
           items: _counter.counters.keys.toList(),
           selectedItem: _counter.currentCounter,
-          addButtonLabel: 'Neuer Zähler',
-          addButtonIcon: Icons.add,
+          addButtonLabel: 'Neues Spiel',
+          addButtonIcon: Icons.play_circle_outline,
           closeDrawerOnAdd: true,
           enableReorder: true,
-          onAddNewItem: _showAddCounterDialog,
+          onAddNewItem: _startNewCounterGame,
           onSelectItem: _counter.selectCounter,
           onRenameItem: _showRenameCounterDialog,
           onDeleteItem: _showDeleteCounterDialog,
           onReorderItems: _counter.reorderCounters,
+          secondaryActionLabel: 'Neuer Zähler',
+          secondaryActionIcon: Icons.add,
+          onSecondaryAction: _showAddCounterDialog,
           extraActions: _buildDrawerExtraActions(),
           pinExtraActions:
               MediaQuery.orientationOf(context) == Orientation.portrait,
@@ -524,7 +532,7 @@ class _HomePageState extends State<HomePage> {
           items: const [],
           selectedItem: '',
           addButtonLabel: 'Neues Spiel',
-          addButtonIcon: Icons.add,
+          addButtonIcon: Icons.play_circle_outline,
           closeDrawerOnAdd: true,
           onAddNewItem: _startNewWattenGame,
           onSelectItem: (_) {},
@@ -550,14 +558,13 @@ class _HomePageState extends State<HomePage> {
             for (final playerId in lineup.keys) _players.displayName(playerId),
           ],
           selectedItem: _players.displayName(currentPlayerId),
-          addButtonLabel: 'Spieler hinzufügen',
-          addButtonIcon: Icons.person_add_alt_1,
+          addButtonLabel: 'Neues Spiel',
+          addButtonIcon: Icons.play_circle_outline,
           closeDrawerOnAdd: true,
           enableReorder: false,
-          onAddNewItem: _openPlayers,
-          secondaryActionLabel: isMulatschak ? 'Neues Spiel' : null,
-          secondaryActionIcon: isMulatschak ? Icons.play_circle_outline : null,
-          onSecondaryAction: isMulatschak ? _startNewMulatschakGame : null,
+          onAddNewItem: isMulatschak
+              ? _startNewMulatschakGame
+              : _startNewHosnObeGame,
           onSelectItem: (name) {
             for (final player in _players.players) {
               if (player.displayName == name) {
@@ -612,11 +619,6 @@ class _HomePageState extends State<HomePage> {
       surfaceTintColor: Colors.transparent,
       title: Text(widget.appMode.label),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.home_outlined),
-          tooltip: 'Start',
-          onPressed: _openHub,
-        ),
         if (widget.appMode == AppMode.watten &&
             MediaQuery.orientationOf(context) == Orientation.landscape)
           IconButton(
@@ -657,9 +659,9 @@ class _HomePageState extends State<HomePage> {
               : null,
         ),
         IconButton(
-          icon: const Icon(Icons.emoji_events_outlined),
-          tooltip: 'Partie abschließen',
-          onPressed: _showFinishMatchSheet,
+          icon: const Icon(Icons.home_outlined),
+          tooltip: 'Startseite',
+          onPressed: _openHub,
         ),
       ],
     );
