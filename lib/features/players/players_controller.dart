@@ -61,7 +61,7 @@ class PlayersController extends FeatureController {
   }
 
   /// Legt einen neuen globalen Spieler an.
-  Future<Player?> addPlayer(String name, {String? emoji}) async {
+  Future<Player?> addPlayer(String name) async {
     final cleaned = NameUtils.clean(name);
     if (!isNameValid(cleaned)) {
       return null;
@@ -69,7 +69,6 @@ class PlayersController extends FeatureController {
     final player = Player(
       id: IdGenerator.newId(),
       name: cleaned,
-      emoji: _cleanEmoji(emoji),
       createdAt: DateTime.now(),
     );
     _players = [..._players, player];
@@ -79,13 +78,8 @@ class PlayersController extends FeatureController {
     return player;
   }
 
-  /// Benennt einen Spieler um (Emoji kann gesetzt oder entfernt werden).
-  Future<Player?> renamePlayer(
-    String id,
-    String newName, {
-    String? emoji,
-    bool clearEmoji = false,
-  }) async {
+  /// Benennt einen globalen Spieler um.
+  Future<Player?> renamePlayer(String id, String newName) async {
     final current = playerById(id);
     if (current == null) {
       return null;
@@ -94,13 +88,7 @@ class PlayersController extends FeatureController {
     if (!isNameValid(cleaned, id)) {
       return null;
     }
-    var updated = current.copyWith(
-      name: cleaned,
-      emoji: clearEmoji ? current.emoji : _cleanEmoji(emoji),
-    );
-    if (clearEmoji) {
-      updated = updated.withEmojiRemoved();
-    }
+    final updated = current.copyWith(name: cleaned);
     _players = [
       for (final player in _players)
         if (player.id == id) updated else player,
@@ -122,11 +110,6 @@ class PlayersController extends FeatureController {
     notifyListeners();
     await _persist();
     await _haptics.light();
-  }
-
-  static String? _cleanEmoji(String? emoji) {
-    final cleaned = emoji?.trim() ?? '';
-    return cleaned.isEmpty ? null : cleaned;
   }
 
   Future<void> _persist() {

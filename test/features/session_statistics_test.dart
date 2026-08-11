@@ -106,6 +106,26 @@ void main() {
       expect(result.mostPlayedMode, AppMode.watten);
     });
 
+    test('ignores counter matches in the statistics', () {
+      final result = StatisticsCalculator.calculate(
+        matches: [
+          _match(id: 'm1', winner: null, participants: const ['p1'], mode: AppMode.hosnObe),
+          _match(
+            id: 'm2',
+            winner: null,
+            participants: const [],
+            mode: AppMode.counter,
+            standings: const {'Punkte': 15},
+          ),
+        ],
+        sessions: const [],
+      );
+
+      expect(result.totalMatches, 1);
+      expect(result.matchesPerMode.containsKey(AppMode.counter), isFalse);
+      expect(result.mostPlayedMode, AppMode.hosnObe);
+    });
+
     test('tracks the biggest win margin', () {
       final result = StatisticsCalculator.calculate(
         matches: [

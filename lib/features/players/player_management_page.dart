@@ -41,10 +41,9 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
       builder: (dialogContext) => _PlayerEditDialog(
         title: 'Spieler hinzufügen',
         initialName: '',
-        initialEmoji: '',
         isValid: (name) => widget.players.isNameValid(name),
-        onSubmit: (name, emoji) async {
-          final player = await widget.players.addPlayer(name, emoji: emoji);
+        onSubmit: (name) async {
+          final player = await widget.players.addPlayer(name);
           if (player == null) {
             return;
           }
@@ -61,16 +60,9 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
       builder: (dialogContext) => _PlayerEditDialog(
         title: 'Spieler umbenennen',
         initialName: player.name,
-        initialEmoji: player.emoji ?? '',
         isValid: (name) => widget.players.isNameValid(name, player.id),
-        onSubmit: (name, emoji) async {
-          final cleared = player.emoji != null && emoji.trim().isEmpty;
-          await widget.players.renamePlayer(
-            player.id,
-            name,
-            emoji: emoji,
-            clearEmoji: cleared,
-          );
+        onSubmit: (name) async {
+          await widget.players.renamePlayer(player.id, name);
         },
       ),
     );
@@ -213,10 +205,6 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
   }
 
   String _initialOf(Player player) {
-    final emoji = player.emoji?.trim() ?? '';
-    if (emoji.isNotEmpty) {
-      return emoji;
-    }
     return player.name.isEmpty
         ? '?'
         : player.name.characters.first.toUpperCase();
@@ -226,14 +214,12 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
 class _PlayerEditDialog extends StatefulWidget {
   final String title;
   final String initialName;
-  final String initialEmoji;
   final bool Function(String name) isValid;
-  final Future<void> Function(String name, String emoji) onSubmit;
+  final Future<void> Function(String name) onSubmit;
 
   const _PlayerEditDialog({
     required this.title,
     required this.initialName,
-    required this.initialEmoji,
     required this.isValid,
     required this.onSubmit,
   });
@@ -244,20 +230,17 @@ class _PlayerEditDialog extends StatefulWidget {
 
 class _PlayerEditDialogState extends State<_PlayerEditDialog> {
   late final TextEditingController _nameController;
-  late final TextEditingController _emojiController;
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialName);
-    _emojiController = TextEditingController(text: widget.initialEmoji);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _emojiController.dispose();
     super.dispose();
   }
 
@@ -274,7 +257,7 @@ class _PlayerEditDialogState extends State<_PlayerEditDialog> {
     setState(() {
       _isSubmitting = true;
     });
-    await widget.onSubmit(name, _emojiController.text);
+    await widget.onSubmit(name);
     if (mounted) {
       Navigator.of(context).pop();
     }
@@ -292,22 +275,11 @@ class _PlayerEditDialogState extends State<_PlayerEditDialog> {
             controller: _nameController,
             autofocus: true,
             textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              hintText: 'z. B. Max',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _emojiController,
-            textCapitalization: TextCapitalization.none,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _submit(),
             decoration: const InputDecoration(
-              labelText: 'Emoji (optional)',
-              hintText: 'z. B. 🎩',
+              labelText: 'Name',
+              hintText: 'z. B. Max',
               border: OutlineInputBorder(),
             ),
           ),

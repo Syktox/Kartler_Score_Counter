@@ -14,6 +14,9 @@ class CounterDrawer extends StatelessWidget {
   final bool closeDrawerOnAdd;
   final bool enableReorder;
   final VoidCallback onAddNewItem;
+  final String? secondaryActionLabel;
+  final IconData? secondaryActionIcon;
+  final VoidCallback? onSecondaryAction;
   final CounterNameCallback onSelectItem;
   final CounterNameCallback? onRenameItem;
   final CounterNameCallback onDeleteItem;
@@ -31,6 +34,9 @@ class CounterDrawer extends StatelessWidget {
     this.closeDrawerOnAdd = true,
     this.enableReorder = false,
     required this.onAddNewItem,
+    this.secondaryActionLabel,
+    this.secondaryActionIcon,
+    this.onSecondaryAction,
     required this.onSelectItem,
     required this.onRenameItem,
     required this.onDeleteItem,
@@ -109,6 +115,7 @@ class CounterDrawer extends StatelessWidget {
 
   Widget _buildItemList() {
     final includeExtraInList = !pinExtraActions;
+    final hasSecondaryAction = onSecondaryAction != null;
 
     return ClipRect(
       child: DragBoundary(
@@ -120,9 +127,12 @@ class CounterDrawer extends StatelessWidget {
           ),
           proxyDecorator: _buildReorderProxy,
           itemCount:
-              items.length + 1 + (includeExtraInList ? extraActions.length : 0),
+              items.length +
+              1 +
+              (hasSecondaryAction ? 1 : 0) +
+              (includeExtraInList ? extraActions.length : 0),
           onReorderItem: (oldIndex, newIndex) {
-            if (oldIndex == items.length || newIndex >= items.length) {
+            if (oldIndex >= items.length || newIndex >= items.length) {
               return;
             }
             if (enableReorder && onReorderItems != null) {
@@ -146,8 +156,23 @@ class CounterDrawer extends StatelessWidget {
               );
             }
 
+            if (hasSecondaryAction && index == items.length + 1) {
+              return ListTile(
+                key: const ValueKey('secondary-action-tile'),
+                focusColor: Colors.transparent,
+                leading: Icon(secondaryActionIcon),
+                title: Text(secondaryActionLabel!),
+                onTap: () {
+                  _clearDrawerFocus();
+                  Navigator.of(context).pop();
+                  onSecondaryAction!();
+                },
+              );
+            }
+
             if (includeExtraInList) {
-              final extraIndex = index - items.length - 1;
+              final extraIndex =
+                  index - items.length - 1 - (hasSecondaryAction ? 1 : 0);
               if (extraIndex >= 0 && extraIndex < extraActions.length) {
                 return KeyedSubtree(
                   key: ValueKey('drawer-extra-action-$extraIndex'),
