@@ -28,6 +28,8 @@ class WattenController extends FeatureController {
   );
   String currentGame = WattenRepository.defaultCurrentGame;
   WattenSide selectedSide = WattenSide.me;
+  List<String> meTeam = const [];
+  List<String> youTeam = const [];
   DateTime roundStartedAt = DateTime.now();
 
   bool get tableMode => _settings.wattenTableMode;
@@ -38,8 +40,30 @@ class WattenController extends FeatureController {
     final data = await _repository.load();
     games = data.games;
     currentGame = data.currentGame;
+    meTeam = data.meTeam;
+    youTeam = data.youTeam;
     roundStartedAt = DateTime.now();
     isLoading = false;
+  }
+
+  /// Legt fest, welche Spieler im Team „Wir“ bzw. „Die“ spielen.
+  void setTeams({required List<String> me, required List<String> you}) {
+    _mutate(() {
+      meTeam = List.unmodifiable(me);
+      youTeam = List.unmodifiable(you);
+    });
+    unawaited(_haptics.light());
+  }
+
+  /// Entfernt einen Spieler aus beiden Teams (Spieler-Löschung).
+  void removePlayerFromTeams(String playerId) {
+    if (!meTeam.contains(playerId) && !youTeam.contains(playerId)) {
+      return;
+    }
+    _mutate(() {
+      meTeam = meTeam.where((id) => id != playerId).toList(growable: false);
+      youTeam = youTeam.where((id) => id != playerId).toList(growable: false);
+    });
   }
 
   String? winner([WattenGame? game]) {
@@ -144,6 +168,11 @@ class WattenController extends FeatureController {
   }
 
   Future<void> _persist() {
-    return _repository.save(games: games, currentGame: currentGame);
+    return _repository.save(
+      games: games,
+      currentGame: currentGame,
+      meTeam: meTeam,
+      youTeam: youTeam,
+    );
   }
 }

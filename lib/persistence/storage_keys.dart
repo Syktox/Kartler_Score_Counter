@@ -23,6 +23,8 @@ abstract final class StorageKeys {
   // Watten-Daten
   static const wattenLineup = 'watten_lineup';
   static const currentWattenGame = 'current_watten_game';
+  static const wattenTeamMe = 'watten_team_me';
+  static const wattenTeamYou = 'watten_team_you';
 
   // Mulatschak-Daten
   static const mulatschakLineup = 'mulatschak_lineup';

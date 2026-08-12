@@ -1,6 +1,6 @@
 enum WattenSide {
-  me('Wir'),
-  you('Die');
+  me('Ich'),
+  you('Du');
 
   const WattenSide(this.label);
 

@@ -6,9 +6,9 @@ void main() {
   group('GameRules', () {
     test('detects Watten winners at the winning score', () {
       expect(GameRules.wattenWinner(const WattenGame(me: 10, you: 0)), isNull);
-      expect(GameRules.wattenWinner(const WattenGame(me: 11, you: 10)), 'Wir');
+      expect(GameRules.wattenWinner(const WattenGame(me: 11, you: 10)), 'Ich');
       expect(GameRules.wattenWinner(const WattenGame(me: 11, you: 11)), isNull);
-      expect(GameRules.wattenWinner(const WattenGame(me: 8, you: 12)), 'Die');
+      expect(GameRules.wattenWinner(const WattenGame(me: 8, you: 12)), 'Du');
     });
 
     test('detects Watten winners with a custom winning score', () {
@@ -17,7 +17,7 @@ void main() {
           const WattenGame(me: 15, you: 10),
           winningScore: 15,
         ),
-        'Wir',
+        'Ich',
       );
       expect(
         GameRules.wattenWinner(

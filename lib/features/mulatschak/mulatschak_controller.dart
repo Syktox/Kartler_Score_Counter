@@ -171,6 +171,27 @@ class MulatschakController extends FeatureController {
     });
   }
 
+  /// Setzt das Lineup auf die gewählten Spieler („Wer spielt mit?“).
+  /// Bereits vorhandene Punkte bleiben erhalten, neue Spieler starten mit
+  /// der Startpunktzahl.
+  void setLineup(List<String> playerIds) {
+    final nextLineup = <String, int>{};
+    for (final playerId in playerIds) {
+      nextLineup[playerId] = lineup.containsKey(playerId)
+          ? lineup[playerId]!
+          : _profile.mulatschakStartingScore;
+    }
+    _mutate(() {
+      lineup = nextLineup;
+      roundPlayerIds = Set<String>.from(
+        roundPlayerIds.where(nextLineup.containsKey),
+      );
+      if (!nextLineup.containsKey(currentPlayerId)) {
+        currentPlayerId = nextLineup.isEmpty ? '' : nextLineup.keys.first;
+      }
+    });
+  }
+
   /// Fügt einen bestehenden globalen Spieler dem Lineup hinzu.
   Future<void> addPlayerToLineup(String playerId) async {
     if (lineup.containsKey(playerId)) {

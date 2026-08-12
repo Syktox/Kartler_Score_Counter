@@ -14,6 +14,7 @@ import '../../features/hosn_obe/hosn_obe_body.dart';
 import '../../features/hosn_obe/hosn_obe_controller.dart';
 import '../../features/mulatschak/mulatschak_body.dart';
 import '../../features/mulatschak/mulatschak_controller.dart';
+import '../../features/players/lineup_selection_sheet.dart';
 import '../../features/players/player_management_page.dart';
 import '../../features/players/players_controller.dart';
 import '../../features/settings/settings_controller.dart';
@@ -22,9 +23,13 @@ import '../../features/statistics/statistics_calculator.dart';
 import '../../features/statistics/statistics_page.dart';
 import '../../features/watten/watten_body.dart';
 import '../../features/watten/watten_controller.dart';
+import '../../features/watten/watten_team_sheet.dart';
+import '../../features/winners/winners_dialog.dart';
 import '../feature_controller.dart';
 import '../../models/app_mode.dart';
+import '../../models/completed_match.dart';
 import '../../models/watten_game.dart';
+import '../../models/watten_side.dart';
 import '../../utils/name_utils.dart';
 import '../../persistence/repositories/counter_repository.dart';
 import '../../persistence/repositories/hosn_obe_repository.dart';
@@ -234,6 +239,7 @@ class _HomePageState extends State<HomePage> {
           players: _players,
           mulatschak: _mulatschak,
           hosnObe: _hosnObe,
+          watten: _watten,
         ),
       ),
     );
@@ -359,9 +365,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    _bubbleHost.show(context, message);
   }
 
   // MARK: - Zähler
@@ -418,6 +422,31 @@ class _HomePageState extends State<HomePage> {
 
   // MARK: - Watten
 
+  /// Anzeigename einer Watten-Seite: Teamnamen, falls Teams gewählt wurden.
+  String _wattenSideLabel(WattenSide side) {
+    final ids = side == WattenSide.me ? _watten.meTeam : _watten.youTeam;
+    if (ids.isEmpty) {
+      return side.label;
+    }
+    return ids.map(_players.displayName).join(' & ');
+  }
+
+  Future<void> _openWattenTeamPicker() async {
+    final teams = await showModalBottomSheet<WattenTeams>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => WattenTeamSheet(
+        players: _players.players,
+        meTeam: _watten.meTeam,
+        youTeam: _watten.youTeam,
+      ),
+    );
+    if (teams == null) {
+      return;
+    }
+    _watten.setTeams(me: teams.me, you: teams.you);
+  }
+
   /// Startet eine neue Watten-Partie: Die aktuelle Partie wird (sofern schon
   /// Punkte erzielt wurden) in den Statistiken aufgezeichnet, danach beginnt
   /// eine frische Partie bei 0:0.
@@ -467,8 +496,76 @@ class _HomePageState extends State<HomePage> {
 
   // MARK: - Drawer
 
-  List<Widget> _buildDrawerExtraActions() {
+  /// Anzeigename des Gewinners einer aufgezeichneten Partie.
+  String _winnerNameOf(CompletedMatch match) {
+    if (match.winnerId != null) {
+      return _players.displayName(match.winnerId);
+    }
+    return match.winnerLabel ?? '—';
+  }
+
+  /// Die zuletzt aufgezeichneten Gewinner des Modus (neueste zuerst).
+  List<String> _recentWinners(AppMode mode, {int limit = 3}) {
+    return _sessions.matches
+        .where(
+          (match) =>
+              match.gameType == mode &&
+              (match.winnerId != null || match.winnerLabel != null),
+        )
+        .toList()
+        .reversed
+        .take(limit)
+        .map(_winnerNameOf)
+        .toList(growable: false);
+  }
+
+  void _showWinnersDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => WinnersDialog(
+        matches: _sessions.matches,
+        displayName: _players.displayName,
+      ),
+    );
+  }
+
+  /// Öffnet die Mitspieler-Auswahl für Mulatschak oder Hosn Obe.
+  Future<void> _openLineupPicker(AppMode mode) async {
+    final isMulatschak = mode == AppMode.mulatschak;
+    final current = isMulatschak ? _mulatschak.lineup : _hosnObe.lineup;
+    final selected = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => LineupSelectionSheet(
+        players: _players.players,
+        lineup: current.keys.toList(),
+      ),
+    );
+    if (selected == null) {
+      return;
+    }
+    if (isMulatschak) {
+      _mulatschak.setLineup(selected);
+    } else {
+      _hosnObe.setLineup(selected);
+    }
+  }
+
+  List<Widget> _buildDrawerExtraActions(AppMode mode) {
     return [
+      if (mode != AppMode.counter)
+        ListTile(
+          leading: const Icon(Icons.groups_outlined),
+          title: const Text('Wer spielt mit?'),
+          onTap: () {
+            Navigator.of(context).pop();
+            if (mode == AppMode.watten) {
+              _openWattenTeamPicker();
+            } else {
+              _openLineupPicker(mode);
+            }
+          },
+        ),
       ListTile(
         leading: const Icon(Icons.home_outlined),
         title: const Text('Startseite'),
@@ -514,6 +611,7 @@ class _HomePageState extends State<HomePage> {
           addButtonIcon: Icons.play_circle_outline,
           closeDrawerOnAdd: true,
           enableReorder: true,
+          showAddButton: false,
           onAddNewItem: _startNewCounterGame,
           onSelectItem: _counter.selectCounter,
           onRenameItem: _showRenameCounterDialog,
@@ -522,67 +620,38 @@ class _HomePageState extends State<HomePage> {
           secondaryActionLabel: 'Neuer Zähler',
           secondaryActionIcon: Icons.add,
           onSecondaryAction: _showAddCounterDialog,
-          extraActions: _buildDrawerExtraActions(),
+          extraActions: _buildDrawerExtraActions(mode),
           pinExtraActions:
               MediaQuery.orientationOf(context) == Orientation.portrait,
           onOpenSettings: _openSettings,
         );
       case AppMode.watten:
+      case AppMode.mulatschak:
+      case AppMode.hosnObe:
+        final winners = _recentWinners(mode);
         return CounterDrawer(
           items: const [],
           selectedItem: '',
           addButtonLabel: 'Neues Spiel',
           addButtonIcon: Icons.play_circle_outline,
           closeDrawerOnAdd: true,
-          onAddNewItem: _startNewWattenGame,
+          onAddNewItem: switch (mode) {
+            AppMode.watten => _startNewWattenGame,
+            AppMode.mulatschak => _startNewMulatschakGame,
+            AppMode.hosnObe => _startNewHosnObeGame,
+            AppMode.counter => _startNewCounterGame,
+          },
           onSelectItem: (_) {},
           onRenameItem: (_) {},
           onDeleteItem: (_) {},
-          extraActions: _buildDrawerExtraActions(),
-          pinExtraActions:
-              MediaQuery.orientationOf(context) == Orientation.portrait,
-          onOpenSettings: _openSettings,
-        );
-      case AppMode.mulatschak:
-      case AppMode.hosnObe:
-        final lineup = mode == AppMode.mulatschak
-            ? _mulatschak.lineup
-            : _hosnObe.lineup;
-        final currentPlayerId = mode == AppMode.mulatschak
-            ? _mulatschak.currentPlayerId
-            : _hosnObe.currentPlayerId;
-        final isMulatschak = mode == AppMode.mulatschak;
-
-        return CounterDrawer(
-          items: [
-            for (final playerId in lineup.keys) _players.displayName(playerId),
-          ],
-          selectedItem: _players.displayName(currentPlayerId),
-          addButtonLabel: 'Neues Spiel',
-          addButtonIcon: Icons.play_circle_outline,
-          closeDrawerOnAdd: true,
-          enableReorder: false,
-          onAddNewItem: isMulatschak
-              ? _startNewMulatschakGame
-              : _startNewHosnObeGame,
-          onSelectItem: (name) {
-            for (final player in _players.players) {
-              if (player.displayName == name) {
-                if (mode == AppMode.mulatschak) {
-                  _mulatschak.selectPlayer(player.id);
-                } else {
-                  _hosnObe.selectPlayer(player.id);
-                }
-                break;
-              }
-            }
-          },
-          onRenameItem: (_) => _openPlayers(),
-          onDeleteItem: (_) => _openPlayers(),
-          onReorderItems: (_, _) {},
-          extraActions: _buildDrawerExtraActions(),
-          pinExtraActions:
-              MediaQuery.orientationOf(context) == Orientation.portrait,
+          secondaryActionLabel: 'Gewinner bisher',
+          secondaryActionSubtitle: winners.isEmpty
+              ? 'Noch keine Partien aufgezeichnet'
+              : winners.join(', '),
+          secondaryActionIcon: Icons.emoji_events_outlined,
+          onSecondaryAction: _showWinnersDialog,
+          extraActions: _buildDrawerExtraActions(mode),
+          pinExtraActions: false,
           onOpenSettings: _openSettings,
         );
     }
@@ -689,6 +758,8 @@ class _HomePageState extends State<HomePage> {
           selectedSide: _watten.selectedSide,
           winner: _watten.winner(),
           tableMode: _watten.tableMode,
+          meLabel: _wattenSideLabel(WattenSide.me),
+          youLabel: _wattenSideLabel(WattenSide.you),
           onSelectedSideChanged: _watten.selectSide,
           onScoreChanged: _watten.changeScore,
           onResetSelectedSide: _watten.resetSelectedSide,

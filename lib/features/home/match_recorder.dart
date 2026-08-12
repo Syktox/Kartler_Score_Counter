@@ -62,7 +62,7 @@ class MatchRecorder {
             const WattenGame(me: 0, you: 0);
         return MatchPreview(
           winnerId: null,
-          winnerLabel: _watten.winner(),
+          winnerLabel: _wattenWinnerName(),
           standings: [
             (name: WattenSide.me.label, score: game.me),
             (name: WattenSide.you.label, score: game.you),
@@ -87,6 +87,23 @@ class MatchRecorder {
           ],
         );
     }
+  }
+
+  /// Anzeigename der Gewinnerseite: Spielernamen, falls Teams eingeteilt
+  /// wurden, sonst die Seitenbezeichnung („Ich“/„Du“).
+  String? _wattenWinnerName() {
+    final winnerLabel = _watten.winner();
+    if (winnerLabel == null) {
+      return null;
+    }
+    final side = winnerLabel == WattenSide.me.label
+        ? WattenSide.me
+        : WattenSide.you;
+    final teamIds = side == WattenSide.me ? _watten.meTeam : _watten.youTeam;
+    if (teamIds.isEmpty) {
+      return winnerLabel;
+    }
+    return teamIds.map(_players.displayName).join(' & ');
   }
 
   /// Zeichnet die Partie des Modus auf und setzt – falls gewünscht – das

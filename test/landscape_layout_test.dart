@@ -78,8 +78,8 @@ void main() {
     await tester.pumpAndSettle();
     await dismissStartScreen(tester);
 
-    expect(find.text('Wir'), findsWidgets);
-    expect(find.text('Die'), findsWidgets);
+    expect(find.text('Ich'), findsWidgets);
+    expect(find.text('Du'), findsWidgets);
     expect(find.text('+2'), findsWidgets);
     expect(tester.takeException(), isNull);
   });

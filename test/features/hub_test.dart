@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,6 +37,22 @@ void main() {
 
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('app_mode'), 'mulatschak');
+    });
+
+    testWidgets('starts a game night with a bubble instead of a snack bar', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Startseite'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Spielabend starten'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.text('Spielabend gestartet – viel Spaß!'), findsOneWidget);
     });
   });
 }

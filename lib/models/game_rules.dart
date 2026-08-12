@@ -1,4 +1,5 @@
 import 'watten_game.dart';
+import 'watten_side.dart';
 
 class GameRules {
   static const int defaultWattenWinningScore = 11;
@@ -12,10 +13,10 @@ class GameRules {
     int winningScore = defaultWattenWinningScore,
   }) {
     if (game.me >= winningScore && game.me > game.you) {
-      return 'Wir';
+      return WattenSide.me.label;
     }
     if (game.you >= winningScore && game.you > game.me) {
-      return 'Die';
+      return WattenSide.you.label;
     }
     return null;
   }
