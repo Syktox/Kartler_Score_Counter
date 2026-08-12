@@ -13,8 +13,7 @@ void main() {
     ) async {
       await pumpApp(tester, prefs: counterPrefs());
 
-      await openDrawer(tester);
-      await tester.tap(find.text('Startseite'));
+      await tester.tap(find.byTooltip('Startseite'));
       await tester.pumpAndSettle();
 
       expect(find.text('Spielmodus'), findsOneWidget);
@@ -26,8 +25,7 @@ void main() {
     testWidgets('mode card switches the app mode', (tester) async {
       await pumpApp(tester, prefs: counterPrefs());
 
-      await openDrawer(tester);
-      await tester.tap(find.text('Startseite'));
+      await tester.tap(find.byTooltip('Startseite'));
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.text('Mulatschak'));
@@ -44,8 +42,7 @@ void main() {
     ) async {
       await pumpApp(tester, prefs: counterPrefs());
 
-      await openDrawer(tester);
-      await tester.tap(find.text('Startseite'));
+      await tester.tap(find.byTooltip('Startseite'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Spielabend starten'));

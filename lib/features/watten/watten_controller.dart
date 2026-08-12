@@ -3,8 +3,10 @@ import 'dart:async';
 import '../../commands/callback_command.dart';
 import '../../core/haptics_service.dart';
 import '../../models/watten_game.dart';
+import '../../models/watten_history_entry.dart';
 import '../../models/watten_side.dart';
 import '../../persistence/repositories/watten_repository.dart';
+import '../../utils/history_utils.dart';
 import '../feature_controller.dart';
 import '../settings/settings_controller.dart';
 import 'watten_helper.dart';
@@ -30,9 +32,11 @@ class WattenController extends FeatureController {
   WattenSide selectedSide = WattenSide.me;
   List<String> meTeam = const [];
   List<String> youTeam = const [];
+  List<String> historyEntries = const [];
   DateTime roundStartedAt = DateTime.now();
 
   bool get tableMode => _settings.wattenTableMode;
+  bool get historyEnabled => _settings.wattenHistoryEnabled;
   int get winningScore => _settings.ruleProfile.wattenWinningScore;
 
   @override
@@ -42,6 +46,7 @@ class WattenController extends FeatureController {
     currentGame = data.currentGame;
     meTeam = data.meTeam;
     youTeam = data.youTeam;
+    historyEntries = data.history;
     roundStartedAt = DateTime.now();
     isLoading = false;
   }
@@ -86,14 +91,22 @@ class WattenController extends FeatureController {
 
   void changeScore(int delta) {
     final game = games[currentGame]!;
-    final oldValue = WattenHelper.sideScore(game, selectedSide);
+    final side = selectedSide;
+    final oldValue = WattenHelper.sideScore(game, side);
     if (oldValue + delta < 0) {
       return;
     }
     final wasWinner = winner() != null;
+    final changeTime = DateTime.now();
     _pushUndoable(
-      () => _applySideScore(selectedSide, delta),
-      revert: () => _applySideScore(selectedSide, -delta),
+      () => _applySideScore(side, delta, changeTime, recordEntry: true),
+      revert: () => _applySideScore(
+        side,
+        -delta,
+        changeTime,
+        recordEntry: false,
+        historyDelta: delta,
+      ),
     );
     if (!wasWinner && winner() != null) {
       unawaited(_haptics.heavy());
@@ -103,14 +116,22 @@ class WattenController extends FeatureController {
   }
 
   void resetSelectedSide() {
-    final value = sideScore(selectedSide);
+    final side = selectedSide;
+    final value = sideScore(side);
     if (value == 0) {
       return;
     }
     final wasWinner = winner() != null;
+    final changeTime = DateTime.now();
     _pushUndoable(
-      () => _applySideScore(selectedSide, -value),
-      revert: () => _applySideScore(selectedSide, value),
+      () => _applySideScore(side, -value, changeTime, recordEntry: true),
+      revert: () => _applySideScore(
+        side,
+        value,
+        changeTime,
+        recordEntry: false,
+        historyDelta: -value,
+      ),
     );
     if (!wasWinner && winner() != null) {
       unawaited(_haptics.heavy());
@@ -120,33 +141,65 @@ class WattenController extends FeatureController {
   }
 
   /// Setzt beide Seiten auf 0 (für „Partie abschließen“).
-  void resetBoard() {
+  void resetBoard({bool clearHistory = false}) {
     final game = games[currentGame]!;
-    if (game.me == 0 && game.you == 0) {
+    if (game.me == 0 &&
+        game.you == 0 &&
+        (!clearHistory || historyEntries.isEmpty)) {
       return;
     }
+    final oldHistory = List<String>.from(historyEntries);
     _pushUndoable(
-      () => _applyBoardReset(0, 0),
-      revert: () => _applyBoardReset(game.me, game.you),
+      () => _applyBoardReset(0, 0, clearHistory: clearHistory),
+      revert: () =>
+          _applyBoardReset(game.me, game.you, historyEntries: oldHistory),
     );
     roundStartedAt = DateTime.now();
     unawaited(_haptics.light());
   }
 
-  void _applySideScore(WattenSide side, int delta) {
+  void _applySideScore(
+    WattenSide side,
+    int delta,
+    DateTime changeTime, {
+    required bool recordEntry,
+    int? historyDelta,
+  }) {
     games = Map<String, WattenGame>.from(games)
       ..[currentGame] = WattenHelper.updateSideScore(
         game: games[currentGame]!,
         side: side,
         delta: delta,
       );
+    final entry = WattenHistoryEntry(
+      time: HistoryUtils.formatTime(changeTime),
+      side: side,
+      points: historyDelta ?? delta,
+    ).encode();
+    if (recordEntry && historyEnabled) {
+      historyEntries = [...historyEntries, entry];
+    } else if (!recordEntry) {
+      final entries = List<String>.from(historyEntries);
+      entries.remove(entry);
+      historyEntries = entries;
+    }
     notifyListeners();
     unawaited(_persist());
   }
 
-  void _applyBoardReset(int me, int you) {
+  void _applyBoardReset(
+    int me,
+    int you, {
+    bool clearHistory = false,
+    List<String>? historyEntries,
+  }) {
     games = Map<String, WattenGame>.from(games)
       ..[currentGame] = WattenGame(me: me, you: you);
+    if (clearHistory) {
+      this.historyEntries = const [];
+    } else if (historyEntries != null) {
+      this.historyEntries = historyEntries;
+    }
     notifyListeners();
     unawaited(_persist());
   }
@@ -173,6 +226,7 @@ class WattenController extends FeatureController {
       currentGame: currentGame,
       meTeam: meTeam,
       youTeam: youTeam,
+      history: historyEntries,
     );
   }
 }

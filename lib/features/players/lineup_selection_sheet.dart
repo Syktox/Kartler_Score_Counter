@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/player.dart';
 
 /// Bottom-Sheet für die Mitspieler-Auswahl bei Mulatschak und Hosn Obe:
-/// Wer spielt mit? bestimmt das Lineup des Modus.
+/// Wer spielt? bestimmt das Lineup des Modus.
 class LineupSelectionSheet extends StatefulWidget {
   final List<Player> players;
   final List<String> lineup;
@@ -41,7 +41,7 @@ class _LineupSelectionSheetState extends State<LineupSelectionSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Wer spielt mit?',
+              'Wer spielt?',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/app_mode.dart';
 import '../../models/completed_match.dart';
 import '../../models/game_session.dart';
+import '../../utils/winner_text.dart';
 import '../players/players_controller.dart';
 import 'statistics_calculator.dart';
 
@@ -284,7 +285,7 @@ class _RecentMatchTile extends StatelessWidget {
           ),
         ),
         title: Text(
-          '${match.gameType.label} · $winnerLabel gewinnt',
+          '${match.gameType.label} · ${WinnerText.sentence(winnerLabel, exclamation: false)}',
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(

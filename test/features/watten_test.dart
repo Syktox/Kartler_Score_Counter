@@ -96,6 +96,23 @@ void main() {
       expect(matches.single['winnerLabel'], 'Ich');
     });
 
+    testWidgets('new game clears the score history', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: {...wattenPrefs(), 'watten_history_enabled': true},
+      );
+
+      await tester.tap(find.text('+2'));
+      await tester.pumpAndSettle();
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neues Spiel'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(jsonDecode(prefs.getString('watten_history')!), isEmpty);
+    });
+
     testWidgets('new game on an empty board does not record anything', (
       tester,
     ) async {

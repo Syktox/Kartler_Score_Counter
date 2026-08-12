@@ -96,16 +96,6 @@ class WattenBody extends StatelessWidget {
               width: 132,
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.compare_arrows),
-                        tooltip: 'Tischmodus',
-                        onPressed: () => onTableModeChanged(!tableMode),
-                      ),
-                    ],
-                  ),
                   if (_displayWinner != null) ...[
                     WinnerBanner(winner: _displayWinner!, compact: true),
                     const SizedBox(height: 6),

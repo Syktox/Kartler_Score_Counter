@@ -152,6 +152,24 @@ void main() {
       expect(matches.single['winnerId'], 'p1');
     });
 
+    testWidgets('new game clears the score history', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: {...mulatschakPrefs(), 'mulatschak_history_enabled': true},
+      );
+
+      await tester.tap(find.text('+1'));
+      await tester.pumpAndSettle();
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neues Spiel'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(jsonDecode(prefs.getString('mulatschak_history')!), isEmpty);
+      expect(prefs.getInt('mulatschak_history_round'), 1);
+    });
+
     testWidgets('new game on a fresh board does not record anything', (
       tester,
     ) async {

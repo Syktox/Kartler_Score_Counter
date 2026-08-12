@@ -115,10 +115,12 @@ class MulatschakController extends FeatureController {
     unawaited(_haptics.light());
   }
 
-  void resetPlayers() {
+  void resetPlayers({bool clearHistory = false}) {
+    final hasHistory = historyEntries.isNotEmpty;
     if (lineup.values.every(
-      (value) => value == _profile.mulatschakStartingScore,
-    )) {
+          (value) => value == _profile.mulatschakStartingScore,
+        ) &&
+        (!clearHistory || !hasHistory)) {
       return;
     }
     final changeTime = DateTime.now();
@@ -128,16 +130,26 @@ class MulatschakController extends FeatureController {
     final oldRoundPlayers = Set<String>.from(roundPlayerIds);
     _pushUndoable(
       () {
-        for (final playerId in lineup.keys) {
-          final oldValue = lineup[playerId]!;
-          final resetValue = _profile.mulatschakStartingScore;
-          if (resetValue != oldValue) {
-            _applyScore(
-              playerId,
-              resetValue,
-              changeTime,
-              (playerId) => resetValue - oldValue,
-            );
+        if (clearHistory) {
+          lineup = Map<String, int>.from(lineup)
+            ..updateAll((key, value) => _profile.mulatschakStartingScore);
+          historyEntries = [];
+          historyRound = MulatschakRepository.defaultHistoryRound;
+          roundPlayerIds = {};
+          notifyListeners();
+          unawaited(_persist());
+        } else {
+          for (final playerId in lineup.keys) {
+            final oldValue = lineup[playerId]!;
+            final resetValue = _profile.mulatschakStartingScore;
+            if (resetValue != oldValue) {
+              _applyScore(
+                playerId,
+                resetValue,
+                changeTime,
+                (playerId) => resetValue - oldValue,
+              );
+            }
           }
         }
         roundStartedAt = DateTime.now();

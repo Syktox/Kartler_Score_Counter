@@ -79,7 +79,7 @@ class _WinnersDialogState extends State<WinnersDialog> {
                   Icon(Icons.emoji_events, color: colorScheme.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Gewinner bisher',
+                    'Siegerübersicht',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),

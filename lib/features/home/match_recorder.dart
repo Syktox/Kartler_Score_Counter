@@ -158,11 +158,11 @@ class MatchRecorder {
   void resetBoard(AppMode mode) {
     switch (mode) {
       case AppMode.counter:
-        _counter.resetBoard();
+        _counter.resetBoard(clearHistory: true);
       case AppMode.watten:
-        _watten.resetBoard();
+        _watten.resetBoard(clearHistory: true);
       case AppMode.mulatschak:
-        _mulatschak.resetPlayers();
+        _mulatschak.resetPlayers(clearHistory: true);
       case AppMode.hosnObe:
         _hosnObe.resetPlayers();
     }

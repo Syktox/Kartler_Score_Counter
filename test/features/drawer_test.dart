@@ -50,9 +50,9 @@ void main() {
       await openDrawer(tester);
 
       expect(find.text('Neues Spiel'), findsOneWidget);
-      expect(find.text('Gewinner bisher'), findsOneWidget);
-      expect(find.text('Wer spielt mit?'), findsOneWidget);
-      expect(find.text('Noch keine Partien aufgezeichnet'), findsOneWidget);
+      expect(find.text('Siegerübersicht'), findsOneWidget);
+      expect(find.text('Wer spielt?'), findsOneWidget);
+      expect(find.text('Noch keine Partien aufgezeichnet'), findsNothing);
       expect(
         find.descendant(of: find.byType(Drawer), matching: find.text('Anna')),
         findsNothing,
@@ -63,26 +63,33 @@ void main() {
       );
     });
 
-    testWidgets('counter drawer keeps navigation at the bottom', (
+    testWidgets('counter drawer only contains counter actions and settings', (
       tester,
     ) async {
       await pumpApp(tester, prefs: counterPrefs());
 
       await openDrawer(tester);
 
-      final settingsFooter = find.byKey(
-        const ValueKey('drawer-settings-footer'),
+      for (final label in [
+        'Startseite',
+        'Statistiken',
+        'Spielabende',
+        'Spieler verwalten',
+      ]) {
+        expect(
+          find.descendant(of: find.byType(Drawer), matching: find.text(label)),
+          findsNothing,
+        );
+      }
+      expect(
+        find.byKey(const ValueKey('drawer-settings-footer')),
+        findsOneWidget,
       );
-      final extraActions = find.byKey(const ValueKey('drawer-extra-actions'));
-      expect(settingsFooter, findsOneWidget);
-      expect(extraActions, findsOneWidget);
-
-      final footerTop = tester.getTopLeft(settingsFooter).dy;
-      final extrasBottom = tester.getBottomLeft(extraActions).dy;
-      expect(extrasBottom, lessThanOrEqualTo(footerTop));
     });
 
-    testWidgets('watten drawer lists the most recent winner', (tester) async {
+    testWidgets('watten drawer does not show recent winners as subtitle', (
+      tester,
+    ) async {
       await pumpApp(
         tester,
         prefs: {
@@ -95,6 +102,32 @@ void main() {
 
       expect(
         find.descendant(of: find.byType(Drawer), matching: find.text('Ich')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('watten history shows recorded score changes', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: {...wattenPrefs(), 'watten_history_enabled': true},
+      );
+
+      await tester.tap(find.text('+2'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Watten-Verlauf'));
+      await tester.pumpAndSettle();
+
+      final drawer = find.byType(Drawer);
+      expect(
+        find.descendant(of: drawer, matching: find.text('Watten-Verlauf')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: drawer, matching: find.text('Ich')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: drawer, matching: find.text('+2 Punkte')),
         findsOneWidget,
       );
     });
@@ -111,14 +144,14 @@ void main() {
       );
 
       await openDrawer(tester);
-      await tester.tap(find.text('Gewinner bisher'));
+      await tester.tap(find.text('Siegerübersicht'));
       await tester.pumpAndSettle();
 
       final dialog = find.byType(Dialog);
       Finder inDialog(String text) =>
           find.descendant(of: dialog, matching: find.text(text));
 
-      expect(inDialog('Gewinner bisher'), findsOneWidget);
+      expect(inDialog('Siegerübersicht'), findsOneWidget);
       expect(inDialog('Gesamt'), findsOneWidget);
       expect(inDialog('Heute'), findsOneWidget);
       expect(inDialog('Watten'), findsOneWidget);
@@ -136,7 +169,7 @@ void main() {
       await pumpApp(tester, prefs: mulatschakPrefs());
 
       await openDrawer(tester);
-      await tester.tap(find.text('Wer spielt mit?'));
+      await tester.tap(find.text('Wer spielt?'));
       await tester.pumpAndSettle();
 
       await tester.tap(

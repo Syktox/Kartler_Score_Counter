@@ -9,7 +9,7 @@ const int wattenTeamSizeLimit = 2;
 /// Gewählte Watten-Teams (Spieler-IDs).
 typedef WattenTeams = ({List<String> me, List<String> you});
 
-/// Bottom-Sheet für die Watten-Teamwahl: Wer spielt mit und gegen wen?
+/// Bottom-Sheet für die Watten-Teamwahl: Wer spielt und gegen wen?
 class WattenTeamSheet extends StatefulWidget {
   final List<Player> players;
   final List<String> meTeam;
@@ -61,6 +61,11 @@ class _WattenTeamSheetState extends State<WattenTeamSheet> {
     });
   }
 
+  bool _canAssign(String playerId, WattenSide side) {
+    final target = side == WattenSide.me ? _me : _you;
+    return target.contains(playerId) || target.length < wattenTeamSizeLimit;
+  }
+
   String _nameOf(String id) {
     for (final player in widget.players) {
       if (player.id == id) {
@@ -82,7 +87,7 @@ class _WattenTeamSheetState extends State<WattenTeamSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Wer spielt mit?',
+              'Wer spielt?',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -100,6 +105,8 @@ class _WattenTeamSheetState extends State<WattenTeamSheet> {
                     side: WattenSide.me,
                     memberIds: _me.toList(),
                     nameOf: _nameOf,
+                    canAccept: (id) => _canAssign(id, WattenSide.me),
+                    onAssign: (id) => _assign(id, WattenSide.me),
                     onRemove: (id) => _toggle(id, WattenSide.me),
                   ),
                 ),
@@ -109,6 +116,8 @@ class _WattenTeamSheetState extends State<WattenTeamSheet> {
                     side: WattenSide.you,
                     memberIds: _you.toList(),
                     nameOf: _nameOf,
+                    canAccept: (id) => _canAssign(id, WattenSide.you),
+                    onAssign: (id) => _assign(id, WattenSide.you),
                     onRemove: (id) => _toggle(id, WattenSide.you),
                   ),
                 ),
@@ -126,34 +135,25 @@ class _WattenTeamSheetState extends State<WattenTeamSheet> {
                 shrinkWrap: true,
                 children: [
                   for (final player in _unassigned)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        radius: 18,
-                        child: Text(
-                          player.displayName.characters.first.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                          ),
+                    LongPressDraggable<String>(
+                      data: player.id,
+                      feedback: _PlayerDragFeedback(name: player.displayName),
+                      childWhenDragging: Opacity(
+                        opacity: 0.35,
+                        child: _AvailablePlayerTile(
+                          player: player,
+                          meEnabled: _me.length < wattenTeamSizeLimit,
+                          youEnabled: _you.length < wattenTeamSizeLimit,
+                          onAssignMe: () => _assign(player.id, WattenSide.me),
+                          onAssignYou: () => _assign(player.id, WattenSide.you),
                         ),
                       ),
-                      title: Text(player.displayName),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _SidePill(
-                            label: WattenSide.me.label,
-                            enabled: _me.length < wattenTeamSizeLimit,
-                            onPressed: () => _assign(player.id, WattenSide.me),
-                          ),
-                          const SizedBox(width: 8),
-                          _SidePill(
-                            label: WattenSide.you.label,
-                            enabled: _you.length < wattenTeamSizeLimit,
-                            onPressed: () => _assign(player.id, WattenSide.you),
-                          ),
-                        ],
+                      child: _AvailablePlayerTile(
+                        player: player,
+                        meEnabled: _me.length < wattenTeamSizeLimit,
+                        youEnabled: _you.length < wattenTeamSizeLimit,
+                        onAssignMe: () => _assign(player.id, WattenSide.me),
+                        onAssignYou: () => _assign(player.id, WattenSide.you),
                       ),
                     ),
                   if (_unassigned.isEmpty)
@@ -194,17 +194,103 @@ class _WattenTeamSheetState extends State<WattenTeamSheet> {
   }
 }
 
+class _AvailablePlayerTile extends StatelessWidget {
+  final Player player;
+  final bool meEnabled;
+  final bool youEnabled;
+  final VoidCallback onAssignMe;
+  final VoidCallback onAssignYou;
+
+  const _AvailablePlayerTile({
+    required this.player,
+    required this.meEnabled,
+    required this.youEnabled,
+    required this.onAssignMe,
+    required this.onAssignYou,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        radius: 18,
+        child: Text(
+          player.displayName.characters.first.toUpperCase(),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
+      ),
+      title: Text(player.displayName),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SidePill(
+            label: WattenSide.me.label,
+            enabled: meEnabled,
+            onPressed: onAssignMe,
+          ),
+          const SizedBox(width: 8),
+          _SidePill(
+            label: WattenSide.you.label,
+            enabled: youEnabled,
+            onPressed: onAssignYou,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlayerDragFeedback extends StatelessWidget {
+  final String name;
+
+  const _PlayerDragFeedback({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(20),
+      color: colorScheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_add_alt_1, color: colorScheme.onPrimaryContainer),
+            const SizedBox(width: 8),
+            Text(
+              name,
+              style: TextStyle(
+                color: colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w800,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Karte einer Watten-Seite mit den bereits eingeteilten Spielern.
 class _TeamCard extends StatelessWidget {
   final WattenSide side;
   final List<String> memberIds;
   final String Function(String id) nameOf;
+  final bool Function(String id) canAccept;
+  final ValueChanged<String> onAssign;
   final ValueChanged<String> onRemove;
 
   const _TeamCard({
     required this.side,
     required this.memberIds,
     required this.nameOf,
+    required this.canAccept,
+    required this.onAssign,
     required this.onRemove,
   });
 
@@ -212,54 +298,70 @@ class _TeamCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Text(
-            side.label,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: colorScheme.primary,
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (details) => canAccept(details.data),
+      onAcceptWithDetails: (details) => onAssign(details.data),
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+
+        return Container(
+          key: ValueKey('watten-team-${side.name}'),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isHovering
+                ? colorScheme.primaryContainer.withValues(alpha: 0.55)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isHovering
+                  ? colorScheme.primary
+                  : colorScheme.outlineVariant,
+              width: isHovering ? 2 : 1,
             ),
           ),
-          const SizedBox(height: 8),
-          for (final id in memberIds)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: InputChip(
-                avatar: const Icon(Icons.person, size: 18),
-                label: Text(nameOf(id), overflow: TextOverflow.ellipsis),
-                onDeleted: () => onRemove(id),
-                deleteButtonTooltipMessage: 'Entfernen',
-              ),
-            ),
-          for (var i = memberIds.length; i < wattenTeamSizeLimit; i++)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: colorScheme.outlineVariant,
-                  width: 1.5,
+          child: Column(
+            children: [
+              Text(
+                side.label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.primary,
                 ),
               ),
-              child: const Text(
-                '+',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-            ),
-        ],
-      ),
+              const SizedBox(height: 8),
+              for (final id in memberIds)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: InputChip(
+                    avatar: const Icon(Icons.person, size: 18),
+                    label: Text(nameOf(id), overflow: TextOverflow.ellipsis),
+                    onDeleted: () => onRemove(id),
+                    deleteButtonTooltipMessage: 'Entfernen',
+                  ),
+                ),
+              for (var i = memberIds.length; i < wattenTeamSizeLimit; i++)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: const Text(
+                    '+',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

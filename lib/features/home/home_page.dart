@@ -27,7 +27,6 @@ import '../../features/watten/watten_team_sheet.dart';
 import '../../features/winners/winners_dialog.dart';
 import '../feature_controller.dart';
 import '../../models/app_mode.dart';
-import '../../models/completed_match.dart';
 import '../../models/watten_game.dart';
 import '../../models/watten_side.dart';
 import '../../utils/name_utils.dart';
@@ -45,6 +44,7 @@ import '../../widgets/counter_drawer.dart';
 import '../../widgets/counter_history_drawer.dart';
 import '../../widgets/mulatschak_history_drawer.dart';
 import '../../widgets/recorded_bubble.dart';
+import '../../widgets/watten_history_drawer.dart';
 import 'hub_page.dart';
 import 'match_recorder.dart';
 import 'start_screen.dart';
@@ -489,35 +489,12 @@ class _HomePageState extends State<HomePage> {
     if (_counter.counters.values.every((value) => value == 0)) {
       return;
     }
-    _counter.resetBoard();
+    _counter.resetBoard(clearHistory: true);
   }
 
   // MARK: - Hosn Obe
 
   // MARK: - Drawer
-
-  /// Anzeigename des Gewinners einer aufgezeichneten Partie.
-  String _winnerNameOf(CompletedMatch match) {
-    if (match.winnerId != null) {
-      return _players.displayName(match.winnerId);
-    }
-    return match.winnerLabel ?? '—';
-  }
-
-  /// Die zuletzt aufgezeichneten Gewinner des Modus (neueste zuerst).
-  List<String> _recentWinners(AppMode mode, {int limit = 3}) {
-    return _sessions.matches
-        .where(
-          (match) =>
-              match.gameType == mode &&
-              (match.winnerId != null || match.winnerLabel != null),
-        )
-        .toList()
-        .reversed
-        .take(limit)
-        .map(_winnerNameOf)
-        .toList(growable: false);
-  }
 
   void _showWinnersDialog() {
     showDialog<void>(
@@ -553,10 +530,18 @@ class _HomePageState extends State<HomePage> {
 
   List<Widget> _buildDrawerExtraActions(AppMode mode) {
     return [
+      ListTile(
+        leading: const Icon(Icons.home_outlined),
+        title: const Text('Startseite'),
+        onTap: () {
+          Navigator.of(context).pop();
+          _openHub();
+        },
+      ),
       if (mode != AppMode.counter)
         ListTile(
           leading: const Icon(Icons.groups_outlined),
-          title: const Text('Wer spielt mit?'),
+          title: const Text('Wer spielt?'),
           onTap: () {
             Navigator.of(context).pop();
             if (mode == AppMode.watten) {
@@ -566,14 +551,6 @@ class _HomePageState extends State<HomePage> {
             }
           },
         ),
-      ListTile(
-        leading: const Icon(Icons.home_outlined),
-        title: const Text('Startseite'),
-        onTap: () {
-          Navigator.of(context).pop();
-          _openHub();
-        },
-      ),
       ListTile(
         leading: const Icon(Icons.bar_chart_outlined),
         title: const Text('Statistiken'),
@@ -620,15 +597,12 @@ class _HomePageState extends State<HomePage> {
           secondaryActionLabel: 'Neuer Zähler',
           secondaryActionIcon: Icons.add,
           onSecondaryAction: _showAddCounterDialog,
-          extraActions: _buildDrawerExtraActions(mode),
-          pinExtraActions:
-              MediaQuery.orientationOf(context) == Orientation.portrait,
+          extraActions: const [],
           onOpenSettings: _openSettings,
         );
       case AppMode.watten:
       case AppMode.mulatschak:
       case AppMode.hosnObe:
-        final winners = _recentWinners(mode);
         return CounterDrawer(
           items: const [],
           selectedItem: '',
@@ -644,10 +618,7 @@ class _HomePageState extends State<HomePage> {
           onSelectItem: (_) {},
           onRenameItem: (_) {},
           onDeleteItem: (_) {},
-          secondaryActionLabel: 'Gewinner bisher',
-          secondaryActionSubtitle: winners.isEmpty
-              ? 'Noch keine Partien aufgezeichnet'
-              : winners.join(', '),
+          secondaryActionLabel: 'Siegerübersicht',
           secondaryActionIcon: Icons.emoji_events_outlined,
           onSecondaryAction: _showWinnersDialog,
           extraActions: _buildDrawerExtraActions(mode),
@@ -669,12 +640,20 @@ class _HomePageState extends State<HomePage> {
     if (mode == AppMode.mulatschak && _settings.mulatschakHistoryEnabled) {
       return MulatschakHistoryDrawer(history: _mulatschak.historyEntries);
     }
+    if (mode == AppMode.watten && _settings.wattenHistoryEnabled) {
+      return WattenHistoryDrawer(
+        history: _watten.historyEntries,
+        meLabel: _wattenSideLabel(WattenSide.me),
+        youLabel: _wattenSideLabel(WattenSide.you),
+      );
+    }
     return const SizedBox.shrink();
   }
 
   bool _hasEndDrawer(AppMode mode) {
-    return mode == AppMode.counter && _settings.counterHistoryEnabled ||
-        mode == AppMode.mulatschak && _settings.mulatschakHistoryEnabled;
+    return (mode == AppMode.counter && _settings.counterHistoryEnabled) ||
+        (mode == AppMode.watten && _settings.wattenHistoryEnabled) ||
+        (mode == AppMode.mulatschak && _settings.mulatschakHistoryEnabled);
   }
 
   // MARK: - AppBar
@@ -704,6 +683,12 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Zähler-Verlauf',
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+          ),
+        if (widget.appMode == AppMode.watten && _settings.wattenHistoryEnabled)
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Watten-Verlauf',
             onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
           ),
         if (widget.appMode == AppMode.mulatschak &&

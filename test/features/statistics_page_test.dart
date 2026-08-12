@@ -8,6 +8,7 @@ import 'package:kartler/models/app_mode.dart';
 import 'package:kartler/models/completed_match.dart';
 import 'package:kartler/models/game_session.dart';
 import 'package:kartler/persistence/repositories/player_repository.dart';
+import 'package:kartler/widgets/winner_banner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/pump_app.dart';
@@ -81,6 +82,21 @@ void main() {
     await pumpStats(tester, [match(winnerLabel: 'Nord')]);
 
     expect(find.text('Mulatschak · Nord gewinnt'), findsOneWidget);
+  });
+
+  testWidgets('multiple winners use plural grammar', (tester) async {
+    await pumpStats(tester, [match(winnerLabel: 'Anna & Ben')]);
+
+    expect(find.text('Mulatschak · Anna & Ben gewinnen'), findsOneWidget);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: WinnerBanner(winner: 'Anna & Ben')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Anna & Ben gewinnen!'), findsOneWidget);
   });
 
   testWidgets('recent match without a winner is shown as draw', (tester) async {

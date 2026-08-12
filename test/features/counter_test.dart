@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kartler/models/app_mode.dart';
 
 import '../helpers/pump_app.dart';
 
@@ -141,7 +142,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Zähler'));
+      await tester.tap(find.widgetWithText(RadioListTile<AppMode>, 'Zähler'));
       await tester.pumpAndSettle();
       await tester.pageBack();
       await tester.pumpAndSettle();

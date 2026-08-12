@@ -95,6 +95,16 @@ class SettingsRepository {
     await prefs.setBool(StorageKeys.counterNegativeEnabled, enabled);
   }
 
+  Future<bool> loadWattenHistoryEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(StorageKeys.wattenHistoryEnabled) ?? false;
+  }
+
+  Future<void> saveWattenHistoryEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(StorageKeys.wattenHistoryEnabled, enabled);
+  }
+
   Future<bool> loadMulatschakHistoryEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(StorageKeys.mulatschakHistoryEnabled) ?? false;

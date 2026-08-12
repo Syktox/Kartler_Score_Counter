@@ -9,12 +9,14 @@ class WattenData {
   final String currentGame;
   final List<String> meTeam;
   final List<String> youTeam;
+  final List<String> history;
 
   const WattenData({
     required this.games,
     required this.currentGame,
     this.meTeam = const [],
     this.youTeam = const [],
+    this.history = const [],
   });
 }
 
@@ -44,6 +46,7 @@ class WattenRepository {
       currentGame: currentGame,
       meTeam: _decodeTeam(prefs.getString(StorageKeys.wattenTeamMe)),
       youTeam: _decodeTeam(prefs.getString(StorageKeys.wattenTeamYou)),
+      history: _decodeStringList(prefs.getString(StorageKeys.wattenHistory)),
     );
   }
 
@@ -52,6 +55,7 @@ class WattenRepository {
     required String currentGame,
     List<String> meTeam = const [],
     List<String> youTeam = const [],
+    List<String> history = const [],
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
@@ -63,6 +67,7 @@ class WattenRepository {
     await prefs.setString(StorageKeys.currentWattenGame, currentGame);
     await prefs.setString(StorageKeys.wattenTeamMe, JsonCodec.encode(meTeam));
     await prefs.setString(StorageKeys.wattenTeamYou, JsonCodec.encode(youTeam));
+    await prefs.setString(StorageKeys.wattenHistory, JsonCodec.encode(history));
   }
 
   static Map<String, WattenGame> _decodeGames(String? json) {
@@ -90,5 +95,16 @@ class WattenRepository {
       return const <String>[];
     }
     return decoded.where((id) => id.isNotEmpty).toList(growable: false);
+  }
+
+  static List<String> _decodeStringList(String? json) {
+    final decoded = JsonCodec.decodeList(
+      json,
+      (item) => item is String ? item : null,
+    );
+    if (decoded == null) {
+      return const <String>[];
+    }
+    return decoded.whereType<String>().toList(growable: false);
   }
 }

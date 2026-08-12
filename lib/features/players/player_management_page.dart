@@ -141,7 +141,6 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
                               const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final player = players[index];
-                            final usage = _usageOf(player);
 
                             return Card(
                               elevation: 0,
@@ -164,10 +163,12 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
                                     ),
                                   ),
                                 ),
-                                title: Text(player.displayName),
-                                subtitle: usage.isEmpty
-                                    ? const Text('Nicht in einem Lineup')
-                                    : Text('In Lineup: ${usage.join(', ')}'),
+                                title: Text(
+                                  player.displayName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [

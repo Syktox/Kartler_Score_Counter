@@ -21,6 +21,7 @@ class SettingsController extends FeatureController {
   AppMode appMode = AppMode.watten;
   bool counterHistoryEnabled = false;
   bool counterNegativeEnabled = false;
+  bool wattenHistoryEnabled = false;
   bool mulatschakHistoryEnabled = false;
   RuleProfile ruleProfile = const RuleProfile.defaults();
 
@@ -32,6 +33,7 @@ class SettingsController extends FeatureController {
     appMode = await _repository.loadAppMode();
     counterHistoryEnabled = await _repository.loadCounterHistoryEnabled();
     counterNegativeEnabled = await _repository.loadCounterNegativeEnabled();
+    wattenHistoryEnabled = await _repository.loadWattenHistoryEnabled();
     mulatschakHistoryEnabled = await _repository.loadMulatschakHistoryEnabled();
     ruleProfile = await _repository.loadRuleProfile();
     isLoading = false;
@@ -89,6 +91,15 @@ class SettingsController extends FeatureController {
     counterNegativeEnabled = enabled;
     notifyListeners();
     unawaited(_repository.saveCounterNegativeEnabled(enabled));
+  }
+
+  void setWattenHistoryEnabled(bool enabled) {
+    if (wattenHistoryEnabled == enabled) {
+      return;
+    }
+    wattenHistoryEnabled = enabled;
+    notifyListeners();
+    unawaited(_repository.saveWattenHistoryEnabled(enabled));
   }
 
   void setMulatschakHistoryEnabled(bool enabled) {

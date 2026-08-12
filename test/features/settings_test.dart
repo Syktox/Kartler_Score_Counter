@@ -70,6 +70,23 @@ void main() {
       expect(prefs.getBool('counter_negative_enabled'), isTrue);
     });
 
+    testWidgets('offers Watten history separately from counter settings', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await openSettings(tester);
+      expect(find.text('Verlauf'), findsOneWidget);
+      expect(find.text('Watten-Verlauf'), findsOneWidget);
+      expect(find.text('Zähler'), findsAtLeastNWidgets(2));
+
+      await tester.tap(find.text('Watten-Verlauf'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('watten_history_enabled'), isTrue);
+    });
+
     testWidgets('allows negative counters when enabled', (tester) async {
       await pumpApp(
         tester,

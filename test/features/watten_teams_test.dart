@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,7 +28,7 @@ Finder sidePillOf(String playerName, String side) {
 
 Future<void> openWattenTeamSheet(WidgetTester tester) async {
   await openDrawer(tester);
-  await tester.tap(find.text('Wer spielt mit?'));
+  await tester.tap(find.text('Wer spielt?'));
   await tester.pumpAndSettle();
 }
 
@@ -82,25 +83,49 @@ void main() {
       expect(prefs.getString('watten_team_you'), jsonEncode(['p3', 'p4']));
     });
 
+    testWidgets('assigns available players by dragging them into a team', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: {...wattenPrefs(), ...playerPrefs()});
+
+      await openWattenTeamSheet(tester);
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.widgetWithText(ListTile, 'Anna')),
+      );
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+      await gesture.moveTo(
+        tester.getCenter(find.byKey(const ValueKey('watten-team-me'))),
+      );
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Fertig'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('watten_team_me'), jsonEncode(['p1']));
+    });
+
     testWidgets('shows the team names as side titles and winner', (
       tester,
     ) async {
       await pumpApp(
         tester,
         prefs: {
-          ...wattenPrefs(),
-          ...playerPrefs(),
+          ...fourPlayerPrefs(),
           'watten_lineup': jsonEncode({
             'Spiel 1': {'me': 11, 'you': 3},
           }),
-          'watten_team_me': jsonEncode(['p1']),
-          'watten_team_you': jsonEncode(['p2']),
+          'watten_team_me': jsonEncode(['p1', 'p2']),
+          'watten_team_you': jsonEncode(['p3']),
         },
       );
 
-      expect(find.text('Anna'), findsOneWidget);
-      expect(find.text('Ben'), findsOneWidget);
-      expect(find.text('Anna gewinnt!'), findsOneWidget);
+      expect(find.text('Anna & Ben'), findsOneWidget);
+      expect(find.text('Carla'), findsOneWidget);
+      expect(find.text('Anna & Ben gewinnen!'), findsOneWidget);
       expect(find.text('Ich gewinnt!'), findsNothing);
     });
 

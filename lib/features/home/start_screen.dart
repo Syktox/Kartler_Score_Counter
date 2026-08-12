@@ -72,7 +72,14 @@ class StartScreen extends StatelessWidget {
                 subtitle: 'Wer seine Leben verliert, verliert.',
                 onTap: () => onModeSelected(AppMode.hosnObe),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 28),
+              Text(
+                'Freier Zähler',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
               _StartOption(
                 icon: Icons.numbers,
                 title: AppMode.counter.label,
