@@ -128,6 +128,26 @@ void main() {
       expect(profile['wattenWinningScore'], 15);
     });
 
+    testWidgets(
+      'toggles mulatschak round auto-completion in the rule profile',
+      (tester) async {
+        await pumpApp(tester, prefs: mulatschakPrefs());
+
+        await openSettings(tester);
+        await tester.ensureVisible(
+          find.text('Mulatschak-Stiche automatisch erkennen'),
+        );
+        await tester.tap(find.text('Mulatschak-Stiche automatisch erkennen'));
+        await tester.pumpAndSettle();
+
+        final prefs = await SharedPreferences.getInstance();
+        final profile =
+            jsonDecode(prefs.getString('rule_profile')!)
+                as Map<String, dynamic>;
+        expect(profile['mulatschakAutoCompleteRound'], isTrue);
+      },
+    );
+
     testWidgets('resets the rule profile to defaults', (tester) async {
       await pumpApp(
         tester,

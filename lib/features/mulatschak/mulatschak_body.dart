@@ -212,7 +212,7 @@ class _EmptyLineup extends StatelessWidget {
             FilledButton.icon(
               onPressed: onAddPlayer,
               icon: const Icon(Icons.person_add_alt_1),
-                label: const Text('Spieler verwalten'),
+              label: const Text('Spieler verwalten'),
             ),
           ],
         ),

@@ -6,6 +6,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/pump_app.dart';
 
+Map<String, Object> threePlayerMulatschakPrefs() {
+  return {
+    ...mulatschakPrefs(lineup: {'p1': 21, 'p2': 21, 'p3': 21}),
+    'players': jsonEncode([
+      {'id': 'p1', 'name': 'Anna', 'createdAt': '2024-01-01T00:00:00.000Z'},
+      {'id': 'p2', 'name': 'Ben', 'createdAt': '2024-01-01T00:00:00.000Z'},
+      {'id': 'p3', 'name': 'Carla', 'createdAt': '2024-01-01T00:00:00.000Z'},
+    ]),
+  };
+}
+
+Map<String, Object> mulatschakAutoCompleteProfilePrefs() {
+  return {
+    'rule_profile': jsonEncode({
+      'wattenWinningScore': 11,
+      'mulatschakStartingScore': 21,
+      'hosnObeStartingLives': 4,
+      'muleqackEnabled': false,
+      'muleqackTriggerPoints': 100,
+      'muleqackResetPoints': 50,
+      'mulatschakAutoCompleteRound': true,
+    }),
+  };
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -65,6 +90,82 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('9'), findsOneWidget);
+    });
+
+    testWidgets('auto-completes a five-trick round from -5', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: {...mulatschakPrefs(), ...mulatschakAutoCompleteProfilePrefs()},
+      );
+
+      await tester.tap(find.text('-5'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('16'), findsOneWidget);
+      expect(find.text('26'), findsOneWidget);
+    });
+
+    testWidgets('automatically completes a split five-trick round', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...threePlayerMulatschakPrefs(),
+          ...mulatschakAutoCompleteProfilePrefs(),
+        },
+      );
+
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ben'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('19'), findsOneWidget);
+      expect(find.text('18'), findsOneWidget);
+      expect(find.text('26'), findsOneWidget);
+      expect(find.text('Runde vervollständigen'), findsNothing);
+    });
+
+    testWidgets('keeps a failed caller at +5 while counting their tricks', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...threePlayerMulatschakPrefs(),
+          ...mulatschakAutoCompleteProfilePrefs(),
+        },
+      );
+
+      await tester.tap(find.text('+5'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ben'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('18'), findsOneWidget);
+      expect(find.text('26'), findsNWidgets(2));
     });
 
     testWidgets('shows history grouped by completed rounds', (tester) async {

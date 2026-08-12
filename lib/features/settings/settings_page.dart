@@ -369,6 +369,18 @@ class _SettingsPageState extends State<SettingsPage> {
         controller: _muleqackResetController,
         onCommit: _commitMuleqackReset,
       ),
+      SwitchListTile(
+        title: const Text('Mulatschak-Stiche automatisch erkennen'),
+        subtitle: const Text(
+          'Sobald 5 Stiche eingetragen sind, erhalten die übrigen Spieler automatisch +5.',
+        ),
+        value: profile.mulatschakAutoCompleteRound,
+        onChanged: (enabled) {
+          _commitProfile(
+            profile.copyWith(mulatschakAutoCompleteRound: enabled),
+          );
+        },
+      ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
         child: OutlinedButton.icon(
