@@ -70,6 +70,23 @@ void main() {
       expect(prefs.getBool('counter_negative_enabled'), isTrue);
     });
 
+    testWidgets('offers Watten history separately from counter settings', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await openSettings(tester);
+      expect(find.text('Verlauf'), findsOneWidget);
+      expect(find.text('Watten-Verlauf'), findsOneWidget);
+      expect(find.text('Zähler'), findsAtLeastNWidgets(2));
+
+      await tester.tap(find.text('Watten-Verlauf'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('watten_history_enabled'), isTrue);
+    });
+
     testWidgets('allows negative counters when enabled', (tester) async {
       await pumpApp(
         tester,
@@ -110,6 +127,26 @@ void main() {
           jsonDecode(prefs.getString('rule_profile')!) as Map<String, dynamic>;
       expect(profile['wattenWinningScore'], 15);
     });
+
+    testWidgets(
+      'toggles mulatschak round auto-completion in the rule profile',
+      (tester) async {
+        await pumpApp(tester, prefs: mulatschakPrefs());
+
+        await openSettings(tester);
+        await tester.ensureVisible(
+          find.text('Mulatschak-Stiche automatisch erkennen'),
+        );
+        await tester.tap(find.text('Mulatschak-Stiche automatisch erkennen'));
+        await tester.pumpAndSettle();
+
+        final prefs = await SharedPreferences.getInstance();
+        final profile =
+            jsonDecode(prefs.getString('rule_profile')!)
+                as Map<String, dynamic>;
+        expect(profile['mulatschakAutoCompleteRound'], isTrue);
+      },
+    );
 
     testWidgets('resets the rule profile to defaults', (tester) async {
       await pumpApp(

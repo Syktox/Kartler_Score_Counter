@@ -10,6 +10,7 @@ class RuleProfile {
   final bool muleqackEnabled;
   final int muleqackTriggerPoints;
   final int muleqackResetPoints;
+  final bool mulatschakAutoCompleteRound;
 
   const RuleProfile({
     required this.wattenWinningScore,
@@ -18,6 +19,7 @@ class RuleProfile {
     required this.muleqackEnabled,
     required this.muleqackTriggerPoints,
     required this.muleqackResetPoints,
+    required this.mulatschakAutoCompleteRound,
   });
 
   const RuleProfile.defaults()
@@ -26,7 +28,8 @@ class RuleProfile {
       hosnObeStartingLives = 4,
       muleqackEnabled = false,
       muleqackTriggerPoints = 100,
-      muleqackResetPoints = 50;
+      muleqackResetPoints = 50,
+      mulatschakAutoCompleteRound = false;
 
   RuleProfile copyWith({
     int? wattenWinningScore,
@@ -35,6 +38,7 @@ class RuleProfile {
     bool? muleqackEnabled,
     int? muleqackTriggerPoints,
     int? muleqackResetPoints,
+    bool? mulatschakAutoCompleteRound,
   }) {
     return RuleProfile(
       wattenWinningScore: wattenWinningScore ?? this.wattenWinningScore,
@@ -45,6 +49,8 @@ class RuleProfile {
       muleqackTriggerPoints:
           muleqackTriggerPoints ?? this.muleqackTriggerPoints,
       muleqackResetPoints: muleqackResetPoints ?? this.muleqackResetPoints,
+      mulatschakAutoCompleteRound:
+          mulatschakAutoCompleteRound ?? this.mulatschakAutoCompleteRound,
     );
   }
 
@@ -56,6 +62,7 @@ class RuleProfile {
       'muleqackEnabled': muleqackEnabled,
       'muleqackTriggerPoints': muleqackTriggerPoints,
       'muleqackResetPoints': muleqackResetPoints,
+      'mulatschakAutoCompleteRound': mulatschakAutoCompleteRound,
     };
   }
 
@@ -92,6 +99,10 @@ class RuleProfile {
       muleqackResetPoints: readInt(
         'muleqackResetPoints',
         defaults.muleqackResetPoints,
+      ),
+      mulatschakAutoCompleteRound: readBool(
+        'mulatschakAutoCompleteRound',
+        defaults.mulatschakAutoCompleteRound,
       ),
     );
   }

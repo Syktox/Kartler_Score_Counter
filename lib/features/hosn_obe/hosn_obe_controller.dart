@@ -118,6 +118,24 @@ class HosnObeController extends FeatureController {
     });
   }
 
+  /// Setzt das Lineup auf die gewählten Spieler („Wer spielt mit?“).
+  /// Bereits vorhandene Leben bleiben erhalten, neue Spieler starten mit
+  /// der Startanzahl an Leben.
+  void setLineup(List<String> playerIds) {
+    final nextLineup = <String, int>{};
+    for (final playerId in playerIds) {
+      nextLineup[playerId] = lineup.containsKey(playerId)
+          ? lineup[playerId]!
+          : _profile.hosnObeStartingLives;
+    }
+    _mutate(() {
+      lineup = nextLineup;
+      if (!nextLineup.containsKey(currentPlayerId)) {
+        currentPlayerId = nextLineup.isEmpty ? '' : nextLineup.keys.first;
+      }
+    });
+  }
+
   /// Fügt einen bestehenden globalen Spieler dem Lineup hinzu.
   Future<void> addPlayerToLineup(String playerId) async {
     if (lineup.containsKey(playerId)) {

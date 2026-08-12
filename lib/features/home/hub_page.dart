@@ -71,7 +71,9 @@ class HubPage extends StatelessWidget {
             subtitle: 'Wer die letzten Leben verliert, verliert die Partie.',
             onTap: () => onModeSelected(AppMode.hosnObe),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
+          const _SectionHeader(title: 'Freier Zähler'),
+          const SizedBox(height: 8),
           _ModeCard(
             icon: Icons.numbers,
             title: AppMode.counter.label,

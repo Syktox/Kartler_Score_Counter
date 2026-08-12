@@ -45,6 +45,7 @@ class BackupService {
     StorageKeys.appMode,
     StorageKeys.counterHistoryEnabled,
     StorageKeys.counterNegativeEnabled,
+    StorageKeys.wattenHistoryEnabled,
     StorageKeys.mulatschakHistoryEnabled,
     StorageKeys.ruleProfile,
   };
@@ -55,6 +56,7 @@ class BackupService {
     StorageKeys.counterHistory,
     StorageKeys.wattenLineup,
     StorageKeys.currentWattenGame,
+    StorageKeys.wattenHistory,
     StorageKeys.mulatschakLineup,
     StorageKeys.currentMulatschakPlayer,
     StorageKeys.mulatschakMultiplier,
@@ -74,6 +76,7 @@ class BackupService {
     StorageKeys.counterLineup,
     StorageKeys.counterHistory,
     StorageKeys.wattenLineup,
+    StorageKeys.wattenHistory,
     StorageKeys.mulatschakLineup,
     StorageKeys.mulatschakHistory,
     StorageKeys.mulatschakHistoryRound,

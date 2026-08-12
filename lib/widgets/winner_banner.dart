@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/winner_text.dart';
+
 class WinnerBanner extends StatelessWidget {
   final String winner;
   final bool compact;
@@ -23,7 +25,7 @@ class WinnerBanner extends StatelessWidget {
         ),
       ),
       child: Text(
-        '$winner gewinnt!',
+        WinnerText.sentence(winner),
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: compact ? 16 : 28,

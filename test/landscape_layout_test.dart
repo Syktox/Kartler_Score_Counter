@@ -78,33 +78,26 @@ void main() {
     await tester.pumpAndSettle();
     await dismissStartScreen(tester);
 
-    expect(find.text('Wir'), findsWidgets);
-    expect(find.text('Die'), findsWidgets);
+    expect(find.text('Ich'), findsWidgets);
+    expect(find.text('Du'), findsWidgets);
     expect(find.text('+2'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'drawer pins extra actions above the settings footer in portrait',
-    (tester) async {
-      await pumpApp(tester, prefs: counterPrefs());
-      await openDrawer(tester);
+  testWidgets('counter drawer has no extra navigation actions in portrait', (
+    tester,
+  ) async {
+    await pumpApp(tester, prefs: counterPrefs());
+    await openDrawer(tester);
 
-      final extraActionsBlock = find.byKey(
-        const ValueKey('drawer-extra-actions'),
-      );
-      final settingsFooter = find.byKey(
-        const ValueKey('drawer-settings-footer'),
-      );
+    final extraActionsBlock = find.byKey(
+      const ValueKey('drawer-extra-actions'),
+    );
+    final settingsFooter = find.byKey(const ValueKey('drawer-settings-footer'));
 
-      expect(extraActionsBlock, findsOneWidget);
-      expect(settingsFooter, findsOneWidget);
-      expect(
-        tester.getBottomRight(extraActionsBlock).dy,
-        lessThanOrEqualTo(tester.getTopLeft(settingsFooter).dy),
-      );
-    },
-  );
+    expect(extraActionsBlock, findsNothing);
+    expect(settingsFooter, findsOneWidget);
+  });
 
   testWidgets('settings page lays out sections side by side in landscape', (
     tester,

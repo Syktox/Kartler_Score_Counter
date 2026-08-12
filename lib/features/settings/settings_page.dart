@@ -302,16 +302,28 @@ class _SettingsPageState extends State<SettingsPage> {
         onChanged: settings.setCounterHistoryEnabled,
       ),
       SwitchListTile(
-        title: const Text('Negative Zähler erlauben'),
-        subtitle: const Text('Zähler dürfen unter null fallen.'),
-        value: settings.counterNegativeEnabled,
-        onChanged: settings.setCounterNegativeEnabled,
+        title: const Text('Watten-Verlauf'),
+        subtitle: const Text(
+          'Zeigt die letzten Punkteänderungen der beiden Seiten.',
+        ),
+        value: settings.wattenHistoryEnabled,
+        onChanged: settings.setWattenHistoryEnabled,
       ),
       SwitchListTile(
         title: const Text('Mulatschak-Verlauf'),
         subtitle: const Text('Zeigt die letzten Punkteänderungen der Spieler.'),
         value: settings.mulatschakHistoryEnabled,
         onChanged: settings.setMulatschakHistoryEnabled,
+      ),
+    ];
+
+    final counterSection = <Widget>[
+      const _SectionHeader(title: 'Zähler'),
+      SwitchListTile(
+        title: const Text('Negative Zähler erlauben'),
+        subtitle: const Text('Zähler dürfen unter null fallen.'),
+        value: settings.counterNegativeEnabled,
+        onChanged: settings.setCounterNegativeEnabled,
       ),
     ];
 
@@ -356,6 +368,18 @@ class _SettingsPageState extends State<SettingsPage> {
         hint: 'z. B. 50',
         controller: _muleqackResetController,
         onCommit: _commitMuleqackReset,
+      ),
+      SwitchListTile(
+        title: const Text('Mulatschak-Stiche automatisch erkennen'),
+        subtitle: const Text(
+          'Sobald 5 Stiche eingetragen sind, erhalten die übrigen Spieler automatisch +5.',
+        ),
+        value: profile.mulatschakAutoCompleteRound,
+        onChanged: (enabled) {
+          _commitProfile(
+            profile.copyWith(mulatschakAutoCompleteRound: enabled),
+          );
+        },
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -470,6 +494,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     children: [
                       ...historySection,
                       const Divider(),
+                      ...counterSection,
+                      const Divider(),
                       ...rulesSection,
                       const Divider(),
                       ...backupSection,
@@ -488,6 +514,8 @@ class _SettingsPageState extends State<SettingsPage> {
               ...appearanceSection,
               const Divider(),
               ...historySection,
+              const Divider(),
+              ...counterSection,
               const Divider(),
               ...rulesSection,
               const Divider(),

@@ -9,6 +9,7 @@ abstract final class StorageKeys {
   static const appMode = 'app_mode';
   static const counterHistoryEnabled = 'counter_history_enabled';
   static const counterNegativeEnabled = 'counter_negative_enabled';
+  static const wattenHistoryEnabled = 'watten_history_enabled';
   static const mulatschakHistoryEnabled = 'mulatschak_history_enabled';
   static const ruleProfile = 'rule_profile';
 
@@ -23,6 +24,9 @@ abstract final class StorageKeys {
   // Watten-Daten
   static const wattenLineup = 'watten_lineup';
   static const currentWattenGame = 'current_watten_game';
+  static const wattenTeamMe = 'watten_team_me';
+  static const wattenTeamYou = 'watten_team_you';
+  static const wattenHistory = 'watten_history';
 
   // Mulatschak-Daten
   static const mulatschakLineup = 'mulatschak_lineup';

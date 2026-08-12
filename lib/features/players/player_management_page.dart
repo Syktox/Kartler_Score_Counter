@@ -5,18 +5,21 @@ import '../../utils/name_utils.dart';
 import '../hosn_obe/hosn_obe_controller.dart';
 import '../mulatschak/mulatschak_controller.dart';
 import '../players/players_controller.dart';
+import '../watten/watten_controller.dart';
 
 /// Spielerverwaltung: globale Spieler anlegen, umbenennen und löschen.
 class PlayerManagementPage extends StatefulWidget {
   final PlayersController players;
   final MulatschakController mulatschak;
   final HosnObeController hosnObe;
+  final WattenController watten;
 
   const PlayerManagementPage({
     super.key,
     required this.players,
     required this.mulatschak,
     required this.hosnObe,
+    required this.watten,
   });
 
   @override
@@ -32,6 +35,10 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
     if (widget.hosnObe.lineup.containsKey(player.id)) {
       usage.add('Hosn Obe');
     }
+    if (widget.watten.meTeam.contains(player.id) ||
+        widget.watten.youTeam.contains(player.id)) {
+      usage.add('Watten');
+    }
     return usage;
   }
 
@@ -43,12 +50,7 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
         initialName: '',
         isValid: (name) => widget.players.isNameValid(name),
         onSubmit: (name) async {
-          final player = await widget.players.addPlayer(name);
-          if (player == null) {
-            return;
-          }
-          await widget.mulatschak.addPlayerToLineup(player.id);
-          await widget.hosnObe.addPlayerToLineup(player.id);
+          await widget.players.addPlayer(name);
         },
       ),
     );
@@ -93,6 +95,7 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
               onPressed: () {
                 widget.mulatschak.removePlayerFromLineup(player.id);
                 widget.hosnObe.removePlayerFromLineup(player.id);
+                widget.watten.removePlayerFromTeams(player.id);
                 widget.players.deletePlayer(player.id);
                 Navigator.of(dialogContext).pop();
               },
@@ -117,6 +120,7 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
             widget.players,
             widget.mulatschak,
             widget.hosnObe,
+            widget.watten,
           ]),
           builder: (context, _) {
             final players = widget.players.players;
@@ -137,7 +141,6 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
                               const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final player = players[index];
-                            final usage = _usageOf(player);
 
                             return Card(
                               elevation: 0,
@@ -160,10 +163,12 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
                                     ),
                                   ),
                                 ),
-                                title: Text(player.displayName),
-                                subtitle: usage.isEmpty
-                                    ? const Text('Nicht in einem Lineup')
-                                    : Text('In Lineup: ${usage.join(', ')}'),
+                                title: Text(
+                                  player.displayName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [

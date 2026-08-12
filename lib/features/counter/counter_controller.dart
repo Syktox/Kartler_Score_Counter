@@ -69,18 +69,34 @@ class CounterController extends FeatureController {
   }
 
   /// Setzt alle Zähler auf 0 (für „Partie abschließen“).
-  void resetBoard() {
-    if (counters.values.every((value) => value == 0)) {
+  void resetBoard({bool clearHistory = false}) {
+    final hasScores = counters.values.any((value) => value != 0);
+    final hasHistory = counterHistory.values.any(
+      (entries) => entries.isNotEmpty,
+    );
+    if (!hasScores && (!clearHistory || !hasHistory)) {
       return;
     }
-    _pushUndoable(() {
-      for (final name in counters.keys.toList()) {
-        if (counters[name] != 0) {
-          _applyScoreChange(name, 0, null, recordEntry: false);
+    final oldCounters = Map<String, int>.from(counters);
+    final oldHistory = Map<String, List<String>>.from(counterHistory);
+    _pushUndoable(
+      () {
+        counters = Map<String, int>.from(counters)
+          ..updateAll((key, value) => 0);
+        if (clearHistory) {
+          counterHistory = {};
         }
-      }
-      roundStartedAt = DateTime.now();
-    });
+        roundStartedAt = DateTime.now();
+        notifyListeners();
+        unawaited(_persist());
+      },
+      revert: () {
+        counters = oldCounters;
+        counterHistory = oldHistory;
+        notifyListeners();
+        unawaited(_persist());
+      },
+    );
   }
 
   void _changeScore(String counterName, int newValue, String action) {

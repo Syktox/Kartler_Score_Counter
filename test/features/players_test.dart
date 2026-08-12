@@ -73,7 +73,9 @@ void main() {
       );
     });
 
-    testWidgets('adds a player to the mulatschak lineup', (tester) async {
+    testWidgets('does not add new players to the lineups automatically', (
+      tester,
+    ) async {
       await pumpApp(tester, prefs: mulatschakPrefs());
 
       await openDrawer(tester);
@@ -89,8 +91,8 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
 
-      expect(find.text('Carla'), findsWidgets);
-      expect(find.text('21'), findsNWidgets(3));
+      expect(find.text('Carla'), findsNothing);
+      expect(find.text('21'), findsNWidgets(2));
     });
   });
 }

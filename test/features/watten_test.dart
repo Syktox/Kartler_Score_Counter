@@ -24,19 +24,19 @@ void main() {
         },
       );
 
-      expect(find.text('Wir gewinnt!'), findsNothing);
+      expect(find.text('Ich gewinnt!'), findsNothing);
 
       await tester.tap(find.text('+2'));
       await tester.pumpAndSettle();
 
       expect(find.text('12'), findsOneWidget);
-      expect(find.text('Wir gewinnt!'), findsOneWidget);
+      expect(find.text('Ich gewinnt!'), findsOneWidget);
 
       await tester.tap(find.text('Reset'));
       await tester.pumpAndSettle();
 
       expect(find.text('0'), findsOneWidget);
-      expect(find.text('Wir gewinnt!'), findsNothing);
+      expect(find.text('Ich gewinnt!'), findsNothing);
     });
 
     testWidgets('does not show a game title anymore', (tester) async {
@@ -67,10 +67,10 @@ void main() {
       expect(matches, hasLength(1));
       expect(matches.single['gameType'], 'watten');
       expect(matches.single['winnerLabel'], isNull);
-      expect(matches.single['standings'], {'Wir': 10, 'Die': 3});
+      expect(matches.single['standings'], {'Ich': 10, 'Du': 3});
 
       expect(find.text('0'), findsNWidgets(2));
-      expect(find.text('Wir gewinnt!'), findsNothing);
+      expect(find.text('Ich gewinnt!'), findsNothing);
       expect(find.text('Partie aufgezeichnet!'), findsOneWidget);
       expect(find.byType(SnackBar), findsNothing);
     });
@@ -93,7 +93,24 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final matches = jsonDecode(prefs.getString('match_history')!) as List;
       expect(matches, hasLength(1));
-      expect(matches.single['winnerLabel'], 'Wir');
+      expect(matches.single['winnerLabel'], 'Ich');
+    });
+
+    testWidgets('new game clears the score history', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: {...wattenPrefs(), 'watten_history_enabled': true},
+      );
+
+      await tester.tap(find.text('+2'));
+      await tester.pumpAndSettle();
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Neues Spiel'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(jsonDecode(prefs.getString('watten_history')!), isEmpty);
     });
 
     testWidgets('new game on an empty board does not record anything', (
@@ -130,13 +147,13 @@ void main() {
         },
       );
 
-      expect(find.text('Wir gewinnt!'), findsNothing);
+      expect(find.text('Ich gewinnt!'), findsNothing);
 
       await tester.tap(find.text('+2'));
       await tester.pumpAndSettle();
 
       expect(find.text('16'), findsOneWidget);
-      expect(find.text('Wir gewinnt!'), findsOneWidget);
+      expect(find.text('Ich gewinnt!'), findsOneWidget);
     });
 
     testWidgets('hides the table mode toggle in the portrait app bar', (

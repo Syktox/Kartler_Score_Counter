@@ -13,6 +13,8 @@ class WattenBody extends StatelessWidget {
   final WattenSide selectedSide;
   final String? winner;
   final bool tableMode;
+  final String meLabel;
+  final String youLabel;
   final ValueChanged<WattenSide> onSelectedSideChanged;
   final ValueChanged<int> onScoreChanged;
   final VoidCallback onResetSelectedSide;
@@ -25,11 +27,21 @@ class WattenBody extends StatelessWidget {
     required this.selectedSide,
     required this.winner,
     required this.tableMode,
+    required this.meLabel,
+    required this.youLabel,
     required this.onSelectedSideChanged,
     required this.onScoreChanged,
     required this.onResetSelectedSide,
     required this.onTableModeChanged,
   });
+
+  /// Anzeigename der Gewinnerseite (Team-Name statt „Wir“/„Die“).
+  String? get _displayWinner {
+    if (winner == null) {
+      return null;
+    }
+    return winner == WattenSide.me.label ? meLabel : youLabel;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,14 +63,14 @@ class WattenBody extends StatelessWidget {
           : CrossAxisAlignment.center,
       children: [
         _WattenSideCard(
-          title: WattenSide.me.label,
+          title: meLabel,
           score: currentGame.me,
           isSelected: selectedSide == WattenSide.me,
           fillHeight: isLandscape,
           onTap: () => onSelectedSideChanged(WattenSide.me),
         ),
         _WattenSideCard(
-          title: WattenSide.you.label,
+          title: youLabel,
           score: currentGame.you,
           isSelected: selectedSide == WattenSide.you,
           fillHeight: isLandscape,
@@ -84,18 +96,8 @@ class WattenBody extends StatelessWidget {
               width: 132,
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.compare_arrows),
-                        tooltip: 'Tischmodus',
-                        onPressed: () => onTableModeChanged(!tableMode),
-                      ),
-                    ],
-                  ),
-                  if (winner != null) ...[
-                    WinnerBanner(winner: winner!, compact: true),
+                  if (_displayWinner != null) ...[
+                    WinnerBanner(winner: _displayWinner!, compact: true),
                     const SizedBox(height: 6),
                   ],
                   Expanded(
@@ -119,7 +121,7 @@ class WattenBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (winner != null) WinnerBanner(winner: winner!),
+          if (_displayWinner != null) WinnerBanner(winner: _displayWinner!),
           const SizedBox(height: 8),
           Expanded(child: scoreCards),
           const SizedBox(height: 24),
@@ -143,6 +145,7 @@ class WattenBody extends StatelessWidget {
           Expanded(
             child: _TableSide(
               side: WattenSide.you,
+              title: youLabel,
               score: currentGame.you,
               rotated: true,
               isSelected: selectedSide == WattenSide.you,
@@ -165,6 +168,7 @@ class WattenBody extends StatelessWidget {
           Expanded(
             child: _TableSide(
               side: WattenSide.me,
+              title: meLabel,
               score: currentGame.me,
               rotated: false,
               isSelected: selectedSide == WattenSide.me,
@@ -191,6 +195,7 @@ class WattenBody extends StatelessWidget {
 
 class _TableSide extends StatelessWidget {
   final WattenSide side;
+  final String title;
   final int score;
   final bool rotated;
   final bool isSelected;
@@ -201,6 +206,7 @@ class _TableSide extends StatelessWidget {
 
   const _TableSide({
     required this.side,
+    required this.title,
     required this.score,
     required this.rotated,
     required this.isSelected,
@@ -218,7 +224,7 @@ class _TableSide extends StatelessWidget {
       children: [
         Expanded(
           child: ScoreCard(
-            title: side.label,
+            title: title,
             score: score,
             isSelected: isSelected,
             onTap: onSelect,

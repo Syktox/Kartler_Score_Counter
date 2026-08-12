@@ -13,8 +13,10 @@ class CounterDrawer extends StatelessWidget {
   final IconData addButtonIcon;
   final bool closeDrawerOnAdd;
   final bool enableReorder;
+  final bool showAddButton;
   final VoidCallback onAddNewItem;
   final String? secondaryActionLabel;
+  final String? secondaryActionSubtitle;
   final IconData? secondaryActionIcon;
   final VoidCallback? onSecondaryAction;
   final CounterNameCallback onSelectItem;
@@ -33,8 +35,10 @@ class CounterDrawer extends StatelessWidget {
     required this.addButtonIcon,
     this.closeDrawerOnAdd = true,
     this.enableReorder = false,
+    this.showAddButton = true,
     required this.onAddNewItem,
     this.secondaryActionLabel,
+    this.secondaryActionSubtitle,
     this.secondaryActionIcon,
     this.onSecondaryAction,
     required this.onSelectItem,
@@ -116,6 +120,7 @@ class CounterDrawer extends StatelessWidget {
   Widget _buildItemList() {
     final includeExtraInList = !pinExtraActions;
     final hasSecondaryAction = onSecondaryAction != null;
+    final leadingTiles = (showAddButton ? 1 : 0) + (hasSecondaryAction ? 1 : 0);
 
     return ClipRect(
       child: DragBoundary(
@@ -128,8 +133,7 @@ class CounterDrawer extends StatelessWidget {
           proxyDecorator: _buildReorderProxy,
           itemCount:
               items.length +
-              1 +
-              (hasSecondaryAction ? 1 : 0) +
+              leadingTiles +
               (includeExtraInList ? extraActions.length : 0),
           onReorderItem: (oldIndex, newIndex) {
             if (oldIndex >= items.length || newIndex >= items.length) {
@@ -140,7 +144,7 @@ class CounterDrawer extends StatelessWidget {
             }
           },
           itemBuilder: (context, index) {
-            if (index == items.length) {
+            if (showAddButton && index == items.length) {
               return ListTile(
                 key: const ValueKey('add-item-tile'),
                 focusColor: Colors.transparent,
@@ -156,12 +160,16 @@ class CounterDrawer extends StatelessWidget {
               );
             }
 
-            if (hasSecondaryAction && index == items.length + 1) {
+            if (hasSecondaryAction &&
+                index == items.length + (showAddButton ? 1 : 0)) {
               return ListTile(
                 key: const ValueKey('secondary-action-tile'),
                 focusColor: Colors.transparent,
                 leading: Icon(secondaryActionIcon),
                 title: Text(secondaryActionLabel!),
+                subtitle: secondaryActionSubtitle == null
+                    ? null
+                    : Text(secondaryActionSubtitle!),
                 onTap: () {
                   _clearDrawerFocus();
                   Navigator.of(context).pop();
@@ -171,8 +179,7 @@ class CounterDrawer extends StatelessWidget {
             }
 
             if (includeExtraInList) {
-              final extraIndex =
-                  index - items.length - 1 - (hasSecondaryAction ? 1 : 0);
+              final extraIndex = index - items.length - leadingTiles;
               if (extraIndex >= 0 && extraIndex < extraActions.length) {
                 return KeyedSubtree(
                   key: ValueKey('drawer-extra-action-$extraIndex'),

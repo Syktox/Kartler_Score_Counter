@@ -37,6 +37,7 @@ class V2RuleProfileMigration implements AppMigration {
         prefs.getInt(LegacyStorageKeys.muleqackResetPoints),
         defaults.muleqackResetPoints,
       ),
+      mulatschakAutoCompleteRound: defaults.mulatschakAutoCompleteRound,
     );
 
     await prefs.setString(

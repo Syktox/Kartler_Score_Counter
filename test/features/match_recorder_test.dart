@@ -131,8 +131,8 @@ void main() {
       expect(result, isNotNull);
       final match = result!;
       expect(match.winnerId, isNull);
-      expect(match.winnerLabel, 'Wir');
-      expect(match.finalStandings, {'Wir': 11, 'Die': 7});
+      expect(match.winnerLabel, 'Ich');
+      expect(match.finalStandings, {'Ich': 11, 'Du': 7});
       expect(watten.games[watten.currentGame]!.me, 11);
     },
   );
