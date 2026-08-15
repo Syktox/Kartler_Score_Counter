@@ -24,6 +24,7 @@ class ScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final borderRadius = BorderRadius.circular(compact ? 16 : 20);
     final titleSize = compact ? 18.0 : 24.0;
     final scoreSize = compact ? 42.0 : 64.0;
@@ -40,14 +41,12 @@ class ScoreCard extends StatelessWidget {
             : const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.white.withValues(alpha: 0.18)
+              ? colorScheme.primaryContainer.withValues(alpha: 0.65)
               : Colors.transparent,
           borderRadius: borderRadius,
           border: Border.all(
-            color: isSelected
-                ? Colors.white.withValues(alpha: 0.45)
-                : Theme.of(context).dividerColor,
-            width: isSelected ? 2 : 1,
+            color: isSelected ? colorScheme.primary : colorScheme.outline,
+            width: isSelected ? 2 : 1.25,
           ),
         ),
         child: Column(

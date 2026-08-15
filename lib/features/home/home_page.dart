@@ -668,7 +668,7 @@ class _HomePageState extends State<HomePage> {
       title: Text(widget.appMode.label),
       actions: [
         if (widget.appMode == AppMode.watten &&
-            MediaQuery.orientationOf(context) == Orientation.landscape)
+            ResponsiveUtils.isHandsetLandscape(MediaQuery.sizeOf(context)))
           IconButton(
             icon: Icon(
               _watten.tableMode

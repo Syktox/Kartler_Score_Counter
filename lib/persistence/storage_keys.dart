@@ -35,6 +35,9 @@ abstract final class StorageKeys {
   static const mulatschakHistory = 'mulatschak_history';
   static const mulatschakHistoryRound = 'mulatschak_history_round';
   static const mulatschakRoundPlayers = 'mulatschak_round_players';
+  static const mulatschakRoundTricks = 'mulatschak_round_tricks';
+  static const mulatschakRoundAutoSuppressed =
+      'mulatschak_round_auto_suppressed';
 
   // Hosn-Obe-Daten
   static const hosnObeLineup = 'hosn_obe_lineup';

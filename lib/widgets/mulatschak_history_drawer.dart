@@ -30,7 +30,9 @@ class MulatschakHistoryDrawer extends StatelessWidget {
             const ListTile(
               leading: Icon(Icons.history),
               title: Text('Mulatschak-Verlauf'),
-              subtitle: Text('Spielerwechsel nach Runden'),
+              subtitle: Text(
+                'Neue Runde, sobald alle Spieler Punkte erhalten haben',
+              ),
             ),
             const Divider(),
             Expanded(

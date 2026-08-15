@@ -141,7 +141,6 @@ class MulatschakHelper {
 
   static ({List<String> history, Set<String> roundPlayers, int historyRound})
   recordHistory({
-    required bool enabled,
     required List<String> history,
     required Map<String, int> players,
     required Set<String> roundPlayers,
@@ -149,7 +148,7 @@ class MulatschakHelper {
     required String playerName,
     required int points,
   }) {
-    if (!enabled || points == 0) {
+    if (points == 0) {
       return (
         history: history,
         roundPlayers: roundPlayers,

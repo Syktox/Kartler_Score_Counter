@@ -60,7 +60,7 @@ void main() {
       await pumpApp(tester, prefs: counterPrefs());
 
       await openSettings(tester);
-      await tester.tap(find.text('Zähler-Verlauf'));
+      await tester.tap(find.text('Zähler-Verlauf anzeigen'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Negative Zähler erlauben'));
       await tester.pumpAndSettle();
@@ -77,10 +77,10 @@ void main() {
 
       await openSettings(tester);
       expect(find.text('Verlauf'), findsOneWidget);
-      expect(find.text('Watten-Verlauf'), findsOneWidget);
+      expect(find.text('Watten-Verlauf anzeigen'), findsOneWidget);
       expect(find.text('Zähler'), findsAtLeastNWidgets(2));
 
-      await tester.tap(find.text('Watten-Verlauf'));
+      await tester.tap(find.text('Watten-Verlauf anzeigen'));
       await tester.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();

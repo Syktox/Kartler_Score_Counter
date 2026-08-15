@@ -33,7 +33,6 @@ class CounterController extends FeatureController {
   Map<String, List<String>> counterHistory = {};
   DateTime roundStartedAt = DateTime.now();
 
-  bool get historyEnabled => _settings.counterHistoryEnabled;
   bool get negativeEnabled => _settings.counterNegativeEnabled;
 
   @override
@@ -134,14 +133,11 @@ class CounterController extends FeatureController {
     if (entry == null) {
       // Kein Verlaufseintrag (z. B. Reset von Mehreren).
     } else if (recordEntry) {
-      if (historyEnabled) {
-        counterHistory = CounterHelper.recordHistory(
-          enabled: true,
-          history: counterHistory,
-          counterName: counterName,
-          entry: entry,
-        );
-      }
+      counterHistory = CounterHelper.recordHistory(
+        history: counterHistory,
+        counterName: counterName,
+        entry: entry,
+      );
     } else {
       counterHistory = _removeFirstHistoryEntry(
         counterHistory,

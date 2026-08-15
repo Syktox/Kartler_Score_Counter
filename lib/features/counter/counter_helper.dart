@@ -15,15 +15,10 @@ class CounterHelper {
   }
 
   static Map<String, List<String>> recordHistory({
-    required bool enabled,
     required Map<String, List<String>> history,
     required String counterName,
     required String entry,
   }) {
-    if (!enabled) {
-      return history;
-    }
-
     final currentHistory = history[counterName] ?? const <String>[];
 
     return Map<String, List<String>>.from(history)
@@ -35,14 +30,12 @@ class CounterHelper {
     required Map<String, int> counters,
     required Map<String, List<String>> history,
     required String currentCounter,
-    required bool historyEnabled,
     required int score,
     required String entry,
   }) {
     return (
       counters: Map<String, int>.from(counters)..[currentCounter] = score,
       history: recordHistory(
-        enabled: historyEnabled,
         history: history,
         counterName: currentCounter,
         entry: entry,

@@ -63,6 +63,8 @@ class BackupService {
     StorageKeys.mulatschakHistory,
     StorageKeys.mulatschakHistoryRound,
     StorageKeys.mulatschakRoundPlayers,
+    StorageKeys.mulatschakRoundTricks,
+    StorageKeys.mulatschakRoundAutoSuppressed,
     StorageKeys.hosnObeLineup,
     StorageKeys.currentHosnObePlayer,
   };
@@ -81,6 +83,7 @@ class BackupService {
     StorageKeys.mulatschakHistory,
     StorageKeys.mulatschakHistoryRound,
     StorageKeys.mulatschakRoundPlayers,
+    StorageKeys.mulatschakRoundTricks,
     StorageKeys.hosnObeLineup,
   };
 

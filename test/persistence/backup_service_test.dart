@@ -37,6 +37,8 @@ Map<String, Object> _populatedPrefs() {
     'app_mode': 'mulatschak',
     'counter_lineup': jsonEncode({'Punkte': 12}),
     'current_counter': 'Punkte',
+    'mulatschak_round_tricks': jsonEncode({'p1': 2}),
+    'mulatschak_round_auto_suppressed': true,
     'rule_profile': jsonEncode({
       'wattenWinningScore': 15,
       'mulatschakStartingScore': 21,
@@ -69,6 +71,8 @@ void main() {
       expect(values['match_history'], isA<String>());
       expect(values['app_mode'], 'mulatschak');
       expect(values['counter_lineup'], isA<String>());
+      expect(values['mulatschak_round_tricks'], contains('"p1":2'));
+      expect(values['mulatschak_round_auto_suppressed'], isTrue);
       expect(values.containsKey('schema_version'), isFalse);
     });
   });
@@ -89,6 +93,8 @@ void main() {
       expect(prefs.getString('match_history'), contains('m1'));
       expect(prefs.getString('counter_lineup'), contains('Punkte'));
       expect(prefs.getString('current_counter'), 'Punkte');
+      expect(prefs.getString('mulatschak_round_tricks'), contains('"p1":2'));
+      expect(prefs.getBool('mulatschak_round_auto_suppressed'), isTrue);
     });
 
     test(

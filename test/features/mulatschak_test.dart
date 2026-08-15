@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kartler/models/mulatschak_history_entry.dart';
+import 'package:kartler/widgets/score_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/pump_app.dart';
@@ -31,10 +33,52 @@ Map<String, Object> mulatschakAutoCompleteProfilePrefs() {
   };
 }
 
+Finder playerScore(String playerName, int score) {
+  return find.descendant(
+    of: find.widgetWithText(ScoreCard, playerName),
+    matching: find.text('$score'),
+  );
+}
+
+Future<void> tapScoreButton(WidgetTester tester, String label) async {
+  await tester.tap(find.text(label));
+  await tester.pumpAndSettle();
+  expect(tester.takeException(), isNull);
+}
+
+Future<List<MulatschakHistoryEntry>> storedMulatschakHistory() async {
+  final prefs = await SharedPreferences.getInstance();
+  final encoded = jsonDecode(prefs.getString('mulatschak_history')!) as List;
+  return encoded
+      .cast<String>()
+      .map(MulatschakHistoryEntry.decode)
+      .whereType<MulatschakHistoryEntry>()
+      .toList(growable: false);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Mulatschak mode', () {
+    for (final scenario in const [
+      (button: '-1', expectedScore: 20),
+      (button: '+1', expectedScore: 22),
+      (button: '-5', expectedScore: 16),
+      (button: '+5', expectedScore: 26),
+    ]) {
+      testWidgets(
+        'applies ${scenario.button} without automatic detection safely',
+        (tester) async {
+          await pumpApp(tester, prefs: mulatschakPrefs());
+
+          await tapScoreButton(tester, scenario.button);
+
+          expect(playerScore('Anna', scenario.expectedScore), findsOneWidget);
+          expect(await storedMulatschakHistory(), hasLength(1));
+        },
+      );
+    }
+
     testWidgets('supports multiplier-based scoring and winner display', (
       tester,
     ) async {
@@ -103,6 +147,200 @@ void main() {
 
       expect(find.text('16'), findsOneWidget);
       expect(find.text('26'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('counts tricks independently from the score multiplier', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {...mulatschakPrefs(), ...mulatschakAutoCompleteProfilePrefs()},
+      );
+
+      await tester.tap(find.byKey(const Key('mulatschakMultiplierButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('2x'));
+      await tester.pumpAndSettle();
+
+      for (var index = 0; index < 3; index++) {
+        await tapScoreButton(tester, '-1');
+      }
+      expect(playerScore('Anna', 15), findsOneWidget);
+      expect(playerScore('Ben', 21), findsOneWidget);
+
+      for (var index = 0; index < 2; index++) {
+        await tapScoreButton(tester, '-1');
+      }
+      expect(playerScore('Anna', 11), findsOneWidget);
+      expect(playerScore('Ben', 31), findsOneWidget);
+    });
+
+    testWidgets('+1 marks a passed player and excludes them from auto +5', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...threePlayerMulatschakPrefs(),
+          ...mulatschakAutoCompleteProfilePrefs(),
+        },
+      );
+
+      await tapScoreButton(tester, '+1');
+      await tester.tap(find.text('Ben'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '-5');
+
+      expect(playerScore('Anna', 22), findsOneWidget);
+      expect(playerScore('Ben', 16), findsOneWidget);
+      expect(playerScore('Carla', 26), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('safely completes a round when trick input exceeds five', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {...mulatschakPrefs(), ...mulatschakAutoCompleteProfilePrefs()},
+      );
+
+      await tapScoreButton(tester, '-1');
+      await tapScoreButton(tester, '-5');
+
+      expect(playerScore('Anna', 15), findsOneWidget);
+      expect(playerScore('Ben', 26), findsOneWidget);
+      final prefs = await SharedPreferences.getInstance();
+      expect(jsonDecode(prefs.getString('mulatschak_round_tricks')!), isEmpty);
+    });
+
+    testWidgets('restores partial automatic trick detection after a restart', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {...mulatschakPrefs(), ...mulatschakAutoCompleteProfilePrefs()},
+      );
+
+      await tapScoreButton(tester, '-1');
+      await tapScoreButton(tester, '-1');
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(jsonDecode(prefs.getString('mulatschak_round_tricks')!), {
+        'p1': 2,
+      });
+      final persistedValues = <String, Object>{
+        for (final key in prefs.getKeys()) key: prefs.get(key)!,
+      };
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await pumpApp(tester, prefs: persistedValues);
+
+      for (var index = 0; index < 3; index++) {
+        await tapScoreButton(tester, '-1');
+      }
+      expect(playerScore('Anna', 16), findsOneWidget);
+      expect(playerScore('Ben', 26), findsOneWidget);
+    });
+
+    testWidgets('restores a suppressed automatic round after a restart', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...threePlayerMulatschakPrefs(),
+          ...mulatschakAutoCompleteProfilePrefs(),
+        },
+      );
+
+      await tapScoreButton(tester, '+5');
+      final prefs = await SharedPreferences.getInstance();
+      final persistedValues = <String, Object>{
+        for (final key in prefs.getKeys()) key: prefs.get(key)!,
+      };
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await pumpApp(tester, prefs: persistedValues);
+
+      await tester.tap(find.text('Ben'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '-5');
+
+      expect(playerScore('Anna', 26), findsOneWidget);
+      expect(playerScore('Ben', 16), findsOneWidget);
+      expect(playerScore('Carla', 21), findsOneWidget);
+      expect(
+        (await SharedPreferences.getInstance()).getBool(
+          'mulatschak_round_auto_suppressed',
+        ),
+        isTrue,
+      );
+    });
+
+    testWidgets('undo and redo restore an auto-completed round atomically', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {...mulatschakPrefs(), ...mulatschakAutoCompleteProfilePrefs()},
+      );
+
+      await tapScoreButton(tester, '-5');
+      expect(playerScore('Anna', 16), findsOneWidget);
+      expect(playerScore('Ben', 26), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Rückgängig'));
+      await tester.pumpAndSettle();
+      expect(playerScore('Anna', 21), findsOneWidget);
+      expect(playerScore('Ben', 21), findsOneWidget);
+      expect(await storedMulatschakHistory(), isEmpty);
+
+      await tester.tap(find.byTooltip('Wiederholen'));
+      await tester.pumpAndSettle();
+      expect(playerScore('Anna', 16), findsOneWidget);
+      expect(playerScore('Ben', 26), findsOneWidget);
+      expect(await storedMulatschakHistory(), hasLength(2));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('undo followed by tricks elsewhere stays in the same round', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...threePlayerMulatschakPrefs(),
+          ...mulatschakAutoCompleteProfilePrefs(),
+        },
+      );
+
+      await tapScoreButton(tester, '-1');
+      await tester.tap(find.text('Ben'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '-1');
+
+      await tester.tap(find.byTooltip('Rückgängig'));
+      await tester.pumpAndSettle();
+      expect(playerScore('Ben', 21), findsOneWidget);
+
+      await tester.tap(find.text('Carla'));
+      await tester.pumpAndSettle();
+      for (var index = 0; index < 4; index++) {
+        await tapScoreButton(tester, '-1');
+      }
+
+      expect(playerScore('Anna', 20), findsOneWidget);
+      expect(playerScore('Ben', 26), findsOneWidget);
+      expect(playerScore('Carla', 17), findsOneWidget);
+      final storedHistory = await storedMulatschakHistory();
+      expect(storedHistory, isNotEmpty);
+      expect(storedHistory.every((entry) => entry.round == 1), isTrue);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt('mulatschak_history_round'), 2);
     });
 
     testWidgets('automatically completes a split five-trick round', (
@@ -136,7 +374,7 @@ void main() {
       expect(find.text('Runde vervollständigen'), findsNothing);
     });
 
-    testWidgets('keeps a failed caller at +5 while counting their tricks', (
+    testWidgets('+5 first suppresses auto tricks until the round is complete', (
       tester,
     ) async {
       await pumpApp(
@@ -150,43 +388,108 @@ void main() {
       await tester.tap(find.text('+5'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('-1'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('-1'));
-      await tester.pumpAndSettle();
-
       await tester.tap(find.text('Ben'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('-1'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('-1'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('-1'));
+      await tester.tap(find.text('-5'));
       await tester.pumpAndSettle();
 
-      expect(find.text('18'), findsOneWidget);
-      expect(find.text('26'), findsNWidgets(2));
+      expect(playerScore('Anna', 26), findsOneWidget);
+      expect(playerScore('Ben', 16), findsOneWidget);
+      expect(playerScore('Carla', 21), findsOneWidget);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('mulatschak_round_auto_suppressed'), isTrue);
+
+      await tester.tap(find.text('Carla'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '+1');
+      expect(prefs.getBool('mulatschak_round_auto_suppressed'), isFalse);
+
+      await tester.tap(find.text('Anna'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '-5');
+
+      expect(playerScore('Anna', 21), findsOneWidget);
+      expect(playerScore('Ben', 21), findsOneWidget);
+      expect(playerScore('Carla', 27), findsOneWidget);
     });
 
-    testWidgets('shows history grouped by completed rounds', (tester) async {
-      await pumpApp(
-        tester,
-        prefs: {...mulatschakPrefs(), 'mulatschak_history_enabled': true},
-      );
+    testWidgets('always records history and only hides its presentation', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: mulatschakPrefs());
 
-      await tester.tap(find.text('+1'));
-      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '+1');
 
-      await tester.tap(find.text('Ben'));
+      expect(find.byTooltip('Mulatschak-Verlauf'), findsNothing);
+      final historyBeforeEnabling = await storedMulatschakHistory();
+      expect(historyBeforeEnabling, hasLength(1));
+      expect(historyBeforeEnabling.single.playerName, 'Anna');
+      expect(historyBeforeEnabling.single.points, 1);
+
+      await openSettings(tester);
+      await tester.ensureVisible(find.text('Mulatschak-Verlauf anzeigen'));
+      await tester.tap(find.text('Mulatschak-Verlauf anzeigen'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('+1'));
+      await tester.pageBack();
       await tester.pumpAndSettle();
 
       await tester.tap(find.byTooltip('Mulatschak-Verlauf'));
       await tester.pumpAndSettle();
+      expect(find.text('Anna'), findsWidgets);
+      expect(find.text('+1 Punkte'), findsOneWidget);
+    });
 
-      expect(find.textContaining('Anna'), findsWidgets);
-      expect(find.textContaining('Ben'), findsWidgets);
+    testWidgets('groups history after every player received new points', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...threePlayerMulatschakPrefs(),
+          'mulatschak_history_enabled': true,
+        },
+      );
+
+      await tapScoreButton(tester, '+1');
+      await tapScoreButton(tester, '+1');
+      await tester.tap(find.text('Ben'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '-1');
+      await tester.tap(find.text('Carla'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '+5');
+
+      await tester.tap(find.text('Anna'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '-5');
+      await tester.tap(find.text('Ben'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '+1');
+      await tester.tap(find.text('Carla'));
+      await tester.pumpAndSettle();
+      await tapScoreButton(tester, '-1');
+
+      final history = await storedMulatschakHistory();
+      expect(history.map((entry) => entry.round), [1, 1, 1, 1, 2, 2, 2]);
+
+      await tester.tap(find.byTooltip('Mulatschak-Verlauf'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Runde 1'), findsOneWidget);
+      expect(find.text('Runde 2'), findsOneWidget);
+      final historyDrawer = find.byType(Drawer);
+      expect(
+        find.descendant(of: historyDrawer, matching: find.text('Anna')),
+        findsNWidgets(3),
+      );
+      expect(
+        find.descendant(of: historyDrawer, matching: find.text('Ben')),
+        findsNWidgets(2),
+      );
+      expect(
+        find.descendant(of: historyDrawer, matching: find.text('Carla')),
+        findsNWidgets(2),
+      );
     });
 
     testWidgets('supports undo of score changes', (tester) async {

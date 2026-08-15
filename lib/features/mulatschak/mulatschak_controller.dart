@@ -39,10 +39,9 @@ class MulatschakController extends FeatureController {
   int historyRound = MulatschakRepository.defaultHistoryRound;
   Set<String> roundPlayerIds = {};
   Map<String, int> _roundTricksByPlayer = {};
-  Set<String> _roundPenaltyPlayerIds = {};
+  bool _roundAutoCompletionSuppressed = false;
   DateTime roundStartedAt = DateTime.now();
 
-  bool get historyEnabled => _settings.mulatschakHistoryEnabled;
   bool get autoCompleteRoundEnabled =>
       _settings.ruleProfile.mulatschakAutoCompleteRound;
   RuleProfile get _profile => _settings.ruleProfile;
@@ -56,8 +55,8 @@ class MulatschakController extends FeatureController {
     historyEntries = data.history;
     historyRound = data.historyRound;
     roundPlayerIds = Set<String>.from(data.roundPlayerIds);
-    _roundTricksByPlayer = {};
-    _roundPenaltyPlayerIds = {};
+    _roundTricksByPlayer = Map<String, int>.from(data.roundTricksByPlayer);
+    _roundAutoCompletionSuppressed = data.roundAutoCompletionSuppressed;
     roundStartedAt = DateTime.now();
     isLoading = false;
   }
@@ -80,25 +79,20 @@ class MulatschakController extends FeatureController {
   }
 
   void changeScore(int baseDelta) {
-    if (currentPlayerId.isEmpty) {
+    final playerId = currentPlayerId;
+    final oldValue = lineup[playerId];
+    if (playerId.isEmpty || oldValue == null) {
       return;
     }
-    final oldValue = lineup[currentPlayerId]!;
-    final countsOnly =
-        autoCompleteRoundEnabled &&
-        baseDelta < 0 &&
-        _roundPenaltyPlayerIds.contains(currentPlayerId);
-    final nextValue = countsOnly
-        ? oldValue
-        : MulatschakHelper.nextScore(
-            currentValue: oldValue,
-            baseDelta: baseDelta,
-            multiplier: multiplier,
-            muleqackEnabled: _profile.muleqackEnabled,
-            triggerPoints: _profile.muleqackTriggerPoints,
-            resetPoints: _profile.muleqackResetPoints,
-          );
-    if (nextValue == oldValue && !countsOnly) {
+    final nextValue = MulatschakHelper.nextScore(
+      currentValue: oldValue,
+      baseDelta: baseDelta,
+      multiplier: multiplier,
+      muleqackEnabled: _profile.muleqackEnabled,
+      triggerPoints: _profile.muleqackTriggerPoints,
+      resetPoints: _profile.muleqackResetPoints,
+    );
+    if (nextValue == oldValue) {
       return;
     }
     final wasWinner = winner() != null;
@@ -107,21 +101,19 @@ class MulatschakController extends FeatureController {
       history.execute(
         _AutoCompletingScoreChanged(
           controller: this,
-          playerId: currentPlayerId,
+          playerId: playerId,
           oldValue: oldValue,
           newValue: nextValue,
           changeTime: changeTime,
-          trickCount: baseDelta < 0
-              ? (baseDelta == -5 ? 5 : -baseDelta * multiplier)
-              : 0,
+          baseDelta: baseDelta,
         ),
       );
     } else {
-      _roundTricksByPlayer = {};
+      _resetAutomaticRoundState();
       history.execute(
         _ScoreChanged(
           controller: this,
-          playerId: currentPlayerId,
+          playerId: playerId,
           oldValue: oldValue,
           newValue: nextValue,
           changeTime: changeTime,
@@ -157,7 +149,7 @@ class MulatschakController extends FeatureController {
     final oldRound = historyRound;
     final oldRoundPlayers = Set<String>.from(roundPlayerIds);
     final oldRoundTricks = Map<String, int>.from(_roundTricksByPlayer);
-    final oldRoundPenalties = Set<String>.from(_roundPenaltyPlayerIds);
+    final oldRoundAutoSuppressed = _roundAutoCompletionSuppressed;
     _pushUndoable(
       () {
         if (clearHistory) {
@@ -166,8 +158,7 @@ class MulatschakController extends FeatureController {
           historyEntries = [];
           historyRound = MulatschakRepository.defaultHistoryRound;
           roundPlayerIds = {};
-          _roundTricksByPlayer = {};
-          _roundPenaltyPlayerIds = {};
+          _resetAutomaticRoundState();
           notifyListeners();
           unawaited(_persist());
         } else {
@@ -184,9 +175,9 @@ class MulatschakController extends FeatureController {
             }
           }
         }
-        _roundTricksByPlayer = {};
-        _roundPenaltyPlayerIds = {};
+        _resetAutomaticRoundState();
         roundStartedAt = DateTime.now();
+        unawaited(_persist());
       },
       revert: () {
         lineup = oldLineup;
@@ -194,7 +185,7 @@ class MulatschakController extends FeatureController {
         historyRound = oldRound;
         roundPlayerIds = oldRoundPlayers;
         _roundTricksByPlayer = oldRoundTricks;
-        _roundPenaltyPlayerIds = oldRoundPenalties;
+        _roundAutoCompletionSuppressed = oldRoundAutoSuppressed;
         notifyListeners();
         unawaited(_persist());
       },
@@ -212,13 +203,17 @@ class MulatschakController extends FeatureController {
       roundPlayerIds = Set<String>.from(roundPlayerIds)..remove(playerId);
       _roundTricksByPlayer = Map<String, int>.from(_roundTricksByPlayer)
         ..remove(playerId);
-      _roundPenaltyPlayerIds = Set<String>.from(_roundPenaltyPlayerIds)
-        ..remove(playerId);
       if (currentPlayerId == playerId) {
         currentPlayerId = lineup.isEmpty ? '' : lineup.keys.first;
       }
       if (lineup.isEmpty) {
         historyRound = MulatschakRepository.defaultHistoryRound;
+        roundPlayerIds = {};
+        _resetAutomaticRoundState();
+      } else if (roundPlayerIds.length >= lineup.length) {
+        historyRound += 1;
+        roundPlayerIds = {};
+        _resetAutomaticRoundState();
       }
     });
   }
@@ -243,11 +238,17 @@ class MulatschakController extends FeatureController {
           (entry) => nextLineup.containsKey(entry.key),
         ),
       );
-      _roundPenaltyPlayerIds = Set<String>.from(
-        _roundPenaltyPlayerIds.where(nextLineup.containsKey),
-      );
       if (!nextLineup.containsKey(currentPlayerId)) {
         currentPlayerId = nextLineup.isEmpty ? '' : nextLineup.keys.first;
+      }
+      if (nextLineup.isEmpty) {
+        historyRound = MulatschakRepository.defaultHistoryRound;
+        roundPlayerIds = {};
+        _resetAutomaticRoundState();
+      } else if (roundPlayerIds.length >= nextLineup.length) {
+        historyRound += 1;
+        roundPlayerIds = {};
+        _resetAutomaticRoundState();
       }
     });
   }
@@ -267,8 +268,6 @@ class MulatschakController extends FeatureController {
       currentPlayerId = result.currentPlayer;
       roundPlayerIds = result.roundPlayers;
       _roundTricksByPlayer = Map<String, int>.from(_roundTricksByPlayer)
-        ..remove(playerId);
-      _roundPenaltyPlayerIds = Set<String>.from(_roundPenaltyPlayerIds)
         ..remove(playerId);
     });
   }
@@ -298,10 +297,6 @@ class MulatschakController extends FeatureController {
         _roundTricksByPlayer = Map<String, int>.from(_roundTricksByPlayer)
           ..[newId] = tricks;
       }
-      if (_roundPenaltyPlayerIds.remove(oldId)) {
-        _roundPenaltyPlayerIds = Set<String>.from(_roundPenaltyPlayerIds)
-          ..add(newId);
-      }
     });
   }
 
@@ -325,23 +320,23 @@ class MulatschakController extends FeatureController {
     var nextHistory = historyEntries;
     var nextRound = historyRound;
     var nextRoundPlayers = Set<String>.from(roundPlayerIds);
+    var completedRound = false;
 
     if (points != 0) {
       nextRoundPlayers = Set<String>.from(roundPlayerIds)..add(playerId);
       if (nextRoundPlayers.length >= lineup.length) {
         nextRound += 1;
         nextRoundPlayers = {};
+        completedRound = true;
       }
-      if (historyEnabled) {
-        final entry = MulatschakHistoryEntry(
-          round: historyRound,
-          time: HistoryUtils.formatTime(changeTime),
-          playerName: _players.displayName(playerId),
-          points: points,
-        ).encode();
-        nextHistory = [...historyEntries, entry];
-        addedEntry = entry;
-      }
+      final entry = MulatschakHistoryEntry(
+        round: historyRound,
+        time: HistoryUtils.formatTime(changeTime),
+        playerName: _players.displayName(playerId),
+        points: points,
+      ).encode();
+      nextHistory = [...historyEntries, entry];
+      addedEntry = entry;
     }
 
     historyEntries = nextHistory;
@@ -354,6 +349,7 @@ class MulatschakController extends FeatureController {
       addedEntry: addedEntry,
       previousRound: previousRound,
       previousRoundPlayers: previousRoundPlayers,
+      completedRound: completedRound,
     );
   }
 
@@ -378,59 +374,102 @@ class MulatschakController extends FeatureController {
     required int oldValue,
     required int newValue,
     required DateTime changeTime,
-    required int trickCount,
+    required int baseDelta,
   }) {
-    if (trickCount == 0) {
-      _roundPenaltyPlayerIds = Set<String>.from(_roundPenaltyPlayerIds)
-        ..add(playerId);
-    }
-    _applyScore(playerId, newValue, changeTime, (_) => newValue - oldValue);
+    final isFirstScoreForPlayer = !roundPlayerIds.contains(playerId);
 
-    if (trickCount > 0) {
+    // +5 als erster Eintrag eines Spielers bedeutet „gefallen“. In dieser
+    // Runde werden deshalb keine Punkte mehr automatisch vergeben.
+    if (baseDelta == 5 && isFirstScoreForPlayer) {
+      _roundAutoCompletionSuppressed = true;
+      _roundTricksByPlayer = {};
+    }
+
+    final scoreRecord = _applyScore(
+      playerId,
+      newValue,
+      changeTime,
+      (_) => newValue - oldValue,
+    );
+    if (scoreRecord.completedRound) {
+      _resetAutomaticRoundState();
+      unawaited(_persist());
+      return;
+    }
+
+    // +1 bedeutet „gegangen“ und ist kein Stich. Der Spieler hat damit seine
+    // neuen Rundenpunkte bereits erhalten und wird bei automatischem +5 über
+    // [roundPlayerIds] nicht mehr berücksichtigt.
+    if (baseDelta == 1) {
+      _roundTricksByPlayer = Map<String, int>.from(_roundTricksByPlayer)
+        ..remove(playerId);
+    }
+
+    if (_roundAutoCompletionSuppressed) {
+      unawaited(_persist());
+      return;
+    }
+
+    final trickDelta = switch (baseDelta) {
+      -5 => 5,
+      -1 => 1,
+      _ => 0,
+    };
+    if (trickDelta > 0) {
       _roundTricksByPlayer = Map<String, int>.from(_roundTricksByPlayer)
         ..update(
           playerId,
-          (tricks) => tricks + trickCount,
-          ifAbsent: () => trickCount,
+          (tricks) => tricks + trickDelta,
+          ifAbsent: () => trickDelta,
         );
+    }
 
-      final totalTricks = _roundTricksByPlayer.values.fold<int>(
-        0,
-        (sum, tricks) => sum + tricks,
-      );
-      if (totalTricks == 5) {
-        final trickPlayers = _roundTricksByPlayer.keys.toSet();
-        for (final otherPlayerId in lineup.keys.toList()) {
-          if (trickPlayers.contains(otherPlayerId) ||
-              _roundPenaltyPlayerIds.contains(otherPlayerId)) {
-            continue;
-          }
-          final otherOldValue = lineup[otherPlayerId]!;
-          final otherNewValue = MulatschakHelper.nextScore(
-            currentValue: otherOldValue,
-            baseDelta: 5,
-            multiplier: multiplier,
-            muleqackEnabled: _profile.muleqackEnabled,
-            triggerPoints: _profile.muleqackTriggerPoints,
-            resetPoints: _profile.muleqackResetPoints,
-          );
-          _applyScore(
-            otherPlayerId,
-            otherNewValue,
-            changeTime,
-            (_) => otherNewValue - otherOldValue,
-          );
+    final totalTricks = _roundTricksByPlayer.values.fold<int>(
+      0,
+      (sum, tricks) => sum + tricks,
+    );
+    if (totalTricks >= 5) {
+      final roundBeforeAutoCompletion = historyRound;
+      final playersAwaitingPoints = lineup.keys
+          .where((playerId) => !roundPlayerIds.contains(playerId))
+          .toList(growable: false);
+      for (final otherPlayerId in playersAwaitingPoints) {
+        final otherOldValue = lineup[otherPlayerId];
+        if (otherOldValue == null) {
+          continue;
         }
-        _roundTricksByPlayer = {};
-        _roundPenaltyPlayerIds = {};
-        return;
+        final otherNewValue = MulatschakHelper.nextScore(
+          currentValue: otherOldValue,
+          baseDelta: 5,
+          multiplier: multiplier,
+          muleqackEnabled: _profile.muleqackEnabled,
+          triggerPoints: _profile.muleqackTriggerPoints,
+          resetPoints: _profile.muleqackResetPoints,
+        );
+        _applyScore(
+          otherPlayerId,
+          otherNewValue,
+          changeTime,
+          (_) => otherNewValue - otherOldValue,
+        );
       }
+      _resetAutomaticRoundState();
+      if (historyRound == roundBeforeAutoCompletion) {
+        // Ein Sonderfall wie ein Muleqack-Reset kann denselben Punktestand
+        // ergeben. Dann bleibt es dieselbe Runde und weitere Automatik wird
+        // bis zum manuellen Rundenabschluss unterdrückt.
+        _roundAutoCompletionSuppressed = true;
+      }
+      unawaited(_persist());
+      return;
     }
 
-    if (roundPlayerIds.isEmpty && _roundTricksByPlayer.isEmpty) {
-      _roundTricksByPlayer = {};
-      _roundPenaltyPlayerIds = {};
-    }
+    unawaited(_persist());
+  }
+
+  void _resetAutomaticRoundState() {
+    _roundTricksByPlayer = {};
+    _roundAutoCompletionSuppressed = false;
   }
 
   _MulatschakSnapshot _snapshot() => _MulatschakSnapshot(
@@ -439,16 +478,16 @@ class MulatschakController extends FeatureController {
     historyRound: historyRound,
     roundPlayerIds: Set<String>.from(roundPlayerIds),
     roundTricksByPlayer: Map<String, int>.from(_roundTricksByPlayer),
-    roundPenaltyPlayerIds: Set<String>.from(_roundPenaltyPlayerIds),
+    roundAutoCompletionSuppressed: _roundAutoCompletionSuppressed,
   );
 
   void _restore(_MulatschakSnapshot snapshot) {
-    lineup = snapshot.lineup;
-    historyEntries = snapshot.history;
+    lineup = Map<String, int>.from(snapshot.lineup);
+    historyEntries = List<String>.from(snapshot.history);
     historyRound = snapshot.historyRound;
-    roundPlayerIds = snapshot.roundPlayerIds;
-    _roundTricksByPlayer = snapshot.roundTricksByPlayer;
-    _roundPenaltyPlayerIds = snapshot.roundPenaltyPlayerIds;
+    roundPlayerIds = Set<String>.from(snapshot.roundPlayerIds);
+    _roundTricksByPlayer = Map<String, int>.from(snapshot.roundTricksByPlayer);
+    _roundAutoCompletionSuppressed = snapshot.roundAutoCompletionSuppressed;
     notifyListeners();
     unawaited(_persist());
   }
@@ -474,6 +513,8 @@ class MulatschakController extends FeatureController {
         history: historyEntries,
         historyRound: historyRound,
         roundPlayerIds: roundPlayerIds.toList(),
+        roundTricksByPlayer: _roundTricksByPlayer,
+        roundAutoCompletionSuppressed: _roundAutoCompletionSuppressed,
       ),
     );
   }
@@ -484,11 +525,13 @@ class _ScoreRecord {
     required this.addedEntry,
     required this.previousRound,
     required this.previousRoundPlayers,
+    required this.completedRound,
   });
 
   final String? addedEntry;
   final int previousRound;
   final Set<String> previousRoundPlayers;
+  final bool completedRound;
 }
 
 class _MulatschakSnapshot {
@@ -498,7 +541,7 @@ class _MulatschakSnapshot {
     required this.historyRound,
     required this.roundPlayerIds,
     required this.roundTricksByPlayer,
-    required this.roundPenaltyPlayerIds,
+    required this.roundAutoCompletionSuppressed,
   });
 
   final Map<String, int> lineup;
@@ -506,7 +549,7 @@ class _MulatschakSnapshot {
   final int historyRound;
   final Set<String> roundPlayerIds;
   final Map<String, int> roundTricksByPlayer;
-  final Set<String> roundPenaltyPlayerIds;
+  final bool roundAutoCompletionSuppressed;
 }
 
 class _ScoreChanged implements UndoableCommand {
@@ -549,7 +592,7 @@ class _AutoCompletingScoreChanged implements UndoableCommand {
     required this.oldValue,
     required this.newValue,
     required this.changeTime,
-    required this.trickCount,
+    required this.baseDelta,
   });
 
   final MulatschakController controller;
@@ -557,7 +600,7 @@ class _AutoCompletingScoreChanged implements UndoableCommand {
   final int oldValue;
   final int newValue;
   final DateTime changeTime;
-  final int trickCount;
+  final int baseDelta;
 
   _MulatschakSnapshot? _snapshot;
 
@@ -569,7 +612,7 @@ class _AutoCompletingScoreChanged implements UndoableCommand {
       oldValue: oldValue,
       newValue: newValue,
       changeTime: changeTime,
-      trickCount: trickCount,
+      baseDelta: baseDelta,
     );
   }
 

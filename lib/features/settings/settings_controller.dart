@@ -7,7 +7,7 @@ import '../../models/rule_profile.dart';
 import '../../persistence/repositories/settings_repository.dart';
 import '../feature_controller.dart';
 
-/// Allgemeine App-Einstellungen: Theme, Haptik, Verlauf-Toggles,
+/// Allgemeine App-Einstellungen: Theme, Haptik, Verlauf-Sichtbarkeit,
 /// Regelprofil und der zuletzt verwendete Spielmodus.
 class SettingsController extends FeatureController {
   SettingsController({required SettingsRepository repository})

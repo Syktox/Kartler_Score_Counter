@@ -10,6 +10,8 @@ class MulatschakData {
   final List<String> history;
   final int historyRound;
   final List<String> roundPlayerIds;
+  final Map<String, int> roundTricksByPlayer;
+  final bool roundAutoCompletionSuppressed;
 
   const MulatschakData({
     required this.lineup,
@@ -18,6 +20,8 @@ class MulatschakData {
     required this.history,
     required this.historyRound,
     required this.roundPlayerIds,
+    this.roundTricksByPlayer = const {},
+    this.roundAutoCompletionSuppressed = false,
   });
 }
 
@@ -41,6 +45,11 @@ class MulatschakRepository {
     final roundPlayerIds = _decodeStringList(
       prefs.getString(StorageKeys.mulatschakRoundPlayers),
     );
+    final roundTricksByPlayer = _decodeIntMap(
+      prefs.getString(StorageKeys.mulatschakRoundTricks),
+    );
+    final roundAutoCompletionSuppressed =
+        prefs.getBool(StorageKeys.mulatschakRoundAutoSuppressed) ?? false;
 
     return MulatschakData(
       lineup: lineup,
@@ -57,6 +66,12 @@ class MulatschakRepository {
       roundPlayerIds: roundPlayerIds
           .where(lineup.containsKey)
           .toList(growable: false),
+      roundTricksByPlayer: Map<String, int>.fromEntries(
+        roundTricksByPlayer.entries.where(
+          (entry) => lineup.containsKey(entry.key) && entry.value > 0,
+        ),
+      ),
+      roundAutoCompletionSuppressed: roundAutoCompletionSuppressed,
     );
   }
 
@@ -79,6 +94,14 @@ class MulatschakRepository {
     await prefs.setString(
       StorageKeys.mulatschakRoundPlayers,
       JsonCodec.encode(data.roundPlayerIds),
+    );
+    await prefs.setString(
+      StorageKeys.mulatschakRoundTricks,
+      JsonCodec.encode(data.roundTricksByPlayer),
+    );
+    await prefs.setBool(
+      StorageKeys.mulatschakRoundAutoSuppressed,
+      data.roundAutoCompletionSuppressed,
     );
   }
 

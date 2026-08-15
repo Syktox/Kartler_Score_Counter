@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kartler/models/app_mode.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/pump_app.dart';
 
@@ -81,6 +82,23 @@ void main() {
 
       expect(find.textContaining('erhöht'), findsOneWidget);
       expect(find.textContaining('zurückgesetzt'), findsOneWidget);
+    });
+
+    testWidgets('records counter history while its presentation is hidden', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await tester.tap(find.text('+'));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Zähler-Verlauf'), findsNothing);
+      final prefs = await SharedPreferences.getInstance();
+      final history =
+          jsonDecode(prefs.getString('counter_history')!)
+              as Map<String, dynamic>;
+      expect(history['Punkte'], hasLength(1));
+      expect((history['Punkte'] as List).single, contains('erhöht'));
     });
 
     testWidgets('keeps counter history scoped to the selected counter', (

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,17 @@ Map<String, dynamic> completedMatch(String id, String gameType) {
     'startedAt': '2024-01-01T12:00:00.000',
     'endedAt': '2024-01-01T12:30:00.000',
     'standings': {'Ich': 11, 'Du': 3},
+  };
+}
+
+Map<String, Object> threePlayerMulatschakPrefs() {
+  return {
+    ...mulatschakPrefs(lineup: {'p1': 21, 'p2': 21, 'p3': 21}),
+    'players': jsonEncode([
+      {'id': 'p1', 'name': 'Anna', 'createdAt': '2024-01-01T00:00:00.000Z'},
+      {'id': 'p2', 'name': 'Ben', 'createdAt': '2024-01-01T00:00:00.000Z'},
+      {'id': 'p3', 'name': 'Cara', 'createdAt': '2024-01-01T00:00:00.000Z'},
+    ]),
   };
 }
 
@@ -172,19 +184,105 @@ void main() {
       await tester.tap(find.text('Wer spielt?'));
       await tester.pumpAndSettle();
 
-      await tester.tap(
+      final participationSlider = find.byKey(
+        const ValueKey('lineup-participation-p2'),
+      );
+      final participationSwitch = find.descendant(
+        of: participationSlider,
+        matching: find.byType(Switch),
+      );
+      expect(tester.widget<Switch>(participationSwitch).value, isTrue);
+
+      await tester.drag(participationSwitch, const Offset(-80, 0));
+      await tester.pumpAndSettle();
+      expect(tester.widget<Switch>(participationSwitch).value, isFalse);
+      expect(
         find.descendant(
-          of: find.widgetWithText(ListTile, 'Ben'),
+          of: participationSlider,
+          matching: find.text('Zuschauen'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.drag(participationSwitch, const Offset(80, 0));
+      await tester.pumpAndSettle();
+      expect(tester.widget<Switch>(participationSwitch).value, isTrue);
+      expect(
+        find.descendant(
+          of: participationSlider,
           matching: find.text('Mitspielen'),
         ),
+        findsOneWidget,
       );
+
+      await tester.drag(participationSwitch, const Offset(-80, 0));
       await tester.pumpAndSettle();
+      expect(tester.widget<Switch>(participationSwitch).value, isFalse);
       await tester.tap(find.text('Fertig'));
       await tester.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();
       expect(jsonDecode(prefs.getString('mulatschak_lineup')!), {'p1': 21});
       expect(find.text('Ben'), findsNothing);
+    });
+
+    testWidgets('lineup picker keeps a players place when toggled back on', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: threePlayerMulatschakPrefs());
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Wer spielt?'));
+      await tester.pumpAndSettle();
+
+      final participationSlider = find.byKey(
+        const ValueKey('lineup-participation-p2'),
+      );
+      final participationSwitch = find.descendant(
+        of: participationSlider,
+        matching: find.byType(Switch),
+      );
+
+      await tester.drag(participationSwitch, const Offset(-80, 0));
+      await tester.pumpAndSettle();
+      await tester.drag(participationSwitch, const Offset(80, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fertig'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      final lineup =
+          jsonDecode(prefs.getString('mulatschak_lineup')!)
+              as Map<String, dynamic>;
+      expect(lineup.keys.toList(), ['p1', 'p2', 'p3']);
+    });
+
+    testWidgets('lineup picker reorders players by long pressing a card', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: threePlayerMulatschakPrefs());
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Wer spielt?'));
+      await tester.pumpAndSettle();
+
+      final annaCard = find.byKey(const ValueKey('lineup-player-p1'));
+      final start = tester.getCenter(annaCard);
+      final gesture = await tester.startGesture(start);
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+      await gesture.moveBy(const Offset(0, 170));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Fertig'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      final lineup =
+          jsonDecode(prefs.getString('mulatschak_lineup')!)
+              as Map<String, dynamic>;
+      expect(lineup.keys.toList(), ['p2', 'p1', 'p3']);
     });
   });
 }

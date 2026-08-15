@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kartler/main.dart';
@@ -43,6 +44,21 @@ void main() {
       await pumpApp(tester, prefs: wattenPrefs());
 
       expect(find.text('Spiel 1'), findsNothing);
+    });
+
+    testWidgets('records Watten history while its presentation is hidden', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: wattenPrefs());
+
+      await tester.tap(find.text('+2'));
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Watten-Verlauf'), findsNothing);
+      final prefs = await SharedPreferences.getInstance();
+      final history = jsonDecode(prefs.getString('watten_history')!) as List;
+      expect(history, hasLength(1));
+      expect(history.single, contains('"points":2'));
     });
 
     testWidgets('new game records the finished game and starts a fresh one', (
@@ -183,5 +199,33 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('watten_table_mode'), isTrue);
     });
+
+    for (final platform in const [
+      TargetPlatform.macOS,
+      TargetPlatform.windows,
+      TargetPlatform.linux,
+    ]) {
+      testWidgets('hides table mode on ${platform.name} desktop', (
+        tester,
+      ) async {
+        debugDefaultTargetPlatformOverride = platform;
+        try {
+          tester.view.devicePixelRatio = 1;
+          tester.view.physicalSize = const Size(1200, 800);
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+
+          SharedPreferences.setMockInitialValues({...wattenPrefs()});
+          await tester.pumpWidget(const KartlerApp());
+          await tester.pumpAndSettle();
+          await dismissStartScreen(tester);
+
+          expect(find.byTooltip('Tischmodus'), findsNothing);
+          expect(tester.takeException(), isNull);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      });
+    }
   });
 }

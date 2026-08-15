@@ -296,22 +296,26 @@ class _SettingsPageState extends State<SettingsPage> {
     final historySection = <Widget>[
       const _SectionHeader(title: 'Verlauf'),
       SwitchListTile(
-        title: const Text('Zähler-Verlauf'),
-        subtitle: const Text('Zeigt die letzten Änderungen des Zählers.'),
+        title: const Text('Zähler-Verlauf anzeigen'),
+        subtitle: const Text(
+          'Der Verlauf wird immer aufgezeichnet. Diese Einstellung blendet ihn ein.',
+        ),
         value: settings.counterHistoryEnabled,
         onChanged: settings.setCounterHistoryEnabled,
       ),
       SwitchListTile(
-        title: const Text('Watten-Verlauf'),
+        title: const Text('Watten-Verlauf anzeigen'),
         subtitle: const Text(
-          'Zeigt die letzten Punkteänderungen der beiden Seiten.',
+          'Der Verlauf wird immer aufgezeichnet. Diese Einstellung blendet ihn ein.',
         ),
         value: settings.wattenHistoryEnabled,
         onChanged: settings.setWattenHistoryEnabled,
       ),
       SwitchListTile(
-        title: const Text('Mulatschak-Verlauf'),
-        subtitle: const Text('Zeigt die letzten Punkteänderungen der Spieler.'),
+        title: const Text('Mulatschak-Verlauf anzeigen'),
+        subtitle: const Text(
+          'Der Verlauf wird immer aufgezeichnet. Eine neue Runde beginnt, sobald alle Spieler Punkte erhalten haben.',
+        ),
         value: settings.mulatschakHistoryEnabled,
         onChanged: settings.setMulatschakHistoryEnabled,
       ),
@@ -372,7 +376,7 @@ class _SettingsPageState extends State<SettingsPage> {
       SwitchListTile(
         title: const Text('Mulatschak-Stiche automatisch erkennen'),
         subtitle: const Text(
-          'Sobald 5 Stiche eingetragen sind, erhalten die übrigen Spieler automatisch +5.',
+          'Nach 5 Stichen erhalten nur offene Spieler automatisch +5. +1 bedeutet gegangen; +5 als erster Eintrag deaktiviert die Automatik bis zur nächsten Runde.',
         ),
         value: profile.mulatschakAutoCompleteRound,
         onChanged: (enabled) {

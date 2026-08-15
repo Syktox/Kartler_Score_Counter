@@ -36,7 +36,6 @@ class WattenController extends FeatureController {
   DateTime roundStartedAt = DateTime.now();
 
   bool get tableMode => _settings.wattenTableMode;
-  bool get historyEnabled => _settings.wattenHistoryEnabled;
   int get winningScore => _settings.ruleProfile.wattenWinningScore;
 
   @override
@@ -176,7 +175,7 @@ class WattenController extends FeatureController {
       side: side,
       points: historyDelta ?? delta,
     ).encode();
-    if (recordEntry && historyEnabled) {
+    if (recordEntry) {
       historyEntries = [...historyEntries, entry];
     } else if (!recordEntry) {
       final entries = List<String>.from(historyEntries);
