@@ -158,7 +158,7 @@ return GridView.count(
       crossAxisCount: columnCount,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 0.65,
+      childAspectRatio: 0.68,
       children: List.generate(entries.length, (index) {
         final entry = entries[index];
 
@@ -250,7 +250,7 @@ class _PlayerCard extends StatelessWidget {
               width: compact ? 148 : 204,
               constraints: BoxConstraints(minHeight: compact ? 156 : 204),
               padding: stretch
-                  ? const EdgeInsets.fromLTRB(16, 54, 16, 0)
+                  ? const EdgeInsets.fromLTRB(16, 48, 16, 0)
                   : (compact
                         ? const EdgeInsets.fromLTRB(8, 36, 8, 12)
                         : const EdgeInsets.fromLTRB(16, 48, 16, 14)),
