@@ -61,6 +61,23 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Mulatschak mode', () {
+    testWidgets('empty lineup offers the lineup picker when players exist', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: mulatschakPrefs(lineup: {}));
+
+      expect(find.text('Noch keine Spieler'), findsOneWidget);
+      expect(find.text('Wer spielt mit?'), findsOneWidget);
+      expect(find.text('Spieler verwalten'), findsOneWidget);
+
+      await tester.tap(find.text('Wer spielt mit?'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('0 von 2 Spielern spielen mit.'), findsOneWidget);
+      expect(find.text('Anna'), findsOneWidget);
+      expect(find.text('Ben'), findsOneWidget);
+    });
+
     for (final scenario in const [
       (button: '-1', expectedScore: 20),
       (button: '+1', expectedScore: 22),

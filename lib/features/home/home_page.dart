@@ -240,6 +240,7 @@ class _HomePageState extends State<HomePage> {
           mulatschak: _mulatschak,
           hosnObe: _hosnObe,
           watten: _watten,
+          confirmDelete: _settings.playerDeleteConfirmationEnabled,
         ),
       ),
     );
@@ -763,6 +764,8 @@ class _HomePageState extends State<HomePage> {
           onScoreChanged: _mulatschak.changeScore,
           onMultiplierChanged: _mulatschak.setMultiplier,
           onResetPlayers: _mulatschak.resetPlayers,
+          hasAvailablePlayers: _players.players.isNotEmpty,
+          onPickLineup: () => _openLineupPicker(AppMode.mulatschak),
           onAddPlayer: _openPlayers,
         );
       case AppMode.hosnObe:
@@ -775,6 +778,8 @@ class _HomePageState extends State<HomePage> {
           onPlayerSelected: _hosnObe.selectPlayer,
           onScoreChanged: _hosnObe.changeScore,
           onResetPlayers: _hosnObe.resetPlayers,
+          hasAvailablePlayers: _players.players.isNotEmpty,
+          onPickLineup: () => _openLineupPicker(AppMode.hosnObe),
           onAddPlayer: _openPlayers,
         );
     }
@@ -796,6 +801,7 @@ class _HomePageState extends State<HomePage> {
         forMode(widget.appMode),
         historyFor(widget.appMode),
         _settings,
+        _players,
       ]),
       builder: (context, _) {
         if (!_startScreenDone) {

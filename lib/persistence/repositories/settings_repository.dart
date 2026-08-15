@@ -114,4 +114,14 @@ class SettingsRepository {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(StorageKeys.mulatschakHistoryEnabled, enabled);
   }
+
+  Future<bool> loadPlayerDeleteConfirmationEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(StorageKeys.playerDeleteConfirmationEnabled) ?? true;
+  }
+
+  Future<void> savePlayerDeleteConfirmationEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(StorageKeys.playerDeleteConfirmationEnabled, enabled);
+  }
 }

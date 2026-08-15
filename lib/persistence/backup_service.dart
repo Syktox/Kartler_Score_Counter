@@ -47,6 +47,7 @@ class BackupService {
     StorageKeys.counterNegativeEnabled,
     StorageKeys.wattenHistoryEnabled,
     StorageKeys.mulatschakHistoryEnabled,
+    StorageKeys.playerDeleteConfirmationEnabled,
     StorageKeys.ruleProfile,
   };
 

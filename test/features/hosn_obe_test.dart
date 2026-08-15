@@ -6,6 +6,23 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Hosn Obe mode', () {
+    testWidgets('empty lineup offers the lineup picker when players exist', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: hosnObePrefs(lineup: {}));
+
+      expect(find.text('Noch keine Spieler'), findsOneWidget);
+      expect(find.text('Wer spielt mit?'), findsOneWidget);
+      expect(find.text('Spieler verwalten'), findsOneWidget);
+
+      await tester.tap(find.text('Wer spielt mit?'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('0 von 2 Spielern spielen mit.'), findsOneWidget);
+      expect(find.text('Anna'), findsOneWidget);
+      expect(find.text('Ben'), findsOneWidget);
+    });
+
     testWidgets('supports winner detection and reset to starting lives', (
       tester,
     ) async {

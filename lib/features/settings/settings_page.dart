@@ -331,6 +331,18 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     ];
 
+    final safetySection = <Widget>[
+      const _SectionHeader(title: 'Sicherheit'),
+      SwitchListTile(
+        title: const Text('Spieler-Löschen bestätigen'),
+        subtitle: const Text(
+          'Fragt vor dem Löschen eines Spielers nach. Ausgeschaltet wird sofort gelöscht.',
+        ),
+        value: settings.playerDeleteConfirmationEnabled,
+        onChanged: settings.setPlayerDeleteConfirmationEnabled,
+      ),
+    ];
+
     final rulesSection = <Widget>[
       const _SectionHeader(title: 'Regelprofil'),
       _NumberField(
@@ -500,6 +512,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       const Divider(),
                       ...counterSection,
                       const Divider(),
+                      ...safetySection,
+                      const Divider(),
                       ...rulesSection,
                       const Divider(),
                       ...backupSection,
@@ -520,6 +534,8 @@ class _SettingsPageState extends State<SettingsPage> {
               ...historySection,
               const Divider(),
               ...counterSection,
+              const Divider(),
+              ...safetySection,
               const Divider(),
               ...rulesSection,
               const Divider(),

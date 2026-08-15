@@ -23,6 +23,7 @@ class SettingsController extends FeatureController {
   bool counterNegativeEnabled = false;
   bool wattenHistoryEnabled = false;
   bool mulatschakHistoryEnabled = false;
+  bool playerDeleteConfirmationEnabled = true;
   RuleProfile ruleProfile = const RuleProfile.defaults();
 
   @override
@@ -35,6 +36,8 @@ class SettingsController extends FeatureController {
     counterNegativeEnabled = await _repository.loadCounterNegativeEnabled();
     wattenHistoryEnabled = await _repository.loadWattenHistoryEnabled();
     mulatschakHistoryEnabled = await _repository.loadMulatschakHistoryEnabled();
+    playerDeleteConfirmationEnabled = await _repository
+        .loadPlayerDeleteConfirmationEnabled();
     ruleProfile = await _repository.loadRuleProfile();
     isLoading = false;
   }
@@ -109,6 +112,15 @@ class SettingsController extends FeatureController {
     mulatschakHistoryEnabled = enabled;
     notifyListeners();
     unawaited(_repository.saveMulatschakHistoryEnabled(enabled));
+  }
+
+  void setPlayerDeleteConfirmationEnabled(bool enabled) {
+    if (playerDeleteConfirmationEnabled == enabled) {
+      return;
+    }
+    playerDeleteConfirmationEnabled = enabled;
+    notifyListeners();
+    unawaited(_repository.savePlayerDeleteConfirmationEnabled(enabled));
   }
 
   void setRuleProfile(RuleProfile profile) {

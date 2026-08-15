@@ -35,6 +35,7 @@ Map<String, Object> _populatedPrefs() {
     ]),
     'theme_mode': 'dark',
     'app_mode': 'mulatschak',
+    'player_delete_confirmation_enabled': false,
     'counter_lineup': jsonEncode({'Punkte': 12}),
     'current_counter': 'Punkte',
     'mulatschak_round_tricks': jsonEncode({'p1': 2}),
@@ -70,6 +71,7 @@ void main() {
       expect(values['game_sessions'], isA<String>());
       expect(values['match_history'], isA<String>());
       expect(values['app_mode'], 'mulatschak');
+      expect(values['player_delete_confirmation_enabled'], isFalse);
       expect(values['counter_lineup'], isA<String>());
       expect(values['mulatschak_round_tricks'], contains('"p1":2'));
       expect(values['mulatschak_round_auto_suppressed'], isTrue);
@@ -88,6 +90,7 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('app_mode'), 'mulatschak');
       expect(prefs.getString('theme_mode'), 'dark');
+      expect(prefs.getBool('player_delete_confirmation_enabled'), isFalse);
       expect(prefs.getString('players'), contains('Anna'));
       expect(prefs.getString('game_sessions'), contains('s1'));
       expect(prefs.getString('match_history'), contains('m1'));

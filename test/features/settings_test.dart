@@ -70,6 +70,18 @@ void main() {
       expect(prefs.getBool('counter_negative_enabled'), isTrue);
     });
 
+    testWidgets('toggles player delete confirmations', (tester) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await openSettings(tester);
+      await tester.ensureVisible(find.text('Spieler-Löschen bestätigen'));
+      await tester.tap(find.text('Spieler-Löschen bestätigen'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('player_delete_confirmation_enabled'), isFalse);
+    });
+
     testWidgets('offers Watten history separately from counter settings', (
       tester,
     ) async {
@@ -183,6 +195,8 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.text('Spenden'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Spenden'));
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 300));
@@ -198,6 +212,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.text('Fehler melden'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Fehler melden'));
       await tester.pumpAndSettle();
       await tester.pageBack();

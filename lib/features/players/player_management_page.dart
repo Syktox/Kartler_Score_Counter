@@ -13,6 +13,7 @@ class PlayerManagementPage extends StatefulWidget {
   final MulatschakController mulatschak;
   final HosnObeController hosnObe;
   final WattenController watten;
+  final bool confirmDelete;
 
   const PlayerManagementPage({
     super.key,
@@ -20,6 +21,7 @@ class PlayerManagementPage extends StatefulWidget {
     required this.mulatschak,
     required this.hosnObe,
     required this.watten,
+    required this.confirmDelete,
   });
 
   @override
@@ -70,6 +72,21 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
     );
   }
 
+  void _deletePlayer(Player player) {
+    widget.mulatschak.removePlayerFromLineup(player.id);
+    widget.hosnObe.removePlayerFromLineup(player.id);
+    widget.watten.removePlayerFromTeams(player.id);
+    widget.players.deletePlayer(player.id);
+  }
+
+  void _deleteOrConfirm(Player player) {
+    if (widget.confirmDelete) {
+      _showDeleteDialog(player);
+      return;
+    }
+    _deletePlayer(player);
+  }
+
   Future<void> _showDeleteDialog(Player player) async {
     final usage = _usageOf(player);
     await showDialog<void>(
@@ -93,10 +110,7 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
                 foregroundColor: Theme.of(dialogContext).colorScheme.error,
               ),
               onPressed: () {
-                widget.mulatschak.removePlayerFromLineup(player.id);
-                widget.hosnObe.removePlayerFromLineup(player.id);
-                widget.watten.removePlayerFromTeams(player.id);
-                widget.players.deletePlayer(player.id);
+                _deletePlayer(player);
                 Navigator.of(dialogContext).pop();
               },
               child: const Text('Löschen'),
@@ -180,8 +194,7 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
                                     IconButton(
                                       icon: const Icon(Icons.delete_outline),
                                       tooltip: 'Löschen',
-                                      onPressed: () =>
-                                          _showDeleteDialog(player),
+                                      onPressed: () => _deleteOrConfirm(player),
                                     ),
                                   ],
                                 ),

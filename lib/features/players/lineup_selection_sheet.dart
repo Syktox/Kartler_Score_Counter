@@ -84,14 +84,7 @@ class _LineupSelectionSheetState extends State<LineupSelectionSheet> {
             const SizedBox(height: 12),
             Flexible(
               child: widget.players.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text(
-                        'Noch keine Spieler vorhanden. Lege Spieler unter '
-                        '„Spieler verwalten“ an.',
-                        style: TextStyle(color: colorScheme.onSurfaceVariant),
-                      ),
-                    )
+                  ? const SizedBox.shrink()
                   : ReorderableListView.builder(
                       shrinkWrap: true,
                       buildDefaultDragHandles: false,

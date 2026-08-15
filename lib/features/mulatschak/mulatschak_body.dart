@@ -17,6 +17,8 @@ class MulatschakBody extends StatelessWidget {
   final ValueChanged<int> onScoreChanged;
   final ValueChanged<int> onMultiplierChanged;
   final VoidCallback onResetPlayers;
+  final bool hasAvailablePlayers;
+  final VoidCallback onPickLineup;
   final VoidCallback onAddPlayer;
 
   const MulatschakBody({
@@ -32,6 +34,8 @@ class MulatschakBody extends StatelessWidget {
     required this.onScoreChanged,
     required this.onMultiplierChanged,
     required this.onResetPlayers,
+    required this.hasAvailablePlayers,
+    required this.onPickLineup,
     required this.onAddPlayer,
   });
 
@@ -42,7 +46,11 @@ class MulatschakBody extends StatelessWidget {
     }
 
     if (scores.isEmpty) {
-      return _EmptyLineup(onAddPlayer: onAddPlayer);
+      return _EmptyLineup(
+        hasAvailablePlayers: hasAvailablePlayers,
+        onPickLineup: onPickLineup,
+        onAddPlayer: onAddPlayer,
+      );
     }
 
     final entries = scores.entries.toList();
@@ -199,9 +207,15 @@ class MulatschakBody extends StatelessWidget {
 }
 
 class _EmptyLineup extends StatelessWidget {
+  final bool hasAvailablePlayers;
+  final VoidCallback onPickLineup;
   final VoidCallback onAddPlayer;
 
-  const _EmptyLineup({required this.onAddPlayer});
+  const _EmptyLineup({
+    required this.hasAvailablePlayers,
+    required this.onPickLineup,
+    required this.onAddPlayer,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -223,6 +237,14 @@ class _EmptyLineup extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
+            if (hasAvailablePlayers) ...[
+              FilledButton.icon(
+                onPressed: onPickLineup,
+                icon: const Icon(Icons.groups_2_outlined),
+                label: const Text('Wer spielt mit?'),
+              ),
+              const SizedBox(height: 10),
+            ],
             FilledButton.icon(
               onPressed: onAddPlayer,
               icon: const Icon(Icons.person_add_alt_1),

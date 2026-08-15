@@ -94,5 +94,74 @@ void main() {
       expect(find.text('Carla'), findsNothing);
       expect(find.text('21'), findsNWidgets(2));
     });
+
+    testWidgets('deletes a player without confirmation when disabled', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          ...mulatschakPrefs(),
+          'player_delete_confirmation_enabled': false,
+        },
+      );
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Spieler verwalten'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(ListTile, 'Ben'),
+          matching: find.byIcon(Icons.delete_outline),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Spieler löschen'), findsNothing);
+      expect(find.text('Ben'), findsNothing);
+    });
+
+    testWidgets('empty lineup button follows player add and delete changes', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: mulatschakPrefs());
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Spieler verwalten'));
+      await tester.pumpAndSettle();
+
+      for (final playerName in ['Anna', 'Ben']) {
+        await tester.tap(
+          find.descendant(
+            of: find.widgetWithText(ListTile, playerName),
+            matching: find.byIcon(Icons.delete_outline),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(TextButton, 'Löschen'));
+        await tester.pumpAndSettle();
+      }
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Noch keine Spieler'), findsOneWidget);
+      expect(find.text('Wer spielt mit?'), findsNothing);
+      expect(find.text('Spieler verwalten'), findsOneWidget);
+
+      await tester.tap(find.text('Spieler verwalten'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
+      await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Noch keine Spieler'), findsOneWidget);
+      expect(find.text('Wer spielt mit?'), findsOneWidget);
+    });
   });
 }

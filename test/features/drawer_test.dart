@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kartler/features/players/lineup_selection_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/pump_app.dart';
@@ -73,6 +74,34 @@ void main() {
         find.descendant(of: find.byType(Drawer), matching: find.text('Ben')),
         findsNothing,
       );
+    });
+
+    testWidgets(
+      'game modes show lineup picker in the sidebar without players',
+      (tester) async {
+        await pumpApp(tester, prefs: wattenPrefs());
+
+        await openDrawer(tester);
+
+        expect(find.text('Neues Spiel'), findsOneWidget);
+        expect(find.text('Wer spielt?'), findsOneWidget);
+        expect(find.text('Spieler verwalten'), findsOneWidget);
+      },
+    );
+
+    testWidgets('lineup picker does not show an empty-player hint', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: LineupSelectionSheet(players: [], lineup: []),
+          ),
+        ),
+      );
+
+      expect(find.text('Wer spielt?'), findsOneWidget);
+      expect(find.textContaining('Noch keine Spieler vorhanden'), findsNothing);
     });
 
     testWidgets('counter drawer only contains counter actions and settings', (

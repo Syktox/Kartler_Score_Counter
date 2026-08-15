@@ -14,6 +14,8 @@ class HosnObeBody extends StatelessWidget {
   final ValueChanged<String> onPlayerSelected;
   final ValueChanged<int> onScoreChanged;
   final VoidCallback onResetPlayers;
+  final bool hasAvailablePlayers;
+  final VoidCallback onPickLineup;
   final VoidCallback onAddPlayer;
 
   const HosnObeBody({
@@ -26,6 +28,8 @@ class HosnObeBody extends StatelessWidget {
     required this.onPlayerSelected,
     required this.onScoreChanged,
     required this.onResetPlayers,
+    required this.hasAvailablePlayers,
+    required this.onPickLineup,
     required this.onAddPlayer,
   });
 
@@ -50,10 +54,18 @@ class HosnObeBody extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-              'Verwalte Spieler über die Startseite, um Leben zu zählen.',
+                'Verwalte Spieler über die Startseite, um Leben zu zählen.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
+              if (hasAvailablePlayers) ...[
+                FilledButton.icon(
+                  onPressed: onPickLineup,
+                  icon: const Icon(Icons.groups_2_outlined),
+                  label: const Text('Wer spielt mit?'),
+                ),
+                const SizedBox(height: 10),
+              ],
               FilledButton.icon(
                 onPressed: onAddPlayer,
                 icon: const Icon(Icons.person_add_alt_1),
