@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/pump_app.dart';
 
@@ -73,7 +76,7 @@ void main() {
       );
     });
 
-    testWidgets('does not add new players to the lineups automatically', (
+    testWidgets('adds new players to the Mulatschak lineup automatically', (
       tester,
     ) async {
       await pumpApp(tester, prefs: mulatschakPrefs());
@@ -91,8 +94,50 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
 
-      expect(find.text('Carla'), findsNothing);
-      expect(find.text('21'), findsNWidgets(2));
+      expect(find.text('Carla'), findsOneWidget);
+      expect(find.text('21'), findsNWidgets(3));
+
+      final prefs = await SharedPreferences.getInstance();
+      final players = jsonDecode(prefs.getString('players')!) as List;
+      final carla = players.cast<Map<String, dynamic>>().singleWhere(
+        (player) => player['name'] == 'Carla',
+      );
+      final lineup =
+          jsonDecode(prefs.getString('mulatschak_lineup')!)
+              as Map<String, dynamic>;
+      expect(lineup.keys, contains(carla['id']));
+    });
+
+    testWidgets('adds new players to the Hosn Obe lineup automatically', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: hosnObePrefs());
+
+      await openDrawer(tester);
+      await tester.tap(find.text('Spieler verwalten'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
+      await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
+      await tester.pumpAndSettle();
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Carla'), findsOneWidget);
+      expect(find.text('4'), findsNWidgets(3));
+
+      final prefs = await SharedPreferences.getInstance();
+      final players = jsonDecode(prefs.getString('players')!) as List;
+      final carla = players.cast<Map<String, dynamic>>().singleWhere(
+        (player) => player['name'] == 'Carla',
+      );
+      final lineup =
+          jsonDecode(prefs.getString('hosn_obe_lineup')!)
+              as Map<String, dynamic>;
+      expect(lineup.keys, contains(carla['id']));
     });
 
     testWidgets('deletes a player without confirmation when disabled', (
@@ -160,8 +205,10 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
 
-      expect(find.text('Noch keine Spieler'), findsOneWidget);
-      expect(find.text('Wer spielt mit?'), findsOneWidget);
+      expect(find.text('Noch keine Spieler'), findsNothing);
+      expect(find.text('Wer spielt mit?'), findsNothing);
+      expect(find.text('Carla'), findsOneWidget);
+      expect(find.text('21'), findsOneWidget);
     });
   });
 }

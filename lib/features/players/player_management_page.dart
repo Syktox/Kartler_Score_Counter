@@ -52,7 +52,12 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
         initialName: '',
         isValid: (name) => widget.players.isNameValid(name),
         onSubmit: (name) async {
-          await widget.players.addPlayer(name);
+          final player = await widget.players.addPlayer(name);
+          if (player == null) {
+            return;
+          }
+          await widget.mulatschak.addPlayerToLineup(player.id);
+          await widget.hosnObe.addPlayerToLineup(player.id);
         },
       ),
     );
