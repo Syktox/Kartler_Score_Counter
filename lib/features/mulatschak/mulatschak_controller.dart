@@ -253,6 +253,19 @@ class MulatschakController extends FeatureController {
     });
   }
 
+  void reorderPlayers(int oldIndex, int newIndex) {
+    final reordered = MulatschakHelper.reorderPlayers(
+      lineup,
+      oldIndex,
+      newIndex,
+    );
+    if (reordered == null) {
+      return;
+    }
+    _mutate(() => lineup = reordered);
+    unawaited(_haptics.light());
+  }
+
   /// Fügt einen bestehenden globalen Spieler dem Lineup hinzu.
   Future<void> addPlayerToLineup(String playerId) async {
     if (lineup.containsKey(playerId)) {

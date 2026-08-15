@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kartler/models/mulatschak_history_entry.dart';
@@ -98,6 +99,52 @@ void main() {
       await tester.tap(find.text('+1'));
       await tester.pumpAndSettle();
       expect(find.text('24'), findsOneWidget);
+    });
+
+    testWidgets('reorders players directly on the score screen', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: threePlayerMulatschakPrefs());
+
+      final annaCard = find.byKey(const ValueKey('mulatschak-score-player-p1'));
+      final benCard = find.byKey(const ValueKey('mulatschak-score-player-p2'));
+      final gesture = await tester.startGesture(tester.getCenter(annaCard));
+
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(benCard));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      final lineup =
+          jsonDecode(prefs.getString('mulatschak_lineup')!)
+              as Map<String, dynamic>;
+      expect(lineup.keys.toList(), ['p2', 'p1', 'p3']);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('drops a player at the end when released outside a card', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: threePlayerMulatschakPrefs());
+
+      final annaCard = find.byKey(const ValueKey('mulatschak-score-player-p1'));
+      final plusFiveButton = find.text('+5');
+      final gesture = await tester.startGesture(tester.getCenter(annaCard));
+
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(plusFiveButton));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      final lineup =
+          jsonDecode(prefs.getString('mulatschak_lineup')!)
+              as Map<String, dynamic>;
+      expect(lineup.keys.toList(), ['p2', 'p3', 'p1']);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('detects a winner when a player reaches zero', (tester) async {

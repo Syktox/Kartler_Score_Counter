@@ -13,6 +13,7 @@ class MulatschakBody extends StatelessWidget {
   final int multiplier;
   final String? winner;
   final ValueChanged<String> onPlayerSelected;
+  final void Function(int oldIndex, int newIndex) onPlayersReordered;
   final ValueChanged<int> onScoreChanged;
   final ValueChanged<int> onMultiplierChanged;
   final VoidCallback onResetPlayers;
@@ -27,6 +28,7 @@ class MulatschakBody extends StatelessWidget {
     required this.multiplier,
     required this.winner,
     required this.onPlayerSelected,
+    required this.onPlayersReordered,
     required this.onScoreChanged,
     required this.onMultiplierChanged,
     required this.onResetPlayers,
@@ -117,20 +119,24 @@ class MulatschakBody extends StatelessWidget {
         alignment: WrapAlignment.center,
         spacing: 12,
         runSpacing: 12,
-        children: entries
-            .map(
-              (entry) => SizedBox(
-                width: 196,
-                child: _PlayerCard(
-                  playerId: entry.key,
-                  name: nameOf(entry.key),
-                  score: entry.value,
-                  isSelected: entry.key == currentPlayerId,
-                  onSelected: onPlayerSelected,
-                ),
-              ),
-            )
-            .toList(),
+        children: List.generate(entries.length, (index) {
+          final entry = entries[index];
+
+          return SizedBox(
+            width: 196,
+            child: _PlayerCard(
+              key: ValueKey('mulatschak-score-player-${entry.key}'),
+              index: index,
+              playerId: entry.key,
+              name: nameOf(entry.key),
+              score: entry.value,
+              isSelected: entry.key == currentPlayerId,
+              onSelected: onPlayerSelected,
+              onReordered: onPlayersReordered,
+              onDroppedOutside: () => onPlayersReordered(index, entries.length),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -141,21 +147,25 @@ class MulatschakBody extends StatelessWidget {
         alignment: WrapAlignment.center,
         spacing: 10,
         runSpacing: 10,
-        children: entries
-            .map(
-              (entry) => SizedBox(
-                width: 148,
-                child: _PlayerCard(
-                  playerId: entry.key,
-                  name: nameOf(entry.key),
-                  score: entry.value,
-                  isSelected: entry.key == currentPlayerId,
-                  compact: true,
-                  onSelected: onPlayerSelected,
-                ),
-              ),
-            )
-            .toList(),
+        children: List.generate(entries.length, (index) {
+          final entry = entries[index];
+
+          return SizedBox(
+            width: 148,
+            child: _PlayerCard(
+              key: ValueKey('mulatschak-score-player-${entry.key}'),
+              index: index,
+              playerId: entry.key,
+              name: nameOf(entry.key),
+              score: entry.value,
+              isSelected: entry.key == currentPlayerId,
+              compact: true,
+              onSelected: onPlayerSelected,
+              onReordered: onPlayersReordered,
+              onDroppedOutside: () => onPlayersReordered(index, entries.length),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -168,18 +178,22 @@ class MulatschakBody extends StatelessWidget {
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
       childAspectRatio: 0.62,
-      children: entries
-          .map(
-            (entry) => _PlayerCard(
-              playerId: entry.key,
-              name: nameOf(entry.key),
-              score: entry.value,
-              isSelected: entry.key == currentPlayerId,
-              compact: true,
-              onSelected: onPlayerSelected,
-            ),
-          )
-          .toList(),
+      children: List.generate(entries.length, (index) {
+        final entry = entries[index];
+
+        return _PlayerCard(
+          key: ValueKey('mulatschak-score-player-${entry.key}'),
+          index: index,
+          playerId: entry.key,
+          name: nameOf(entry.key),
+          score: entry.value,
+          isSelected: entry.key == currentPlayerId,
+          compact: true,
+          onSelected: onPlayerSelected,
+          onReordered: onPlayersReordered,
+          onDroppedOutside: () => onPlayersReordered(index, entries.length),
+        );
+      }),
     );
   }
 }
@@ -450,24 +464,80 @@ class _MultiplierRow extends StatelessWidget {
 }
 
 class _PlayerCard extends StatelessWidget {
+  final int index;
   final String playerId;
   final String name;
   final int score;
   final bool isSelected;
   final bool compact;
   final ValueChanged<String> onSelected;
+  final void Function(int oldIndex, int newIndex) onReordered;
+  final VoidCallback onDroppedOutside;
 
   const _PlayerCard({
+    super.key,
+    required this.index,
     required this.playerId,
     required this.name,
     required this.score,
     required this.isSelected,
     required this.onSelected,
+    required this.onReordered,
+    required this.onDroppedOutside,
     this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final card = _scoreCard(context);
+        final feedbackWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : (compact ? 148.0 : 196.0);
+        final feedbackHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : null;
+
+        return DragTarget<int>(
+          onWillAcceptWithDetails: (details) => details.data != index,
+          onAcceptWithDetails: (details) {
+            final oldIndex = details.data;
+            final newIndex = index > oldIndex ? index + 1 : index;
+            onReordered(oldIndex, newIndex);
+          },
+          builder: (context, candidateData, rejectedData) {
+            final isDropTarget = candidateData.isNotEmpty;
+
+            return LongPressDraggable<int>(
+              data: index,
+              onDragEnd: (details) {
+                if (!details.wasAccepted) {
+                  onDroppedOutside();
+                }
+              },
+              feedback: Material(
+                color: Colors.transparent,
+                child: SizedBox(
+                  width: feedbackWidth,
+                  height: feedbackHeight,
+                  child: Opacity(opacity: 0.92, child: _scoreCard(context)),
+                ),
+              ),
+              childWhenDragging: Opacity(opacity: 0.35, child: card),
+              child: AnimatedScale(
+                scale: isDropTarget ? 1.04 : 1,
+                duration: const Duration(milliseconds: 120),
+                child: card,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _scoreCard(BuildContext context) {
     return ScoreCard(
       title: name,
       score: score,

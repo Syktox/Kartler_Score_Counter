@@ -266,6 +266,8 @@ void main() {
       await tester.tap(find.text('Wer spielt?'));
       await tester.pumpAndSettle();
 
+      expect(find.byIcon(Icons.drag_indicator), findsNothing);
+
       final annaCard = find.byKey(const ValueKey('lineup-player-p1'));
       final start = tester.getCenter(annaCard);
       final gesture = await tester.startGesture(start);

@@ -759,6 +759,7 @@ class _HomePageState extends State<HomePage> {
           multiplier: _mulatschak.multiplier,
           winner: _mulatschakWinnerName,
           onPlayerSelected: _mulatschak.selectPlayer,
+          onPlayersReordered: _mulatschak.reorderPlayers,
           onScoreChanged: _mulatschak.changeScore,
           onMultiplierChanged: _mulatschak.setMultiplier,
           onResetPlayers: _mulatschak.resetPlayers,

@@ -109,26 +109,16 @@ class _LineupSelectionSheetState extends State<LineupSelectionSheet> {
                                 horizontal: 12,
                                 vertical: 2,
                               ),
-                              leading: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.drag_indicator,
-                                    color: colorScheme.onSurfaceVariant,
+                              leading: CircleAvatar(
+                                radius: 18,
+                                child: Text(
+                                  player.displayName.characters.first
+                                      .toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                  const SizedBox(width: 6),
-                                  CircleAvatar(
-                                    radius: 18,
-                                    child: Text(
-                                      player.displayName.characters.first
-                                          .toUpperCase(),
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                               title: Text(player.displayName),
                               trailing: _ParticipationSlider(
