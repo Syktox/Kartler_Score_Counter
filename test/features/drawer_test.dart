@@ -128,6 +128,21 @@ void main() {
       );
     });
 
+    testWidgets('game drawer shows start page as the first action', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: wattenPrefs());
+
+      await openDrawer(tester);
+
+      final startTop = tester.getTopLeft(find.text('Startseite')).dy;
+      expect(startTop, lessThan(tester.getTopLeft(find.text('Neues Spiel')).dy));
+      expect(
+        startTop,
+        lessThan(tester.getTopLeft(find.text('Siegerübersicht')).dy),
+      );
+    });
+
     testWidgets('watten drawer does not show recent winners as subtitle', (
       tester,
     ) async {

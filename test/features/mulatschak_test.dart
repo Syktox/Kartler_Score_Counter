@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kartler/app/app.dart';
 import 'package:kartler/models/mulatschak_history_entry.dart';
+import 'package:kartler/widgets/mulatschak_history_drawer.dart';
 import 'package:kartler/widgets/score_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -97,6 +99,14 @@ void main() {
       );
     }
 
+    testWidgets('does not show a reset button on the score screen', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: mulatschakPrefs());
+
+      expect(find.text('Reset'), findsNothing);
+    });
+
     testWidgets('supports multiplier-based scoring and winner display', (
       tester,
     ) async {
@@ -164,18 +174,73 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('detects a winner when a player reaches zero', (tester) async {
+    testWidgets('marks the winner and losers on the player cards', (
+      tester,
+    ) async {
       await pumpApp(
         tester,
         prefs: mulatschakPrefs(lineup: {'p1': 1, 'p2': 21}),
       );
 
       expect(find.text('Anna gewinnt!'), findsNothing);
+      expect(find.text('Gewinner'), findsNothing);
 
       await tester.tap(find.text('-1'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Anna gewinnt!'), findsOneWidget);
+      expect(find.text('Anna gewinnt!'), findsNothing);
+      expect(find.text('Gewinner'), findsOneWidget);
+      expect(tester.widget<Text>(find.text('Gewinner')).style?.color, Colors.green);
+      expect(find.text('X'), findsOneWidget);
+      expect(tester.widget<Text>(find.text('X')).style?.color, Colors.red);
+      final cardSize = tester.getSize(find.widgetWithText(ScoreCard, 'Anna'));
+      expect(cardSize.width, 176);
+      expect(cardSize.height, 204);
+    });
+
+    testWidgets('keeps the score below the winner label', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: mulatschakPrefs(lineup: {'p1': 1, 'p2': 21}),
+      );
+
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getBottomLeft(find.text('Gewinner')).dy,
+        lessThan(tester.getTopLeft(find.text('0')).dy),
+      );
+    });
+
+    testWidgets('keeps the winner label above the name in the handset grid', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(375, 812);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues({
+        ...threePlayerMulatschakPrefs(),
+        'mulatschak_lineup': jsonEncode({'p1': 1, 'p2': 21, 'p3': 21}),
+      });
+      await tester.pumpWidget(const KartlerApp());
+      await tester.pumpAndSettle();
+      await dismissStartScreen(tester);
+
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getBottomLeft(find.text('Gewinner')).dy,
+        lessThan(tester.getTopLeft(find.text('Anna')).dy),
+      );
+      expect(
+        tester.getBottomLeft(find.text('Gewinner')).dy,
+        lessThan(tester.getTopLeft(find.text('Ben')).dy),
+      );
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('applies muleqack reset settings to scoring', (tester) async {
@@ -544,7 +609,7 @@ void main() {
       final historyDrawer = find.byType(Drawer);
       expect(
         find.descendant(of: historyDrawer, matching: find.text('Anna')),
-        findsNWidgets(3),
+        findsNWidgets(2),
       );
       expect(
         find.descendant(of: historyDrawer, matching: find.text('Ben')),
@@ -554,6 +619,47 @@ void main() {
         find.descendant(of: historyDrawer, matching: find.text('Carla')),
         findsNWidgets(2),
       );
+    });
+
+    testWidgets('shows quick repeated history changes as one summed entry', (
+      tester,
+    ) async {
+      final history = [
+        const MulatschakHistoryEntry(
+          round: 1,
+          time: '12:00:00',
+          playerName: 'Anna',
+          points: -1,
+        ).encode(),
+        const MulatschakHistoryEntry(
+          round: 1,
+          time: '12:00:12',
+          playerName: 'Anna',
+          points: -1,
+        ).encode(),
+        const MulatschakHistoryEntry(
+          round: 1,
+          time: '12:00:24',
+          playerName: 'Anna',
+          points: -1,
+        ).encode(),
+        const MulatschakHistoryEntry(
+          round: 1,
+          time: '12:00:54',
+          playerName: 'Anna',
+          points: -1,
+        ).encode(),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(home: MulatschakHistoryDrawer(history: history)),
+      );
+
+      expect(find.text('Anna'), findsNWidgets(2));
+      expect(find.text('-3 Punkte'), findsOneWidget);
+      expect(find.text('12:00:00 - 12:00:24'), findsOneWidget);
+      expect(find.text('-1 Punkte'), findsOneWidget);
+      expect(find.text('12:00:54'), findsOneWidget);
     });
 
     testWidgets('supports undo of score changes', (tester) async {

@@ -5,7 +5,6 @@ import '../../models/watten_side.dart';
 import '../../utils/responsive_utils.dart';
 import '../../widgets/score_button.dart';
 import '../../widgets/score_card.dart';
-import '../../widgets/winner_banner.dart';
 
 class WattenBody extends StatelessWidget {
   final bool isLoading;
@@ -13,6 +12,7 @@ class WattenBody extends StatelessWidget {
   final WattenSide selectedSide;
   final String? winner;
   final bool tableMode;
+  final int winningScore;
   final String meLabel;
   final String youLabel;
   final ValueChanged<WattenSide> onSelectedSideChanged;
@@ -27,6 +27,7 @@ class WattenBody extends StatelessWidget {
     required this.selectedSide,
     required this.winner,
     required this.tableMode,
+    required this.winningScore,
     required this.meLabel,
     required this.youLabel,
     required this.onSelectedSideChanged,
@@ -34,14 +35,6 @@ class WattenBody extends StatelessWidget {
     required this.onResetSelectedSide,
     required this.onTableModeChanged,
   });
-
-  /// Anzeigename der Gewinnerseite (Team-Name statt „Wir“/„Die“).
-  String? get _displayWinner {
-    if (winner == null) {
-      return null;
-    }
-    return winner == WattenSide.me.label ? meLabel : youLabel;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +50,9 @@ class WattenBody extends StatelessWidget {
       return _buildTableMode(context);
     }
 
+    final meIsWinner = winner == WattenSide.me.label;
+    final youIsWinner = winner == WattenSide.you.label;
+    final hasWinner = winner != null;
     final scoreCards = Row(
       crossAxisAlignment: isLandscape
           ? CrossAxisAlignment.stretch
@@ -66,6 +62,9 @@ class WattenBody extends StatelessWidget {
           title: meLabel,
           score: currentGame.me,
           isSelected: selectedSide == WattenSide.me,
+          isWinner: meIsWinner,
+          isLoser: hasWinner && !meIsWinner,
+          isTense: !hasWinner && _isTense(currentGame.me),
           fillHeight: isLandscape,
           onTap: () => onSelectedSideChanged(WattenSide.me),
         ),
@@ -73,6 +72,9 @@ class WattenBody extends StatelessWidget {
           title: youLabel,
           score: currentGame.you,
           isSelected: selectedSide == WattenSide.you,
+          isWinner: youIsWinner,
+          isLoser: hasWinner && !youIsWinner,
+          isTense: !hasWinner && _isTense(currentGame.you),
           fillHeight: isLandscape,
           onTap: () => onSelectedSideChanged(WattenSide.you),
         ),
@@ -96,10 +98,6 @@ class WattenBody extends StatelessWidget {
               width: 132,
               child: Column(
                 children: [
-                  if (_displayWinner != null) ...[
-                    WinnerBanner(winner: _displayWinner!, compact: true),
-                    const SizedBox(height: 6),
-                  ],
                   Expanded(
                     child: WattenControls(
                       compact: true,
@@ -121,8 +119,6 @@ class WattenBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (_displayWinner != null) WinnerBanner(winner: _displayWinner!),
-          const SizedBox(height: 8),
           Expanded(child: scoreCards),
           const SizedBox(height: 24),
           WattenControls(
@@ -149,6 +145,8 @@ class WattenBody extends StatelessWidget {
               score: currentGame.you,
               rotated: true,
               isSelected: selectedSide == WattenSide.you,
+              isTense:
+                  winner != WattenSide.you.label && _isTense(currentGame.you),
               winner: winner,
               onSelect: () {
                 onSelectedSideChanged(WattenSide.you);
@@ -172,6 +170,8 @@ class WattenBody extends StatelessWidget {
               score: currentGame.me,
               rotated: false,
               isSelected: selectedSide == WattenSide.me,
+              isTense:
+                  winner != WattenSide.me.label && _isTense(currentGame.me),
               winner: winner,
               onSelect: () {
                 onSelectedSideChanged(WattenSide.me);
@@ -191,6 +191,11 @@ class WattenBody extends StatelessWidget {
       ),
     );
   }
+
+  bool _isTense(int score) {
+    final pointsUntilWin = winningScore - score;
+    return pointsUntilWin == 1 || pointsUntilWin == 2;
+  }
 }
 
 class _TableSide extends StatelessWidget {
@@ -199,6 +204,7 @@ class _TableSide extends StatelessWidget {
   final int score;
   final bool rotated;
   final bool isSelected;
+  final bool isTense;
   final String? winner;
   final VoidCallback onSelect;
   final ValueChanged<int> onScore;
@@ -210,6 +216,7 @@ class _TableSide extends StatelessWidget {
     required this.score,
     required this.rotated,
     required this.isSelected,
+    required this.isTense,
     required this.winner,
     required this.onSelect,
     required this.onScore,
@@ -219,18 +226,31 @@ class _TableSide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final winnerOfSide = winner == side.label;
+    final loserOfSide = winner != null && !winnerOfSide;
     final content = Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: ScoreCard(
-            title: title,
-            score: score,
-            isSelected: isSelected,
-            onTap: onSelect,
-            compact: true,
-            margin: const EdgeInsets.symmetric(horizontal: 6),
-            constraints: const BoxConstraints(minHeight: 120),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: ScoreCard(
+                  title: title,
+                  score: score,
+                  isSelected: isSelected,
+                  onTap: onSelect,
+                  compact: true,
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  constraints: const BoxConstraints(minHeight: 120),
+                ),
+              ),
+              if (winnerOfSide)
+                const Positioned(right: 12, top: 6, child: _WinnerBadge())
+              else if (loserOfSide)
+                const Positioned(right: 12, top: 6, child: _LoserBadge())
+              else if (isTense)
+                const Positioned(right: 12, top: 6, child: _TenseBadge()),
+            ],
           ),
         ),
         const SizedBox(width: 8),
@@ -263,7 +283,7 @@ class _TableSide extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 ScoreButton(
-                  label: 'Reset',
+                  label: 'Streichen',
                   onPressed: onReset,
                   minimumSize: const Size(100, 44),
                   fontSize: 16,
@@ -276,35 +296,10 @@ class _TableSide extends StatelessWidget {
       ],
     );
 
-    final decorated = Stack(
-      children: [
-        Positioned.fill(child: content),
-        if (winnerOfSide)
-          Positioned(
-            left: 8,
-            top: 4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.6)),
-              ),
-              child: const Text(
-                'Gewinnt!',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-      ],
-    );
-
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onSelect,
-      child: rotated
-          ? RotatedBox(quarterTurns: 2, child: decorated)
-          : decorated,
+      child: rotated ? RotatedBox(quarterTurns: 2, child: content) : content,
     );
   }
 }
@@ -342,7 +337,7 @@ class WattenControls extends StatelessWidget {
           width: 120,
         ),
         ScoreButton(
-          label: 'Reset',
+          label: 'Streichen',
           onPressed: onResetSelectedSide,
           minimumSize: const Size(120, 54),
           fontSize: 18,
@@ -394,7 +389,7 @@ class WattenControls extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         ScoreButton(
-          label: 'Reset',
+          label: 'Streichen',
           onPressed: onResetSelectedSide,
           minimumSize: const Size(120, 80),
         ),
@@ -407,6 +402,9 @@ class _WattenSideCard extends StatelessWidget {
   final String title;
   final int score;
   final bool isSelected;
+  final bool isWinner;
+  final bool isLoser;
+  final bool isTense;
   final VoidCallback onTap;
   final bool fillHeight;
 
@@ -414,6 +412,9 @@ class _WattenSideCard extends StatelessWidget {
     required this.title,
     required this.score,
     required this.isSelected,
+    required this.isWinner,
+    required this.isLoser,
+    required this.isTense,
     required this.onTap,
     this.fillHeight = false,
   });
@@ -421,18 +422,105 @@ class _WattenSideCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: ScoreCard(
-        title: title,
-        score: score,
-        isSelected: isSelected,
-        onTap: onTap,
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        constraints: fillHeight
-            ? null
-            : BoxConstraints(
-                minHeight: ResponsiveUtils.isDesktopCardPlatform ? 260 : 220,
-                maxHeight: ResponsiveUtils.isDesktopCardPlatform ? 300 : 260,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              SizedBox(
+                width: constraints.maxWidth,
+                height: fillHeight && constraints.hasBoundedHeight
+                    ? constraints.maxHeight
+                    : null,
+                child: ScoreCard(
+                  title: title,
+                  score: score,
+                  isSelected: isSelected,
+                  onTap: onTap,
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  constraints: fillHeight
+                      ? null
+                      : BoxConstraints(
+                          minHeight: ResponsiveUtils.isDesktopCardPlatform
+                              ? 270
+                              : 230,
+                          maxHeight: ResponsiveUtils.isDesktopCardPlatform
+                              ? 310
+                              : 270,
+                        ),
+                ),
               ),
+              if (isWinner)
+                const Positioned(right: 14, top: 10, child: _WinnerBadge())
+              else if (isLoser)
+                const Positioned(right: 14, top: 10, child: _LoserBadge())
+              else if (isTense)
+                const Positioned(right: 14, top: 10, child: _TenseBadge()),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _WinnerBadge extends StatelessWidget {
+  const _WinnerBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _WattenStatusBadge(label: 'Gewinner', color: Colors.green);
+  }
+}
+
+class _TenseBadge extends StatelessWidget {
+  const _TenseBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _WattenStatusBadge(label: 'Gespannt', color: Colors.amber);
+  }
+}
+
+class _LoserBadge extends StatelessWidget {
+  const _LoserBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _WattenStatusBadge(
+      label: 'X',
+      color: Colors.red,
+      fontSize: 16,
+    );
+  }
+}
+
+class _WattenStatusBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+  final double fontSize;
+
+  const _WattenStatusBadge({
+    required this.label,
+    required this.color,
+    this.fontSize = 13,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.65)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }

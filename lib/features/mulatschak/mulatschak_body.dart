@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../utils/responsive_utils.dart';
 import '../../widgets/score_button.dart';
 import '../../widgets/score_card.dart';
-import '../../widgets/winner_banner.dart';
 
 class MulatschakBody extends StatelessWidget {
   final bool isLoading;
@@ -11,12 +10,11 @@ class MulatschakBody extends StatelessWidget {
   final String currentPlayerId;
   final String Function(String playerId) nameOf;
   final int multiplier;
-  final String? winner;
+  final String? winnerPlayerId;
   final ValueChanged<String> onPlayerSelected;
   final void Function(int oldIndex, int newIndex) onPlayersReordered;
   final ValueChanged<int> onScoreChanged;
   final ValueChanged<int> onMultiplierChanged;
-  final VoidCallback onResetPlayers;
   final bool hasAvailablePlayers;
   final VoidCallback onPickLineup;
   final VoidCallback onAddPlayer;
@@ -28,16 +26,17 @@ class MulatschakBody extends StatelessWidget {
     required this.currentPlayerId,
     required this.nameOf,
     required this.multiplier,
-    required this.winner,
+    required this.winnerPlayerId,
     required this.onPlayerSelected,
     required this.onPlayersReordered,
     required this.onScoreChanged,
     required this.onMultiplierChanged,
-    required this.onResetPlayers,
     required this.hasAvailablePlayers,
     required this.onPickLineup,
     required this.onAddPlayer,
   });
+
+  bool get _hasWinner => winnerPlayerId != null;
 
   @override
   Widget build(BuildContext context) {
@@ -71,16 +70,11 @@ class MulatschakBody extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (winner != null) ...[
-                      WinnerBanner(winner: winner!, compact: true),
-                      const SizedBox(height: 6),
-                    ],
                     MulatschakControls(
                       compact: true,
                       multiplier: multiplier,
                       onScoreChanged: onScoreChanged,
                       onMultiplierChanged: onMultiplierChanged,
-                      onResetPlayers: onResetPlayers,
                     ),
                   ],
                 ),
@@ -95,7 +89,6 @@ class MulatschakBody extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       child: Column(
         children: [
-          if (winner != null) WinnerBanner(winner: winner!),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -108,12 +101,10 @@ class MulatschakBody extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(height: 20),
           MulatschakControls(
             multiplier: multiplier,
             onScoreChanged: onScoreChanged,
             onMultiplierChanged: onMultiplierChanged,
-            onResetPlayers: onResetPlayers,
           ),
           const SizedBox(height: 24),
         ],
@@ -131,7 +122,7 @@ class MulatschakBody extends StatelessWidget {
           final entry = entries[index];
 
           return SizedBox(
-            width: 196,
+            width: 176,
             child: _PlayerCard(
               key: ValueKey('mulatschak-score-player-${entry.key}'),
               index: index,
@@ -139,6 +130,8 @@ class MulatschakBody extends StatelessWidget {
               name: nameOf(entry.key),
               score: entry.value,
               isSelected: entry.key == currentPlayerId,
+              isWinner: entry.key == winnerPlayerId,
+              isLoser: _hasWinner && entry.key != winnerPlayerId,
               onSelected: onPlayerSelected,
               onReordered: onPlayersReordered,
               onDroppedOutside: () => onPlayersReordered(index, entries.length),
@@ -153,8 +146,8 @@ class MulatschakBody extends StatelessWidget {
     return SingleChildScrollView(
       child: Wrap(
         alignment: WrapAlignment.center,
-        spacing: 10,
-        runSpacing: 10,
+        spacing: 12,
+        runSpacing: 12,
         children: List.generate(entries.length, (index) {
           final entry = entries[index];
 
@@ -167,6 +160,8 @@ class MulatschakBody extends StatelessWidget {
               name: nameOf(entry.key),
               score: entry.value,
               isSelected: entry.key == currentPlayerId,
+              isWinner: entry.key == winnerPlayerId,
+              isLoser: _hasWinner && entry.key != winnerPlayerId,
               compact: true,
               onSelected: onPlayerSelected,
               onReordered: onPlayersReordered,
@@ -183,9 +178,9 @@ class MulatschakBody extends StatelessWidget {
 
     return GridView.count(
       crossAxisCount: columnCount,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 0.62,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 0.65,
       children: List.generate(entries.length, (index) {
         final entry = entries[index];
 
@@ -196,7 +191,8 @@ class MulatschakBody extends StatelessWidget {
           name: nameOf(entry.key),
           score: entry.value,
           isSelected: entry.key == currentPlayerId,
-          compact: true,
+          isWinner: entry.key == winnerPlayerId,
+          isLoser: _hasWinner && entry.key != winnerPlayerId,
           onSelected: onPlayerSelected,
           onReordered: onPlayersReordered,
           onDroppedOutside: () => onPlayersReordered(index, entries.length),
@@ -262,7 +258,6 @@ class MulatschakControls extends StatelessWidget {
   final int multiplier;
   final ValueChanged<int> onScoreChanged;
   final ValueChanged<int> onMultiplierChanged;
-  final VoidCallback onResetPlayers;
 
   const MulatschakControls({
     super.key,
@@ -270,7 +265,6 @@ class MulatschakControls extends StatelessWidget {
     required this.multiplier,
     required this.onScoreChanged,
     required this.onMultiplierChanged,
-    required this.onResetPlayers,
   });
 
   @override
@@ -308,14 +302,6 @@ class MulatschakControls extends StatelessWidget {
             onPressed: () => onScoreChanged(5),
             minimumSize: const Size(128, 48),
             fontSize: 20,
-            width: 128,
-          ),
-          const SizedBox(height: 8),
-          ScoreButton(
-            label: 'Reset',
-            onPressed: onResetPlayers,
-            minimumSize: const Size(128, 48),
-            fontSize: 17,
             width: 128,
           ),
         ],
@@ -380,12 +366,6 @@ class MulatschakControls extends StatelessWidget {
                   width: buttonWidth,
                 ),
               ],
-            ),
-            const SizedBox(height: 20),
-            ScoreButton(
-              label: 'Reset',
-              onPressed: onResetPlayers,
-              minimumSize: const Size(132, 84),
             ),
           ],
         );
@@ -491,6 +471,8 @@ class _PlayerCard extends StatelessWidget {
   final String name;
   final int score;
   final bool isSelected;
+  final bool isWinner;
+  final bool isLoser;
   final bool compact;
   final ValueChanged<String> onSelected;
   final void Function(int oldIndex, int newIndex) onReordered;
@@ -503,20 +485,23 @@ class _PlayerCard extends StatelessWidget {
     required this.name,
     required this.score,
     required this.isSelected,
+    required this.isWinner,
+    required this.isLoser,
     required this.onSelected,
     required this.onReordered,
     required this.onDroppedOutside,
     this.compact = false,
   });
 
-  @override
+@override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final card = _scoreCard(context);
+        final stretch = constraints.hasBoundedHeight;
+        final card = _scoreCard(context, stretch: stretch);
         final feedbackWidth = constraints.hasBoundedWidth
             ? constraints.maxWidth
-            : (compact ? 148.0 : 196.0);
+            : (compact ? 148.0 : 176.0);
         final feedbackHeight = constraints.hasBoundedHeight
             ? constraints.maxHeight
             : null;
@@ -559,16 +544,88 @@ class _PlayerCard extends StatelessWidget {
     );
   }
 
-  Widget _scoreCard(BuildContext context) {
-    return ScoreCard(
-      title: name,
-      score: score,
-      isSelected: isSelected,
-      compact: compact,
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        onSelected(playerId);
-      },
+  Widget _scoreCard(BuildContext context, {bool stretch = false}) {
+    return Stack(
+      fit: stretch ? StackFit.expand : StackFit.loose,
+      children: [
+        ScoreCard(
+          title: name,
+          score: score,
+          isSelected: isSelected,
+          compact: compact,
+          stretch: stretch,
+          width: compact ? 148 : 176,
+          constraints: BoxConstraints(minHeight: compact ? 156 : 204),
+          padding: stretch
+              ? const EdgeInsets.fromLTRB(16, 54, 16, 0)
+              : (compact
+                    ? const EdgeInsets.fromLTRB(8, 36, 8, 12)
+                    : const EdgeInsets.fromLTRB(16, 48, 16, 14)),
+          titleScoreGap: stretch ? 14 : (compact ? 12 : 14),
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            onSelected(playerId);
+          },
+        ),
+        if (isWinner)
+          const Positioned(right: 12, top: 8, child: _MulatschakWinnerBadge())
+        else if (isLoser)
+          const Positioned(right: 12, top: 8, child: _MulatschakLoserBadge()),
+      ],
+    );
+  }
+}
+
+class _MulatschakWinnerBadge extends StatelessWidget {
+  const _MulatschakWinnerBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _MulatschakStatusBadge(label: 'Gewinner', color: Colors.green);
+  }
+}
+
+class _MulatschakLoserBadge extends StatelessWidget {
+  const _MulatschakLoserBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _MulatschakStatusBadge(
+      label: 'X',
+      color: Colors.red,
+      fontSize: 16,
+    );
+  }
+}
+
+class _MulatschakStatusBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+  final double fontSize;
+
+  const _MulatschakStatusBadge({
+    required this.label,
+    required this.color,
+    this.fontSize = 13,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.65)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }

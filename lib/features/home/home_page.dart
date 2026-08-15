@@ -311,16 +311,6 @@ class _HomePageState extends State<HomePage> {
     _bubbleHost.show(context, 'Partie aufgezeichnet!');
   }
 
-  String? get _mulatschakWinnerName {
-    final winnerId = _mulatschak.winner();
-    return winnerId == null ? null : _players.displayName(winnerId);
-  }
-
-  String? get _hosnObeWinnerName {
-    final winnerId = _hosnObe.winner();
-    return winnerId == null ? null : _players.displayName(winnerId);
-  }
-
   Future<void> _openHub() async {
     final activeSession = _sessions.activeSession;
     final participantNames = [
@@ -529,16 +519,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Widget _buildDrawerStartAction() {
+    return ListTile(
+      leading: const Icon(Icons.home_outlined),
+      title: const Text('Startseite'),
+      onTap: () {
+        Navigator.of(context).pop();
+        _openHub();
+      },
+    );
+  }
+
   List<Widget> _buildDrawerExtraActions(AppMode mode) {
     return [
-      ListTile(
-        leading: const Icon(Icons.home_outlined),
-        title: const Text('Startseite'),
-        onTap: () {
-          Navigator.of(context).pop();
-          _openHub();
-        },
-      ),
       if (mode != AppMode.counter)
         ListTile(
           leading: const Icon(Icons.groups_outlined),
@@ -622,6 +615,7 @@ class _HomePageState extends State<HomePage> {
           secondaryActionLabel: 'Siegerübersicht',
           secondaryActionIcon: Icons.emoji_events_outlined,
           onSecondaryAction: _showWinnersDialog,
+          topActions: [_buildDrawerStartAction()],
           extraActions: _buildDrawerExtraActions(mode),
           pinExtraActions: false,
           onOpenSettings: _openSettings,
@@ -744,6 +738,7 @@ class _HomePageState extends State<HomePage> {
           selectedSide: _watten.selectedSide,
           winner: _watten.winner(),
           tableMode: _watten.tableMode,
+          winningScore: _settings.ruleProfile.wattenWinningScore,
           meLabel: _wattenSideLabel(WattenSide.me),
           youLabel: _wattenSideLabel(WattenSide.you),
           onSelectedSideChanged: _watten.selectSide,
@@ -758,12 +753,11 @@ class _HomePageState extends State<HomePage> {
           currentPlayerId: _mulatschak.currentPlayerId,
           nameOf: _players.displayName,
           multiplier: _mulatschak.multiplier,
-          winner: _mulatschakWinnerName,
+          winnerPlayerId: _mulatschak.winner(),
           onPlayerSelected: _mulatschak.selectPlayer,
           onPlayersReordered: _mulatschak.reorderPlayers,
           onScoreChanged: _mulatschak.changeScore,
           onMultiplierChanged: _mulatschak.setMultiplier,
-          onResetPlayers: _mulatschak.resetPlayers,
           hasAvailablePlayers: _players.players.isNotEmpty,
           onPickLineup: () => _openLineupPicker(AppMode.mulatschak),
           onAddPlayer: _openPlayers,
@@ -774,10 +768,9 @@ class _HomePageState extends State<HomePage> {
           scores: _hosnObe.lineup,
           currentPlayerId: _hosnObe.currentPlayerId,
           nameOf: _players.displayName,
-          winner: _hosnObeWinnerName,
+          winnerPlayerId: _hosnObe.winner(),
           onPlayerSelected: _hosnObe.selectPlayer,
           onScoreChanged: _hosnObe.changeScore,
-          onResetPlayers: _hosnObe.resetPlayers,
           hasAvailablePlayers: _players.players.isNotEmpty,
           onPickLineup: () => _openLineupPicker(AppMode.hosnObe),
           onAddPlayer: _openPlayers,

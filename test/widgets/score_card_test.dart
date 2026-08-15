@@ -4,14 +4,13 @@ import 'package:kartler/app/theme/app_theme.dart';
 import 'package:kartler/widgets/score_card.dart';
 
 void main() {
-  BoxDecoration scoreCardDecoration(WidgetTester tester) {
-    final container = tester.widget<AnimatedContainer>(
+  AnimatedContainer scoreCardContainer(WidgetTester tester) {
+    return tester.widget<AnimatedContainer>(
       find.descendant(
         of: find.byType(ScoreCard),
         matching: find.byType(AnimatedContainer),
       ),
     );
-    return container.decoration! as BoxDecoration;
   }
 
   testWidgets('unselected player card has a visible light-mode border', (
@@ -32,7 +31,9 @@ void main() {
       ),
     );
 
-    final border = scoreCardDecoration(tester).border! as Border;
+    final border =
+        (scoreCardContainer(tester).foregroundDecoration! as BoxDecoration)
+            .border! as Border;
     expect(border.top.color, theme.colorScheme.outline);
     expect(border.top.width, greaterThan(1));
     expect(border.top.color, isNot(theme.colorScheme.surface));
@@ -56,10 +57,11 @@ void main() {
       ),
     );
 
-    final decoration = scoreCardDecoration(tester);
+    final container = scoreCardContainer(tester);
+    final decoration = container.foregroundDecoration! as BoxDecoration;
     final border = decoration.border! as Border;
     expect(border.top.color, theme.colorScheme.primary);
     expect(border.top.width, 2);
-    expect(decoration.color, isNot(Colors.transparent));
+    expect((container.decoration! as BoxDecoration).color, isNot(Colors.transparent));
   });
 }

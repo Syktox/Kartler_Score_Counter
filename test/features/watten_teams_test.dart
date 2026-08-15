@@ -125,7 +125,8 @@ void main() {
 
       expect(find.text('Anna & Ben'), findsOneWidget);
       expect(find.text('Carla'), findsOneWidget);
-      expect(find.text('Anna & Ben gewinnen!'), findsOneWidget);
+      expect(find.text('Gewinner'), findsOneWidget);
+      expect(find.text('Anna & Ben gewinnen!'), findsNothing);
       expect(find.text('Ich gewinnt!'), findsNothing);
     });
 

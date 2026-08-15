@@ -23,6 +23,7 @@ class CounterDrawer extends StatelessWidget {
   final CounterNameCallback? onRenameItem;
   final CounterNameCallback onDeleteItem;
   final ReorderItemsCallback? onReorderItems;
+  final List<Widget> topActions;
   final List<Widget> extraActions;
   final bool pinExtraActions;
   final VoidCallback onOpenSettings;
@@ -45,6 +46,7 @@ class CounterDrawer extends StatelessWidget {
     required this.onRenameItem,
     required this.onDeleteItem,
     this.onReorderItems,
+    this.topActions = const [],
     this.extraActions = const [],
     this.pinExtraActions = true,
     required this.onOpenSettings,
@@ -121,6 +123,10 @@ class CounterDrawer extends StatelessWidget {
     final includeExtraInList = !pinExtraActions;
     final hasSecondaryAction = onSecondaryAction != null;
     final leadingTiles = (showAddButton ? 1 : 0) + (hasSecondaryAction ? 1 : 0);
+    final itemStartIndex = topActions.length;
+    final addButtonIndex = itemStartIndex + items.length;
+    final secondaryActionIndex = addButtonIndex + (showAddButton ? 1 : 0);
+    final extraActionsStartIndex = itemStartIndex + items.length + leadingTiles;
 
     return ClipRect(
       child: DragBoundary(
@@ -132,19 +138,32 @@ class CounterDrawer extends StatelessWidget {
           ),
           proxyDecorator: _buildReorderProxy,
           itemCount:
+              topActions.length +
               items.length +
               leadingTiles +
               (includeExtraInList ? extraActions.length : 0),
           onReorderItem: (oldIndex, newIndex) {
-            if (oldIndex >= items.length || newIndex >= items.length) {
+            final oldItemIndex = oldIndex - itemStartIndex;
+            final newItemIndex = newIndex - itemStartIndex;
+            if (oldItemIndex < 0 ||
+                oldItemIndex >= items.length ||
+                newItemIndex < 0 ||
+                newItemIndex >= items.length) {
               return;
             }
             if (enableReorder && onReorderItems != null) {
-              onReorderItems!(oldIndex, newIndex);
+              onReorderItems!(oldItemIndex, newItemIndex);
             }
           },
           itemBuilder: (context, index) {
-            if (showAddButton && index == items.length) {
+            if (index < topActions.length) {
+              return KeyedSubtree(
+                key: ValueKey('drawer-top-action-$index'),
+                child: topActions[index],
+              );
+            }
+
+            if (showAddButton && index == addButtonIndex) {
               return ListTile(
                 key: const ValueKey('add-item-tile'),
                 focusColor: Colors.transparent,
@@ -160,8 +179,7 @@ class CounterDrawer extends StatelessWidget {
               );
             }
 
-            if (hasSecondaryAction &&
-                index == items.length + (showAddButton ? 1 : 0)) {
+            if (hasSecondaryAction && index == secondaryActionIndex) {
               return ListTile(
                 key: const ValueKey('secondary-action-tile'),
                 focusColor: Colors.transparent,
@@ -179,7 +197,7 @@ class CounterDrawer extends StatelessWidget {
             }
 
             if (includeExtraInList) {
-              final extraIndex = index - items.length - leadingTiles;
+              final extraIndex = index - extraActionsStartIndex;
               if (extraIndex >= 0 && extraIndex < extraActions.length) {
                 return KeyedSubtree(
                   key: ValueKey('drawer-extra-action-$extraIndex'),
@@ -188,7 +206,8 @@ class CounterDrawer extends StatelessWidget {
               }
             }
 
-            return _buildCounterTile(context, items[index], index);
+            final itemIndex = index - itemStartIndex;
+            return _buildCounterTile(context, items[itemIndex], itemIndex);
           },
         ),
       ),
