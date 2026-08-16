@@ -110,34 +110,48 @@ class MulatschakBody extends StatelessWidget {
   }
 
   Widget _buildPlayersWrap(List<MapEntry<String, int>> entries) {
+    const spacing = 12.0;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 12,
-          runSpacing: 12,
-          children: List.generate(entries.length, (index) {
-            final entry = entries[index];
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Bei zwei Spielern passen die Karten nebeneinander in eine
+            // Zeile, damit die Punkte auf einer Linie liegen.
+            final cardWidth = entries.length == 2
+                ? math.min(
+                    PlayerScoreCard.width,
+                    (constraints.maxWidth - spacing) / 2,
+                  )
+                : PlayerScoreCard.width;
 
-            return SizedBox(
-              width: 176,
-              child: _PlayerCard(
-                key: ValueKey('mulatschak-score-player-${entry.key}'),
-                index: index,
-                playerId: entry.key,
-                name: nameOf(entry.key),
-                score: entry.value,
-                isSelected: entry.key == currentPlayerId,
-                isWinner: entry.key == winnerPlayerId,
-                isLoser: _hasWinner && entry.key != winnerPlayerId,
-                onSelected: onPlayerSelected,
-                onReordered: onPlayersReordered,
-                onDroppedOutside: () =>
-                    onPlayersReordered(index, entries.length),
-              ),
+            return Wrap(
+              alignment: WrapAlignment.center,
+              spacing: spacing,
+              runSpacing: spacing,
+              children: List.generate(entries.length, (index) {
+                final entry = entries[index];
+
+                return SizedBox(
+                  width: cardWidth,
+                  child: _PlayerCard(
+                    key: ValueKey('mulatschak-score-player-${entry.key}'),
+                    index: index,
+                    playerId: entry.key,
+                    name: nameOf(entry.key),
+                    score: entry.value,
+                    isSelected: entry.key == currentPlayerId,
+                    isWinner: entry.key == winnerPlayerId,
+                    isLoser: _hasWinner && entry.key != winnerPlayerId,
+                    onSelected: onPlayerSelected,
+                    onReordered: onPlayersReordered,
+                    onDroppedOutside: () =>
+                        onPlayersReordered(index, entries.length),
+                  ),
+                );
+              }),
             );
-          }),
+          },
         ),
       ),
     );

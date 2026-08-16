@@ -137,6 +137,50 @@ final nameBefore = tester.getRect(find.text('Was Geht'));
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('scores of IchKanndasallesnichtmehr and Markus lie on the same line', (
+    tester,
+  ) async {
+    await pumpAtPhoneSize(
+      tester,
+      {
+        ...mulatschakPrefs(lineup: {'p1': 21, 'p2': 21}),
+        'players': jsonEncode([
+          {
+            'id': 'p1',
+            'name': 'IchKanndasallesnichtmehr',
+            'createdAt': '2024-01-01T00:00:00.000Z',
+          },
+          {
+            'id': 'p2',
+            'name': 'Markus',
+            'createdAt': '2024-01-01T00:00:00.000Z',
+          },
+        ]),
+      },
+    );
+
+    final ichCard = find.widgetWithText(ScoreCard, 'IchKanndasallesnichtmehr');
+    final markusCard = find.widgetWithText(ScoreCard, 'Markus');
+    final ichScore = tester.getRect(
+      find.descendant(of: ichCard, matching: find.text('21')),
+    );
+    final markusScore = tester.getRect(
+      find.descendant(of: markusCard, matching: find.text('21')),
+    );
+    expect(
+      tester.getRect(ichCard).center.dy == tester.getRect(markusCard).center.dy,
+      isTrue,
+      reason: 'the two cards must sit next to each other in one row',
+    );
+    expect(
+      markusScore.top,
+      ichScore.top,
+      reason: 'the two scores must lie on the same horizontal line',
+    );
+    expect(markusScore.bottom, ichScore.bottom);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('mulatschak wrap: scores align on one line for one- and two-line names', (
     tester,
   ) async {

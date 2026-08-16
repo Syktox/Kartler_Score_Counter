@@ -243,8 +243,9 @@ void main() {
 
     expect(cardCenter, greaterThan(screenHeight * 0.30));
     expect(cardCenter, lessThan(screenHeight * 0.70));
+    final wrap = tester.getRect(find.byType(Wrap).first);
     expect(
-      (card.left - (tester.view.physicalSize.width - card.right)).abs(),
+      (wrap.left - (tester.view.physicalSize.width - wrap.right)).abs(),
       lessThan(40),
       reason: 'cards are horizontally centered',
     );

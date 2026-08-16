@@ -89,18 +89,17 @@ class ScoreCard extends StatelessWidget {
             ),
           );
 
-          // Es wird immer Platz für einen zweizeiligen Namen reserviert,
-          // damit die Score-Position nie von der Zeilenanzahl abhängt.
+          // Der LayoutBuilder sitzt bereits innerhalb des Paddings –
+          // die Constraints sind also schon reduziert. Es wird immer Platz
+          // für einen zweizeiligen Namen reserviert, damit die Score-Position
+          // nie von der Zeilenanzahl abhängt.
           const minNameScoreGap = 12.0;
           final reservedContent = lineHeight * 2 + minNameScoreGap + scoreHeight;
           final availableHeight = isTight
               ? constraints.maxHeight
               : (constraints.minHeight.isFinite &&
                       constraints.minHeight > 0)
-                  ? math.max(
-                      constraints.minHeight - (padding?.vertical ?? 0),
-                      reservedContent,
-                    )
+                  ? math.max(constraints.minHeight, reservedContent)
                   : reservedContent;
 
           // Fester Anker: Der Score sitzt immer an derselben Stelle und wird
