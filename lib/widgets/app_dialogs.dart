@@ -311,11 +311,15 @@ class _ErrorBubbleState extends State<_ErrorBubble>
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = mediaQuery.viewInsets.bottom;
+    final bottom = bottomInset > 0.0
+        ? bottomInset + 12.0
+        : mediaQuery.size.height * 0.30;
     return Positioned(
       left: 24,
       right: 24,
-      bottom: height * 0.30,
+      bottom: bottom,
       child: IgnorePointer(
         child: FadeTransition(
           opacity: _opacity,

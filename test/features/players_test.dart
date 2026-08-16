@@ -20,7 +20,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
+      await tester.enterText(find.byType(TextField), 'Carla');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
 
@@ -35,7 +35,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'Name'),
+        find.byType(TextField),
         'Carla Maria',
       );
       await tester.tap(find.widgetWithText(FilledButton, 'Speichern'));
@@ -66,7 +66,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Anna');
+      await tester.enterText(find.byType(TextField), 'Anna');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
 
@@ -88,7 +88,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
+      await tester.enterText(find.byType(TextField), 'Carla');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
       await tester.pageBack();
@@ -120,7 +120,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
+      await tester.enterText(find.byType(TextField), 'Carla');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
       await tester.pageBack();
@@ -199,7 +199,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Carla');
+      await tester.enterText(find.byType(TextField), 'Carla');
       await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
       await tester.pumpAndSettle();
       await tester.pageBack();

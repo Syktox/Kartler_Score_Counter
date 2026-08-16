@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/player.dart';
 import '../../utils/name_utils.dart';
+import '../../utils/responsive_utils.dart';
 import '../../widgets/app_dialogs.dart';
 import '../hosn_obe/hosn_obe_controller.dart';
 import '../mulatschak/mulatschak_controller.dart';
@@ -133,8 +134,6 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
       appBar: AppBar(title: const Text('Spieler')),
       body: SafeArea(
         top: false,
-        left: false,
-        right: false,
         child: ListenableBuilder(
           listenable: Listenable.merge([
             widget.players,
@@ -144,71 +143,68 @@ class _PlayerManagementPageState extends State<PlayerManagementPage> {
           ]),
           builder: (context, _) {
             final players = widget.players.players;
+
+            final playerList = players.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Noch keine Spieler.\nLege deinen ersten Spieler an!',
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: players.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final player = players[index];
+
+                      return Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            radius: 22,
+                            child: Text(
+                              _initialOf(player),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            player.displayName,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                tooltip: 'Umbenennen',
+                                onPressed: () => _showEditDialog(player),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                tooltip: 'Löschen',
+                                onPressed: () => _deleteOrConfirm(player),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+
             return Column(
               children: [
-                Expanded(
-                  child: players.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Noch keine Spieler.\nLege deinen ersten Spieler an!',
-                            textAlign: TextAlign.center,
-                          ),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: players.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final player = players[index];
-
-                            return Card(
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant,
-                                ),
-                              ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  radius: 22,
-                                  child: Text(
-                                    _initialOf(player),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  player.displayName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit_outlined),
-                                      tooltip: 'Umbenennen',
-                                      onPressed: () => _showEditDialog(player),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline),
-                                      tooltip: 'Löschen',
-                                      onPressed: () => _deleteOrConfirm(player),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
+                Expanded(child: playerList),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   child: SizedBox(
@@ -253,28 +249,54 @@ class _PlayerEditDialog extends StatefulWidget {
 }
 
 class _PlayerEditDialogState extends State<_PlayerEditDialog> {
+  final _fieldKey = GlobalKey();
   late final TextEditingController _nameController;
+  late final FocusNode _focusNode;
+  double _lastBottomInset = 0;
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialName);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = mediaQuery.viewInsets.bottom;
+    final isLandscape = mediaQuery.orientation == Orientation.landscape;
+
+    if (isLandscape && bottomInset > 0 && bottomInset != _lastBottomInset) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final fieldContext = _fieldKey.currentContext;
+        if (mounted && fieldContext != null) {
+          Scrollable.ensureVisible(fieldContext, alignment: 0.5);
+        }
+      });
+    }
+    _lastBottomInset = bottomInset;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final name = NameUtils.clean(_nameController.text);
     if (!widget.isValid(name)) {
-      AppDialogs.showErrorBubble(
-        context,
-        'Dieser Spielername ist bereits vergeben.',
-      );
+      _focusNode.requestFocus();
+      if (name.isNotEmpty) {
+        AppDialogs.showErrorBubble(
+          context,
+          'Dieser Spielername ist bereits vergeben.',
+        );
+      }
       return;
     }
     setState(() {
@@ -288,25 +310,26 @@ class _PlayerEditDialogState extends State<_PlayerEditDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape = ResponsiveUtils.isHandsetLandscape(
+      MediaQuery.sizeOf(context),
+    );
+
     return AlertDialog(
       scrollable: true,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: 40,
+        vertical: isLandscape ? 8 : 24,
+      ),
       title: Text(widget.title),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _nameController,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _submit(),
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              hintText: 'z. B. Max',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ],
+      content: TextField(
+        key: _fieldKey,
+        controller: _nameController,
+        focusNode: _focusNode,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submit(),
+        decoration: const InputDecoration(hintText: 'z. B. Max'),
       ),
       actions: [
         TextButton(
@@ -324,6 +347,7 @@ class _PlayerEditDialogState extends State<_PlayerEditDialog> {
               : Text(widget.initialName.isEmpty ? 'Hinzufügen' : 'Speichern'),
         ),
       ],
+      actionsOverflowDirection: VerticalDirection.up,
     );
   }
 }

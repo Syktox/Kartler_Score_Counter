@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../utils/responsive_utils.dart';
@@ -60,12 +62,12 @@ class MulatschakBody extends StatelessWidget {
     if (isLandscape) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(child: _buildCompactPlayerWrap(entries)),
-            const SizedBox(width: 12),
+            const SizedBox(height: 10),
             MulatschakControls(
-              compact: true,
               multiplier: multiplier,
               onScoreChanged: onScoreChanged,
               onMultiplierChanged: onMultiplierChanged,
@@ -77,13 +79,13 @@ class MulatschakBody extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-      child: Stack(
+      child: Column(
         children: [
-          Positioned.fill(
+          Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (ResponsiveUtils.isHandsetWidth(constraints.maxWidth) &&
-                    entries.length >= 2) {
+                    entries.length >= 3) {
                   return _buildPlayersGrid(entries);
                 }
 
@@ -91,15 +93,11 @@ class MulatschakBody extends StatelessWidget {
               },
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 12,
-            child: MulatschakControls(
-              multiplier: multiplier,
-              onScoreChanged: onScoreChanged,
-              onMultiplierChanged: onMultiplierChanged,
-            ),
+          const SizedBox(height: 12),
+          MulatschakControls(
+            multiplier: multiplier,
+            onScoreChanged: onScoreChanged,
+            onMultiplierChanged: onMultiplierChanged,
           ),
         ],
       ),
@@ -107,49 +105,94 @@ class MulatschakBody extends StatelessWidget {
   }
 
   Widget _buildPlayersWrap(List<MapEntry<String, int>> entries) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 190),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 12,
-        runSpacing: 12,
-        children: List.generate(entries.length, (index) {
-          final entry = entries[index];
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          runSpacing: 12,
+          children: List.generate(entries.length, (index) {
+            final entry = entries[index];
 
-          return SizedBox(
-            width: 176,
-            child: _PlayerCard(
-              key: ValueKey('mulatschak-score-player-${entry.key}'),
-              index: index,
-              playerId: entry.key,
-              name: nameOf(entry.key),
-              score: entry.value,
-              isSelected: entry.key == currentPlayerId,
-              isWinner: entry.key == winnerPlayerId,
-              isLoser: _hasWinner && entry.key != winnerPlayerId,
-              onSelected: onPlayerSelected,
-              onReordered: onPlayersReordered,
-              onDroppedOutside: () => onPlayersReordered(index, entries.length),
-            ),
-          );
-        }),
+            return SizedBox(
+              width: 176,
+              child: _PlayerCard(
+                key: ValueKey('mulatschak-score-player-${entry.key}'),
+                index: index,
+                playerId: entry.key,
+                name: nameOf(entry.key),
+                score: entry.value,
+                isSelected: entry.key == currentPlayerId,
+                isWinner: entry.key == winnerPlayerId,
+                isLoser: _hasWinner && entry.key != winnerPlayerId,
+                onSelected: onPlayerSelected,
+                onReordered: onPlayersReordered,
+                onDroppedOutside: () =>
+                    onPlayersReordered(index, entries.length),
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
 
   Widget _buildCompactPlayerWrap(List<MapEntry<String, int>> entries) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(right: 4),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 12,
-        runSpacing: 12,
-        children: List.generate(entries.length, (index) {
-          final entry = entries[index];
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          runSpacing: 12,
+          children: List.generate(entries.length, (index) {
+            final entry = entries[index];
 
-          return SizedBox(
-            width: 148,
-            child: _PlayerCard(
+            return SizedBox(
+              width: 148,
+              child: _PlayerCard(
+                key: ValueKey('mulatschak-score-player-${entry.key}'),
+                index: index,
+                playerId: entry.key,
+                name: nameOf(entry.key),
+                score: entry.value,
+                isSelected: entry.key == currentPlayerId,
+                isWinner: entry.key == winnerPlayerId,
+                isLoser: _hasWinner && entry.key != winnerPlayerId,
+                compact: true,
+                onSelected: onPlayerSelected,
+                onReordered: onPlayersReordered,
+                onDroppedOutside: () =>
+                    onPlayersReordered(index, entries.length),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayersGrid(List<MapEntry<String, int>> entries) {
+    const columnCount = 3;
+    const spacing = 12.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cellWidth =
+            (constraints.maxWidth - spacing * (columnCount - 1)) / columnCount;
+        final cellHeight = math.max(204.0, cellWidth / 0.68);
+
+        return GridView.count(
+          crossAxisCount: columnCount,
+          mainAxisSpacing: spacing,
+          crossAxisSpacing: spacing,
+          childAspectRatio: cellWidth / cellHeight,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          children: List.generate(entries.length, (index) {
+            final entry = entries[index];
+
+            return _PlayerCard(
               key: ValueKey('mulatschak-score-player-${entry.key}'),
               index: index,
               playerId: entry.key,
@@ -158,43 +201,13 @@ class MulatschakBody extends StatelessWidget {
               isSelected: entry.key == currentPlayerId,
               isWinner: entry.key == winnerPlayerId,
               isLoser: _hasWinner && entry.key != winnerPlayerId,
-              compact: true,
               onSelected: onPlayerSelected,
               onReordered: onPlayersReordered,
               onDroppedOutside: () => onPlayersReordered(index, entries.length),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildPlayersGrid(List<MapEntry<String, int>> entries) {
-    final columnCount = entries.length >= 3 ? 3 : entries.length;
-
-    return GridView.count(
-      crossAxisCount: columnCount,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 0.68,
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 190),
-      children: List.generate(entries.length, (index) {
-        final entry = entries[index];
-
-        return _PlayerCard(
-          key: ValueKey('mulatschak-score-player-${entry.key}'),
-          index: index,
-          playerId: entry.key,
-          name: nameOf(entry.key),
-          score: entry.value,
-          isSelected: entry.key == currentPlayerId,
-          isWinner: entry.key == winnerPlayerId,
-          isLoser: _hasWinner && entry.key != winnerPlayerId,
-          onSelected: onPlayerSelected,
-          onReordered: onPlayersReordered,
-          onDroppedOutside: () => onPlayersReordered(index, entries.length),
+            );
+          }),
         );
-      }),
+      },
     );
   }
 }
@@ -251,14 +264,12 @@ class _EmptyLineup extends StatelessWidget {
 }
 
 class MulatschakControls extends StatelessWidget {
-  final bool compact;
   final int multiplier;
   final ValueChanged<int> onScoreChanged;
   final ValueChanged<int> onMultiplierChanged;
 
   const MulatschakControls({
     super.key,
-    this.compact = false,
     required this.multiplier,
     required this.onScoreChanged,
     required this.onMultiplierChanged,
@@ -266,60 +277,6 @@ class MulatschakControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (compact) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _MultiplierButton(
-            multiplier: multiplier,
-            onChanged: onMultiplierChanged,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ScoreButton(
-                label: '-5',
-                onPressed: () => onScoreChanged(-5),
-                minimumSize: const Size(120, 52),
-                fontSize: 20,
-                width: 120,
-              ),
-              const SizedBox(width: 10),
-              ScoreButton(
-                label: '-1',
-                onPressed: () => onScoreChanged(-1),
-                minimumSize: const Size(120, 52),
-                fontSize: 20,
-                width: 120,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ScoreButton(
-                label: '+1',
-                onPressed: () => onScoreChanged(1),
-                minimumSize: const Size(120, 52),
-                fontSize: 20,
-                width: 120,
-              ),
-              const SizedBox(width: 10),
-              ScoreButton(
-                label: '+5',
-                onPressed: () => onScoreChanged(5),
-                minimumSize: const Size(120, 52),
-                fontSize: 20,
-                width: 120,
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -461,7 +418,7 @@ class _PlayerCard extends StatelessWidget {
     this.compact = false,
   });
 
-@override
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {

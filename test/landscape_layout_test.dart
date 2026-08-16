@@ -84,6 +84,178 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('mulatschak landscape puts the portrait controls at the bottom', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 360);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues(
+      mulatschakPrefs(lineup: {'p1': 21, 'p2': 21}),
+    );
+    await tester.pumpWidget(const KartlerApp());
+    await tester.pumpAndSettle();
+    await dismissStartScreen(tester);
+
+    final screenHeight = tester.view.physicalSize.height;
+    final minusFive = tester.getRect(
+      find.ancestor(of: find.text('-5'), matching: find.byType(ElevatedButton)),
+    );
+    final plusFive = tester.getRect(
+      find.ancestor(of: find.text('+5'), matching: find.byType(ElevatedButton)),
+    );
+    final multiplier = tester.getRect(
+      find.byKey(const Key('mulatschakMultiplierButton')),
+    );
+    final firstCard = tester.getRect(
+      find.byKey(const ValueKey('mulatschak-score-player-p1')),
+    );
+
+    expect(
+      (minusFive.top - plusFive.top).abs(),
+      lessThan(2),
+      reason: '-5 and +5 sit on the same line',
+    );
+    expect(
+      multiplier.bottom,
+      lessThan(minusFive.top),
+      reason: 'multiplier sits above the buttons',
+    );
+    expect(
+      (multiplier.center.dx - 400).abs(),
+      lessThan(30),
+      reason: 'multiplier is horizontally centered',
+    );
+    expect(plusFive.bottom, greaterThan(screenHeight - 40));
+    expect(firstCard.top, lessThan(multiplier.top));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('players page keeps the add button full width in landscape', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 360);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues(mulatschakPrefs());
+    await tester.pumpWidget(const KartlerApp());
+    await tester.pumpAndSettle();
+    await dismissStartScreen(tester);
+
+    await openDrawer(tester);
+    await tester.drag(find.byType(ReorderableListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Spieler verwalten'));
+    await tester.tap(find.text('Spieler verwalten'));
+    await tester.pumpAndSettle();
+
+    final addButton = find.widgetWithText(FilledButton, 'Spieler hinzufügen');
+    expect(addButton, findsOneWidget);
+    final rect = tester.getRect(addButton);
+    expect(rect.width, greaterThan(700));
+    expect(rect.bottom, greaterThanOrEqualTo(340));
+
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+    tester.view.viewInsets = const FakeViewPadding(bottom: 200);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'player duplicate-name bubble appears just above the landscape keyboard',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 360);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      SharedPreferences.setMockInitialValues(mulatschakPrefs());
+      await tester.pumpWidget(const KartlerApp());
+      await tester.pumpAndSettle();
+      await dismissStartScreen(tester);
+
+      await openDrawer(tester);
+      await tester.drag(
+        find.byType(ReorderableListView),
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Spieler verwalten'));
+      await tester.tap(find.text('Spieler verwalten'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Spieler hinzufügen'));
+      await tester.pumpAndSettle();
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 200);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Anna');
+      await tester.tap(find.widgetWithText(FilledButton, 'Hinzufügen'));
+      await tester.pumpAndSettle();
+
+      final bubble = find.text('Dieser Spielername ist bereits vergeben.');
+      expect(bubble, findsOneWidget);
+      final bubbleRect = tester.getRect(bubble);
+      final keyboardTop = tester.view.physicalSize.height - 200;
+      expect(
+        bubbleRect.bottom,
+        lessThanOrEqualTo(keyboardTop),
+        reason: 'bubble must not be hidden behind the keyboard',
+      );
+      expect(
+        bubbleRect.bottom,
+        greaterThan(keyboardTop - 60),
+        reason: 'bubble sits just above the keyboard',
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('mulatschak portrait centers fewer than three players', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(375, 812);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues(
+      mulatschakPrefs(lineup: {'p1': 21, 'p2': 21}),
+    );
+    await tester.pumpWidget(const KartlerApp());
+    await tester.pumpAndSettle();
+    await dismissStartScreen(tester);
+
+    final card = tester.getRect(
+      find.byKey(const ValueKey('mulatschak-score-player-p1')),
+    );
+    final screenHeight = tester.view.physicalSize.height;
+    final cardCenter = card.center.dy;
+
+    expect(cardCenter, greaterThan(screenHeight * 0.30));
+    expect(cardCenter, lessThan(screenHeight * 0.70));
+    expect(
+      (card.left - (tester.view.physicalSize.width - card.right)).abs(),
+      lessThan(40),
+      reason: 'cards are horizontally centered',
+    );
+
+    final plusFive = tester.getRect(
+      find.ancestor(of: find.text('+5'), matching: find.byType(ElevatedButton)),
+    );
+    expect(plusFive.bottom, greaterThan(screenHeight - 40));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('counter drawer has no extra navigation actions in portrait', (
     tester,
   ) async {
