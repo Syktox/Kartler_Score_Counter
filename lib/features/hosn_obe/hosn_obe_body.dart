@@ -80,6 +80,7 @@ class HosnObeBody extends StatelessWidget {
     final hasWinner = winnerPlayerId != null;
     final entries = scores.entries.toList();
     final playerWrap = SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(0, 8, 0, isLandscape ? 0 : 190),
       child: Wrap(
         alignment: WrapAlignment.center,
         spacing: 12,
@@ -126,10 +127,10 @@ class HosnObeBody extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+      child: Stack(
         children: [
-          Expanded(
+          Positioned.fill(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (ResponsiveUtils.isHandsetWidth(constraints.maxWidth) &&
@@ -141,11 +142,14 @@ class HosnObeBody extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(height: 20),
-          HosnObeControls(
-            onScoreChanged: onScoreChanged,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 12,
+            child: HosnObeControls(
+              onScoreChanged: onScoreChanged,
+            ),
           ),
-          const SizedBox(height: 24),
         ],
       ),
     );
@@ -159,6 +163,7 @@ return GridView.count(
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
       childAspectRatio: 0.68,
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 190),
       children: List.generate(entries.length, (index) {
         final entry = entries[index];
 
@@ -206,7 +211,12 @@ class HosnObeControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ScoreButton(label: '-1', onPressed: () => onScoreChanged(-1)),
+        ScoreButton(
+          label: '-1',
+          onPressed: () => onScoreChanged(-1),
+          minimumSize: const Size(0, 80),
+          width: 116,
+        ),
       ],
     );
   }
