@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/player.dart';
 import '../../utils/name_utils.dart';
+import '../../widgets/app_dialogs.dart';
 import '../hosn_obe/hosn_obe_controller.dart';
 import '../mulatschak/mulatschak_controller.dart';
 import '../players/players_controller.dart';
@@ -270,10 +271,9 @@ class _PlayerEditDialogState extends State<_PlayerEditDialog> {
   Future<void> _submit() async {
     final name = NameUtils.clean(_nameController.text);
     if (!widget.isValid(name)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Dieser Spielername ist bereits vergeben.'),
-        ),
+      AppDialogs.showErrorBubble(
+        context,
+        'Dieser Spielername ist bereits vergeben.',
       );
       return;
     }

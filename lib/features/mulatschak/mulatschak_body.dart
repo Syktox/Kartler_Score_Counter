@@ -59,26 +59,16 @@ class MulatschakBody extends StatelessWidget {
 
     if (isLandscape) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 18, 12),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
         child: Row(
           children: [
             Expanded(child: _buildCompactPlayerWrap(entries)),
             const SizedBox(width: 12),
-            SizedBox(
-              width: 216,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    MulatschakControls(
-                      compact: true,
-                      multiplier: multiplier,
-                      onScoreChanged: onScoreChanged,
-                      onMultiplierChanged: onMultiplierChanged,
-                    ),
-                  ],
-                ),
-              ),
+            MulatschakControls(
+              compact: true,
+              multiplier: multiplier,
+              onScoreChanged: onScoreChanged,
+              onMultiplierChanged: onMultiplierChanged,
             ),
           ],
         ),
@@ -86,10 +76,10 @@ class MulatschakBody extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+      child: Stack(
         children: [
-          Expanded(
+          Positioned.fill(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (ResponsiveUtils.isHandsetWidth(constraints.maxWidth) &&
@@ -101,12 +91,16 @@ class MulatschakBody extends StatelessWidget {
               },
             ),
           ),
-          MulatschakControls(
-            multiplier: multiplier,
-            onScoreChanged: onScoreChanged,
-            onMultiplierChanged: onMultiplierChanged,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 12,
+            child: MulatschakControls(
+              multiplier: multiplier,
+              onScoreChanged: onScoreChanged,
+              onMultiplierChanged: onMultiplierChanged,
+            ),
           ),
-          const SizedBox(height: 24),
         ],
       ),
     );
@@ -114,6 +108,7 @@ class MulatschakBody extends StatelessWidget {
 
   Widget _buildPlayersWrap(List<MapEntry<String, int>> entries) {
     return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 190),
       child: Wrap(
         alignment: WrapAlignment.center,
         spacing: 12,
@@ -144,6 +139,7 @@ class MulatschakBody extends StatelessWidget {
 
   Widget _buildCompactPlayerWrap(List<MapEntry<String, int>> entries) {
     return SingleChildScrollView(
+      padding: const EdgeInsets.only(right: 4),
       child: Wrap(
         alignment: WrapAlignment.center,
         spacing: 12,
@@ -181,6 +177,7 @@ class MulatschakBody extends StatelessWidget {
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
       childAspectRatio: 0.68,
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 190),
       children: List.generate(entries.length, (index) {
         final entry = entries[index];
 
@@ -270,197 +267,168 @@ class MulatschakControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (compact) {
-      final buttons = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      return Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ScoreButton(
-            label: '-5',
-            onPressed: () => onScoreChanged(-5),
-            minimumSize: const Size(128, 48),
-            fontSize: 20,
-            width: 128,
-          ),
-          const SizedBox(height: 8),
-          ScoreButton(
-            label: '-1',
-            onPressed: () => onScoreChanged(-1),
-            minimumSize: const Size(128, 48),
-            fontSize: 20,
-            width: 128,
-          ),
-          const SizedBox(height: 8),
-          ScoreButton(
-            label: '+1',
-            onPressed: () => onScoreChanged(1),
-            minimumSize: const Size(128, 48),
-            fontSize: 20,
-            width: 128,
-          ),
-          const SizedBox(height: 8),
-          ScoreButton(
-            label: '+5',
-            onPressed: () => onScoreChanged(5),
-            minimumSize: const Size(128, 48),
-            fontSize: 20,
-            width: 128,
-          ),
-        ],
-      );
-
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          MulatschakMultiplierSelector(
+          _MultiplierButton(
             multiplier: multiplier,
             onChanged: onMultiplierChanged,
           ),
-          const SizedBox(width: 8),
-          buttons,
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ScoreButton(
+                label: '-5',
+                onPressed: () => onScoreChanged(-5),
+                minimumSize: const Size(120, 52),
+                fontSize: 20,
+                width: 120,
+              ),
+              const SizedBox(width: 10),
+              ScoreButton(
+                label: '-1',
+                onPressed: () => onScoreChanged(-1),
+                minimumSize: const Size(120, 52),
+                fontSize: 20,
+                width: 120,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ScoreButton(
+                label: '+1',
+                onPressed: () => onScoreChanged(1),
+                minimumSize: const Size(120, 52),
+                fontSize: 20,
+                width: 120,
+              ),
+              const SizedBox(width: 10),
+              ScoreButton(
+                label: '+5',
+                onPressed: () => onScoreChanged(5),
+                minimumSize: const Size(120, 52),
+                fontSize: 20,
+                width: 120,
+              ),
+            ],
+          ),
         ],
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const gap = 8.0;
-        final buttonWidth = ((constraints.maxWidth - gap * 3) / 4).clamp(
-          0.0,
-          116.0,
-        );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _MultiplierButton(
+          multiplier: multiplier,
+          onChanged: onMultiplierChanged,
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 8.0;
+            final buttonWidth = ((constraints.maxWidth - gap * 3) / 4).clamp(
+              0.0,
+              116.0,
+            );
 
-        return Column(
-          children: [
-            _MultiplierRow(
-              multiplier: multiplier,
-              onChanged: onMultiplierChanged,
-            ),
-            const SizedBox(height: 20),
-            Row(
+            return Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ScoreButton(
                   label: '-5',
                   onPressed: () => onScoreChanged(-5),
-                  minimumSize: const Size(0, 84),
+                  minimumSize: const Size(0, 80),
                   width: buttonWidth,
                 ),
                 const SizedBox(width: gap),
                 ScoreButton(
                   label: '-1',
                   onPressed: () => onScoreChanged(-1),
-                  minimumSize: const Size(0, 84),
+                  minimumSize: const Size(0, 80),
                   width: buttonWidth,
                 ),
                 const SizedBox(width: gap),
                 ScoreButton(
                   label: '+1',
                   onPressed: () => onScoreChanged(1),
-                  minimumSize: const Size(0, 84),
+                  minimumSize: const Size(0, 80),
                   width: buttonWidth,
                 ),
                 const SizedBox(width: gap),
                 ScoreButton(
                   label: '+5',
                   onPressed: () => onScoreChanged(5),
-                  minimumSize: const Size(0, 84),
+                  minimumSize: const Size(0, 80),
                   width: buttonWidth,
                 ),
               ],
-            ),
-          ],
-        );
-      },
+            );
+          },
+        ),
+      ],
     );
   }
 }
 
-class MulatschakMultiplierSelector extends StatelessWidget {
+class _MultiplierButton extends StatelessWidget {
   static const multipliers = [1, 2, 4, 8, 16, 32, 64, 128];
 
   final int multiplier;
   final ValueChanged<int> onChanged;
 
-  const MulatschakMultiplierSelector({
-    super.key,
-    required this.multiplier,
-    required this.onChanged,
-  });
+  const _MultiplierButton({required this.multiplier, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return SizedBox(
-      width: 76,
-      child: PopupMenuButton<int>(
-        key: const Key('mulatschakMultiplierButton'),
-        tooltip: 'Multiplikator',
-        initialValue: multipliers.contains(multiplier) ? multiplier : null,
-        constraints: const BoxConstraints.tightFor(width: 76),
-        position: PopupMenuPosition.over,
-        onSelected: onChanged,
-        itemBuilder: (context) => multipliers
-            .map(
-              (value) => PopupMenuItem<int>(
-                value: value,
-                height: 44,
-                child: Center(child: Text('${value}x')),
-              ),
-            )
-            .toList(),
-        child: Container(
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: Border.all(color: Theme.of(context).dividerColor),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            '${multiplier}x',
-            style: TextStyle(
-              color: colorScheme.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+    return PopupMenuButton<int>(
+      key: const Key('mulatschakMultiplierButton'),
+      tooltip: 'Multiplikator',
+      initialValue: multipliers.contains(multiplier) ? multiplier : null,
+      constraints: const BoxConstraints(),
+      position: PopupMenuPosition.over,
+      onSelected: onChanged,
+      itemBuilder: (context) => multipliers
+          .map(
+            (value) => PopupMenuItem<int>(
+              value: value,
+              height: 44,
+              child: Center(child: Text('${value}x')),
             ),
+          )
+          .toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: colorScheme.outline.withValues(alpha: 0.45),
+            width: 1.5,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _MultiplierRow extends StatelessWidget {
-  final int multiplier;
-  final ValueChanged<int> onChanged;
-
-  const _MultiplierRow({required this.multiplier, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    const label = Text(
-      'Multiplikator',
-      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final selector = MulatschakMultiplierSelector(
-          multiplier: multiplier,
-          onChanged: onChanged,
-        );
-
-        if (ResponsiveUtils.isHandsetWidth(constraints.maxWidth)) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [label, selector],
-          );
-        }
-
-        return Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [label, const SizedBox(width: 16), selector],
-        );
-      },
+          children: [
+            Text(
+              '${multiplier}x',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down, color: colorScheme.onSurface),
+          ],
+        ),
+      ),
     );
   }
 }

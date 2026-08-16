@@ -9,6 +9,7 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       useMaterial3: true,
       brightness: Brightness.light,
+      snackBarTheme: _snackBarTheme(),
     );
   }
 
@@ -20,6 +21,16 @@ class AppTheme {
       ),
       useMaterial3: true,
       brightness: Brightness.dark,
+      snackBarTheme: _snackBarTheme(),
+    );
+  }
+
+  static SnackBarThemeData _snackBarTheme() {
+    return const SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(24)),
+      ),
     );
   }
 }

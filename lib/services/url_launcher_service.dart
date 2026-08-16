@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/app_constants.dart';
+import '../widgets/app_dialogs.dart';
 
 class UrlLauncherService {
   UrlLauncherService._();
@@ -13,7 +14,8 @@ class UrlLauncherService {
     required String description,
     String? deviceInfo,
   }) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final colorScheme = Theme.of(context).colorScheme;
     final issueTitle = '${AppConstants.bugReportSubjectPrefix} $title';
     final body =
         '''
@@ -43,12 +45,10 @@ $deviceInfo
     await Clipboard.setData(
       ClipboardData(text: 'Title: $issueTitle\n\n$body\n\n$uri'),
     );
-    scaffoldMessenger.showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Could not open GitHub. Bug report details copied instead.',
-        ),
-      ),
+    AppDialogs.showErrorBubbleWithConfig(
+      overlay: overlay,
+      colorScheme: colorScheme,
+      message: 'Could not open GitHub. Bug report details copied instead.',
     );
   }
 }

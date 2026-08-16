@@ -96,17 +96,12 @@ class WattenBody extends StatelessWidget {
             const SizedBox(width: 12),
             SizedBox(
               width: 132,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: WattenControls(
-                      compact: true,
-                      fillHeight: true,
-                      onScoreChanged: onScoreChanged,
-                      onResetSelectedSide: onResetSelectedSide,
-                    ),
-                  ),
-                ],
+              child: Center(
+                child: WattenControls(
+                  compact: true,
+                  onScoreChanged: onScoreChanged,
+                  onResetSelectedSide: onResetSelectedSide,
+                ),
               ),
             ),
           ],
@@ -306,14 +301,12 @@ class _TableSide extends StatelessWidget {
 
 class WattenControls extends StatelessWidget {
   final bool compact;
-  final bool fillHeight;
   final ValueChanged<int> onScoreChanged;
   final VoidCallback onResetSelectedSide;
 
   const WattenControls({
     super.key,
     this.compact = false,
-    this.fillHeight = false,
     required this.onScoreChanged,
     required this.onResetSelectedSide,
   });
@@ -321,50 +314,32 @@ class WattenControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (compact) {
-      final buttons = [
-        ScoreButton(
-          label: '+2',
-          onPressed: () => onScoreChanged(2),
-          minimumSize: const Size(120, 54),
-          fontSize: 22,
-          width: 120,
-        ),
-        ScoreButton(
-          label: '+3',
-          onPressed: () => onScoreChanged(3),
-          minimumSize: const Size(120, 54),
-          fontSize: 22,
-          width: 120,
-        ),
-        ScoreButton(
-          label: 'Streichen',
-          onPressed: onResetSelectedSide,
-          minimumSize: const Size(120, 54),
-          fontSize: 18,
-          width: 120,
-        ),
-      ];
-
-      if (fillHeight) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final button in buttons) ...[
-              Expanded(child: button),
-              if (button != buttons.last) const SizedBox(height: 8),
-            ],
-          ],
-        );
-      }
-
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          buttons[0],
+          ScoreButton(
+            label: '+2',
+            onPressed: () => onScoreChanged(2),
+            minimumSize: const Size(120, 54),
+            fontSize: 22,
+            width: 120,
+          ),
           const SizedBox(height: 8),
-          buttons[1],
+          ScoreButton(
+            label: '+3',
+            onPressed: () => onScoreChanged(3),
+            minimumSize: const Size(120, 54),
+            fontSize: 22,
+            width: 120,
+          ),
           const SizedBox(height: 8),
-          buttons[2],
+          ScoreButton(
+            label: 'Streichen',
+            onPressed: onResetSelectedSide,
+            minimumSize: const Size(120, 54),
+            fontSize: 18,
+            width: 120,
+          ),
         ],
       );
     }

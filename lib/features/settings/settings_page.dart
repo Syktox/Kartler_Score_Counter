@@ -7,6 +7,7 @@ import '../../persistence/backup_service.dart';
 import '../../screens/bug_report_page.dart';
 import '../../screens/donation_page.dart';
 import '../../screens/privacy_policy_page.dart';
+import '../../widgets/app_dialogs.dart';
 import 'settings_controller.dart';
 
 /// Einstellungen: Modus, Theme, Haptik, Verlauf, Regelprofil und Backup.
@@ -185,19 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (!mounted) {
         return;
       }
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Import fehlgeschlagen'),
-          content: Text(error.message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      AppDialogs.showErrorBubble(context, error.message);
       return;
     }
 

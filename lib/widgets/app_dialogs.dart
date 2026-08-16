@@ -1,9 +1,46 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../utils/name_utils.dart';
 
 class AppDialogs {
   const AppDialogs._();
+
+  static OverlayEntry? _currentErrorBubble;
+
+  static void showErrorBubble(BuildContext context, String message) {
+    showErrorBubbleWithConfig(
+      overlay: Overlay.of(context, rootOverlay: true),
+      colorScheme: Theme.of(context).colorScheme,
+      message: message,
+    );
+  }
+
+  static void showErrorBubbleWithConfig({
+    required OverlayState overlay,
+    required ColorScheme colorScheme,
+    required String message,
+  }) {
+    _currentErrorBubble?.remove();
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (overlayContext) => _ErrorBubble(
+        colorScheme: colorScheme,
+        message: message,
+        onDismissed: () {
+          if (entry.mounted) {
+            entry.remove();
+          }
+          if (identical(_currentErrorBubble, entry)) {
+            _currentErrorBubble = null;
+          }
+        },
+      ),
+    );
+    _currentErrorBubble = entry;
+    overlay.insert(entry);
+  }
 
   static Future<void> showAddItemDialog({
     required BuildContext context,
@@ -181,9 +218,10 @@ class _ItemNameDialogState extends State<_ItemNameDialog> {
     _focusNode.requestFocus();
     final message = widget.duplicateNameMessage;
     if (name.isNotEmpty && message != null) {
-      ScaffoldMessenger.of(
+      AppDialogs.showErrorBubble(
         widget.messageContext ?? context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+        message,
+      );
     }
   }
 
@@ -217,6 +255,98 @@ class _ItemNameDialogState extends State<_ItemNameDialog> {
         TextButton(onPressed: _submit, child: Text(widget.actionLabel)),
       ],
       actionsOverflowDirection: VerticalDirection.up,
+    );
+  }
+}
+
+class _ErrorBubble extends StatefulWidget {
+  final ColorScheme colorScheme;
+  final String message;
+  final VoidCallback onDismissed;
+
+  const _ErrorBubble({
+    required this.colorScheme,
+    required this.message,
+    required this.onDismissed,
+  });
+
+  @override
+  State<_ErrorBubble> createState() => _ErrorBubbleState();
+}
+
+class _ErrorBubbleState extends State<_ErrorBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _offset;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+    _offset = Tween<Offset>(
+      begin: const Offset(0, 0.15),
+      end: Offset.zero,
+    ).animate(_opacity);
+    _controller.forward();
+    _timer = Timer(const Duration(milliseconds: 3200), () {
+      _controller.reverse().whenCompleteOrCancel(widget.onDismissed);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+    return Positioned(
+      left: 24,
+      right: 24,
+      bottom: height * 0.30,
+      child: IgnorePointer(
+        child: FadeTransition(
+          opacity: _opacity,
+          child: SlideTransition(
+            position: _offset,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Material(
+                  color: widget.colorScheme.surface,
+                  elevation: 4,
+                  shadowColor: Colors.black.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    child: Text(
+                      widget.message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: widget.colorScheme.error),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
