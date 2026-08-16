@@ -290,10 +290,12 @@ class _RecentMatchTile extends StatelessWidget {
         ),
         subtitle: Text(
           standings
-              .map(
-                (entry) =>
-                    '${match.participantIds.contains(entry.key) ? players.displayName(entry.key) : entry.key}: ${entry.value}',
-              )
+              .map((entry) {
+                final name = match.participantIds.contains(entry.key)
+                    ? players.displayName(entry.key)
+                    : entry.key;
+                return '$name: ${entry.value}';
+              })
               .join(' · '),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,

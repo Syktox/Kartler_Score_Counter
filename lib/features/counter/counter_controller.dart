@@ -130,20 +130,14 @@ class CounterController extends FeatureController {
     required bool recordEntry,
   }) {
     counters = Map<String, int>.from(counters)..[counterName] = newValue;
-    if (entry == null) {
-      // Kein Verlaufseintrag (z. B. Reset von Mehreren).
-    } else if (recordEntry) {
-      counterHistory = CounterHelper.recordHistory(
-        history: counterHistory,
-        counterName: counterName,
-        entry: entry,
-      );
-    } else {
-      counterHistory = _removeFirstHistoryEntry(
-        counterHistory,
-        counterName,
-        entry,
-      );
+    if (entry != null) {
+      counterHistory = recordEntry
+          ? CounterHelper.recordHistory(
+              history: counterHistory,
+              counterName: counterName,
+              entry: entry,
+            )
+          : _removeFirstHistoryEntry(counterHistory, counterName, entry);
     }
     notifyListeners();
     unawaited(_persist());
@@ -197,6 +191,9 @@ class CounterController extends FeatureController {
       oldName: oldName,
       newName: newName,
     );
+    final oldCounters = Map<String, int>.from(counters);
+    final oldHistory = Map<String, List<String>>.from(counterHistory);
+    final oldCurrent = currentCounter;
     _pushUndoable(
       () {
         counters = result.counters;
@@ -204,21 +201,9 @@ class CounterController extends FeatureController {
         currentCounter = result.currentCounter;
       },
       revert: () {
-        counters = CounterHelper.renameCounter(
-          counters: counters,
-          history: counterHistory,
-          currentCounter: currentCounter,
-          oldName: newName,
-          newName: oldName,
-        ).counters;
-        counterHistory = CounterHelper.renameCounter(
-          counters: counters,
-          history: counterHistory,
-          currentCounter: currentCounter,
-          oldName: newName,
-          newName: oldName,
-        ).history;
-        currentCounter = oldName;
+        counters = oldCounters;
+        counterHistory = oldHistory;
+        currentCounter = oldCurrent;
       },
     );
     unawaited(_haptics.light());
@@ -234,6 +219,8 @@ class CounterController extends FeatureController {
       currentCounter: currentCounter,
       counterName: counterName,
     );
+    final oldCounters = Map<String, int>.from(counters);
+    final oldHistory = Map<String, List<String>>.from(counterHistory);
     _pushUndoable(
       () {
         counters = result.counters;
@@ -241,14 +228,8 @@ class CounterController extends FeatureController {
         currentCounter = result.currentCounter;
       },
       revert: () {
-        final entries = counters.entries.toList();
-        counters = LinkedHashMap<String, int>.fromEntries([
-          ...entries.takeWhile((entry) => entry.key != counterName),
-          MapEntry(counterName, 0),
-          ...entries.skipWhile((entry) => entry.key != counterName),
-        ]);
-        counterHistory = Map<String, List<String>>.from(counterHistory)
-          ..remove(counterName);
+        counters = oldCounters;
+        counterHistory = oldHistory;
         currentCounter = counterName;
       },
     );

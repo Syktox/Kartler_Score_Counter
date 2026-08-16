@@ -78,7 +78,8 @@ class _DonationPageState extends State<DonationPage> {
         _message = response.error!.message;
       } else if (products.isEmpty) {
         _message =
-            'No donation products are available yet. Create donation_small, donation_medium, and donation_large in Play Console.';
+            'No donation products are available yet. Create donation_small, '
+            'donation_medium, and donation_large in Play Console.';
       } else {
         _message = null;
       }

@@ -274,7 +274,8 @@ class _SessionCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Spiele eine Partie und schließe sie über das Trophäen-Symbol ab. Danach kannst du den Spielabend hier beenden.',
+              'Spiele eine Partie und schließe sie über das Trophäen-Symbol '
+              'ab. Danach kannst du den Spielabend hier beenden.',
               style: TextStyle(color: colorScheme.onPrimaryContainer),
             ),
             const SizedBox(height: 16),

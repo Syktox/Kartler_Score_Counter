@@ -183,5 +183,79 @@ void main() {
 
       expect(find.text('Doppelte Leerzeichen'), findsOneWidget);
     });
+
+    testWidgets('blocks decrement below zero when negatives are disabled', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      await tester.tap(find.text('-'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('0'), findsOneWidget);
+      expect(find.text('-1'), findsNothing);
+    });
+
+    testWidgets('allows negative scores when enabled', (tester) async {
+      await pumpApp(
+        tester,
+        prefs: {...counterPrefs(), 'counter_negative_enabled': true},
+      );
+
+      await tester.tap(find.text('-'));
+      await tester.pumpAndSettle();
+      expect(find.text('-1'), findsOneWidget);
+
+      await tester.tap(find.text('-'));
+      await tester.pumpAndSettle();
+      expect(find.text('-2'), findsOneWidget);
+    });
+
+    testWidgets('undo restores the score and history of a deleted counter', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        prefs: {
+          'app_mode': 'counter',
+          'counter_lineup': jsonEncode({'Punkte': 3, 'Runden': 0}),
+          'current_counter': 'Punkte',
+        },
+      );
+
+      await openDrawer(tester);
+      await tester.tap(drawerActionForItem('Punkte', 'Löschen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Löschen'));
+      await tester.pumpAndSettle();
+      await closeDrawer(tester);
+
+      expect(find.text('Punkte'), findsNothing);
+
+      await tester.tap(find.byTooltip('Rückgängig'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Punkte'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+    });
+
+    testWidgets('keeps the score text large and buttons tappable', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: counterPrefs());
+
+      final scoreText = tester.widget<Text>(find.text('0'));
+      expect(scoreText.style?.fontSize, greaterThanOrEqualTo(100));
+
+      for (final label in ['+', '-', 'Reset']) {
+        final button = find.ancestor(
+          of: find.text(label),
+          matching: find.byType(ElevatedButton),
+        );
+        final size = tester.getSize(button.first);
+        expect(size.height, greaterThanOrEqualTo(48));
+        expect(size.width, greaterThanOrEqualTo(48));
+      }
+    });
   });
 }

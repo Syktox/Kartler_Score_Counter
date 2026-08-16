@@ -104,6 +104,9 @@ class _SessionDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final matches = matchesForSession(session.id);
+    final participantText = session.participantIds.isEmpty
+        ? '—'
+        : session.participantIds.map(players.displayName).join(', ');
 
     return Scaffold(
       appBar: AppBar(title: const Text('Spielabend')),
@@ -112,9 +115,7 @@ class _SessionDetail extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              'Teilnehmer: ${session.participantIds.isEmpty ? '—' : session.participantIds.map(players.displayName).join(', ')}',
-            ),
+            Text('Teilnehmer: $participantText'),
             const SizedBox(height: 4),
             Text('Partien: ${matches.length}'),
             const SizedBox(height: 16),

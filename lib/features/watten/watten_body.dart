@@ -424,37 +424,35 @@ class _WattenSideCard extends StatelessWidget {
     return Expanded(
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final stretch = fillHeight && constraints.hasBoundedHeight;
+
           return Stack(
             children: [
               SizedBox(
                 width: constraints.maxWidth,
-                height: fillHeight && constraints.hasBoundedHeight
-                    ? constraints.maxHeight
-                    : null,
+                height: stretch ? constraints.maxHeight : null,
                 child: ScoreCard(
                   title: title,
                   score: score,
                   isSelected: isSelected,
                   onTap: onTap,
+                  stretch: stretch,
                   margin: const EdgeInsets.symmetric(horizontal: 6),
-                  constraints: fillHeight
+                  constraints: stretch
                       ? null
-                      : BoxConstraints(
-                          minHeight: ResponsiveUtils.isDesktopCardPlatform
-                              ? 270
-                              : 230,
-                          maxHeight: ResponsiveUtils.isDesktopCardPlatform
-                              ? 310
-                              : 270,
-                        ),
+                      : const BoxConstraints(minHeight: 204),
+                  padding: stretch
+                      ? const EdgeInsets.fromLTRB(16, 48, 16, 0)
+                      : const EdgeInsets.fromLTRB(16, 48, 16, 14),
+                  titleScoreGap: 14,
                 ),
               ),
               if (isWinner)
-                const Positioned(right: 14, top: 10, child: _WinnerBadge())
+                const Positioned(right: 12, top: 8, child: _WinnerBadge())
               else if (isLoser)
-                const Positioned(right: 14, top: 10, child: _LoserBadge())
+                const Positioned(right: 12, top: 8, child: _LoserBadge())
               else if (isTense)
-                const Positioned(right: 14, top: 10, child: _TenseBadge()),
+                const Positioned(right: 12, top: 8, child: _TenseBadge()),
             ],
           );
         },

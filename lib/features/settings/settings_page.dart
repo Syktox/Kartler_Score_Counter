@@ -314,7 +314,8 @@ class _SettingsPageState extends State<SettingsPage> {
       SwitchListTile(
         title: const Text('Mulatschak-Verlauf anzeigen'),
         subtitle: const Text(
-          'Der Verlauf wird immer aufgezeichnet. Eine neue Runde beginnt, sobald alle Spieler Punkte erhalten haben.',
+          'Der Verlauf wird immer aufgezeichnet. Eine neue Runde beginnt, '
+          'sobald alle Spieler Punkte erhalten haben.',
         ),
         value: settings.mulatschakHistoryEnabled,
         onChanged: settings.setMulatschakHistoryEnabled,
@@ -388,7 +389,9 @@ class _SettingsPageState extends State<SettingsPage> {
       SwitchListTile(
         title: const Text('Mulatschak-Stiche automatisch erkennen'),
         subtitle: const Text(
-          'Nach 5 Stichen erhalten nur offene Spieler automatisch +5. +1 bedeutet gegangen; +5 als erster Eintrag deaktiviert die Automatik bis zur nächsten Runde.',
+          'Nach 5 Stichen erhalten nur offene Spieler automatisch +5. '
+          '+1 bedeutet gegangen; +5 als erster Eintrag deaktiviert die '
+          'Automatik bis zur nächsten Runde.',
         ),
         value: profile.mulatschakAutoCompleteRound,
         onChanged: (enabled) {

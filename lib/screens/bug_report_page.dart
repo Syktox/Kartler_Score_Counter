@@ -30,18 +30,26 @@ class _BugReportPageState extends State<BugReportPage> {
     final orientation = mediaQuery.orientation.name;
     final brightness = mediaQuery.platformBrightness.name;
     final textScaler = mediaQuery.textScaler.scale(1).toStringAsFixed(2);
+    final width = mediaQuery.size.width.toStringAsFixed(0);
+    final height = mediaQuery.size.height.toStringAsFixed(0);
+    final pad = mediaQuery.padding;
 
     return [
       '- Platform: ${defaultTargetPlatform.name}',
       '- Web: $kIsWeb',
-      '- Screen size: ${mediaQuery.size.width.toStringAsFixed(0)} x ${mediaQuery.size.height.toStringAsFixed(0)} logical px',
-      '- Physical size: ${physicalSize.width.toStringAsFixed(0)} x ${physicalSize.height.toStringAsFixed(0)} px',
+      '- Screen size: $width x $height logical px',
+      '- Physical size: '
+          '${physicalSize.width.toStringAsFixed(0)} x '
+          '${physicalSize.height.toStringAsFixed(0)} px',
       '- Device pixel ratio: ${mediaQuery.devicePixelRatio.toStringAsFixed(2)}',
       '- Orientation: $orientation',
       '- Brightness: $brightness',
       '- Text scale: $textScaler',
       '- Locale: ${Localizations.localeOf(context)}',
-      '- Safe area padding: left ${mediaQuery.padding.left.toStringAsFixed(0)}, top ${mediaQuery.padding.top.toStringAsFixed(0)}, right ${mediaQuery.padding.right.toStringAsFixed(0)}, bottom ${mediaQuery.padding.bottom.toStringAsFixed(0)}',
+      '- Safe area padding: left ${pad.left.toStringAsFixed(0)}, '
+          'top ${pad.top.toStringAsFixed(0)}, '
+          'right ${pad.right.toStringAsFixed(0)}, '
+          'bottom ${pad.bottom.toStringAsFixed(0)}',
     ].join('\n');
   }
 
