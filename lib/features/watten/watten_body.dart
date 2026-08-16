@@ -1,10 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../models/watten_game.dart';
 import '../../models/watten_side.dart';
 import '../../utils/responsive_utils.dart';
+import '../../widgets/player_score_card.dart';
 import '../../widgets/score_button.dart';
-import '../../widgets/score_card.dart';
+import '../../widgets/score_card_badge.dart';
 
 class WattenBody extends StatelessWidget {
   final bool isLoading;
@@ -53,32 +56,23 @@ class WattenBody extends StatelessWidget {
     final meIsWinner = winner == WattenSide.me.label;
     final youIsWinner = winner == WattenSide.you.label;
     final hasWinner = winner != null;
-    final scoreCards = Row(
-      crossAxisAlignment: isLandscape
-          ? CrossAxisAlignment.stretch
-          : CrossAxisAlignment.center,
-      children: [
-        _WattenSideCard(
-          title: meLabel,
-          score: currentGame.me,
-          isSelected: selectedSide == WattenSide.me,
-          isWinner: meIsWinner,
-          isLoser: hasWinner && !meIsWinner,
-          isTense: !hasWinner && _isTense(currentGame.me),
-          fillHeight: isLandscape,
-          onTap: () => onSelectedSideChanged(WattenSide.me),
-        ),
-        _WattenSideCard(
-          title: youLabel,
-          score: currentGame.you,
-          isSelected: selectedSide == WattenSide.you,
-          isWinner: youIsWinner,
-          isLoser: hasWinner && !youIsWinner,
-          isTense: !hasWinner && _isTense(currentGame.you),
-          fillHeight: isLandscape,
-          onTap: () => onSelectedSideChanged(WattenSide.you),
-        ),
-      ],
+    final scoreCards = _buildScoreCards(
+      context,
+      compact: isLandscape,
+      meLabel: meLabel,
+      meScore: currentGame.me,
+      meSelected: selectedSide == WattenSide.me,
+      meWinner: meIsWinner,
+      meLoser: hasWinner && !meIsWinner,
+      meTense: !hasWinner && _isTense(currentGame.me),
+      youLabel: youLabel,
+      youScore: currentGame.you,
+      youSelected: selectedSide == WattenSide.you,
+      youWinner: youIsWinner,
+      youLoser: hasWinner && !youIsWinner,
+      youTense: !hasWinner && _isTense(currentGame.you),
+      onSelectMe: () => onSelectedSideChanged(WattenSide.me),
+      onSelectYou: () => onSelectedSideChanged(WattenSide.you),
     );
 
     if (isLandscape) {
@@ -123,6 +117,73 @@ class WattenBody extends StatelessWidget {
           const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+
+  Widget _buildScoreCards(
+    BuildContext context, {
+    required bool compact,
+    required String meLabel,
+    required int meScore,
+    required bool meSelected,
+    required bool meWinner,
+    required bool meLoser,
+    required bool meTense,
+    required String youLabel,
+    required int youScore,
+    required bool youSelected,
+    required bool youWinner,
+    required bool youLoser,
+    required bool youTense,
+    required VoidCallback onSelectMe,
+    required VoidCallback onSelectYou,
+  }) {
+    const spacing = 12.0;
+    final baseWidth = compact
+        ? PlayerScoreCard.compactWidth
+        : PlayerScoreCard.width;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = math.min(
+          baseWidth,
+          (constraints.maxWidth - spacing) / 2,
+        );
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: cardWidth,
+              child: _WattenSideCard(
+                title: meLabel,
+                score: meScore,
+                isSelected: meSelected,
+                isWinner: meWinner,
+                isLoser: meLoser,
+                isTense: meTense,
+                compact: compact,
+                onTap: onSelectMe,
+              ),
+            ),
+            const SizedBox(width: spacing),
+            SizedBox(
+              width: cardWidth,
+              child: _WattenSideCard(
+                title: youLabel,
+                score: youScore,
+                isSelected: youSelected,
+                isWinner: youWinner,
+                isLoser: youLoser,
+                isTense: youTense,
+                compact: compact,
+                onTap: onSelectYou,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -226,26 +287,22 @@ class _TableSide extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: ScoreCard(
-                  title: title,
-                  score: score,
-                  isSelected: isSelected,
-                  onTap: onSelect,
-                  compact: true,
-                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                  constraints: const BoxConstraints(minHeight: 120),
-                ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: PlayerScoreCard.compactWidth,
               ),
-              if (winnerOfSide)
-                const Positioned(right: 12, top: 6, child: _WinnerBadge())
-              else if (loserOfSide)
-                const Positioned(right: 12, top: 6, child: _LoserBadge())
-              else if (isTense)
-                const Positioned(right: 12, top: 6, child: _TenseBadge()),
-            ],
+              child: _WattenSideCard(
+                title: title,
+                score: score,
+                isSelected: isSelected,
+                compact: true,
+                isWinner: winnerOfSide,
+                isLoser: loserOfSide,
+                isTense: isTense,
+                onTap: onSelect,
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -381,7 +438,7 @@ class _WattenSideCard extends StatelessWidget {
   final bool isLoser;
   final bool isTense;
   final VoidCallback onTap;
-  final bool fillHeight;
+  final bool compact;
 
   const _WattenSideCard({
     required this.title,
@@ -391,110 +448,28 @@ class _WattenSideCard extends StatelessWidget {
     required this.isLoser,
     required this.isTense,
     required this.onTap,
-    this.fillHeight = false,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final stretch = fillHeight && constraints.hasBoundedHeight;
-
-          return Stack(
-            children: [
-              SizedBox(
-                width: constraints.maxWidth,
-                height: stretch ? constraints.maxHeight : null,
-                child: ScoreCard(
-                  title: title,
-                  score: score,
-                  isSelected: isSelected,
-                  onTap: onTap,
-                  stretch: stretch,
-                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                  constraints: stretch
-                      ? null
-                      : const BoxConstraints(minHeight: 204),
-                  padding: stretch
-                      ? const EdgeInsets.fromLTRB(16, 48, 16, 0)
-                      : const EdgeInsets.fromLTRB(16, 48, 16, 14),
-                  titleScoreGap: 14,
-                ),
-              ),
-              if (isWinner)
-                const Positioned(right: 12, top: 8, child: _WinnerBadge())
-              else if (isLoser)
-                const Positioned(right: 12, top: 8, child: _LoserBadge())
-              else if (isTense)
-                const Positioned(right: 12, top: 8, child: _TenseBadge()),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _WinnerBadge extends StatelessWidget {
-  const _WinnerBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _WattenStatusBadge(label: 'Gewinner', color: Colors.green);
-  }
-}
-
-class _TenseBadge extends StatelessWidget {
-  const _TenseBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _WattenStatusBadge(label: 'Gespannt', color: Colors.amber);
-  }
-}
-
-class _LoserBadge extends StatelessWidget {
-  const _LoserBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _WattenStatusBadge(
-      label: 'X',
-      color: Colors.red,
-      fontSize: 16,
-    );
-  }
-}
-
-class _WattenStatusBadge extends StatelessWidget {
-  final String label;
-  final Color color;
-  final double fontSize;
-
-  const _WattenStatusBadge({
-    required this.label,
-    required this.color,
-    this.fontSize = 13,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.65)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
+    return PlayerScoreCard(
+      title: title,
+      score: score,
+      isSelected: isSelected,
+      compact: compact,
+      onTap: onTap,
+      badge: isWinner
+          ? const ScoreCardBadge(label: 'Gewinner', color: Colors.green)
+          : isLoser
+          ? const ScoreCardBadge(
+              label: 'X',
+              color: Colors.red,
+              fontSize: 16,
+            )
+          : isTense
+          ? const ScoreCardBadge(label: 'Gespannt', color: Colors.amber)
+          : null,
     );
   }
 }

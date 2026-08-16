@@ -3,8 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../utils/responsive_utils.dart';
+import '../../widgets/player_score_card.dart';
 import '../../widgets/score_button.dart';
-import '../../widgets/score_card.dart';
+import '../../widgets/score_card_badge.dart';
 
 class MulatschakBody extends StatelessWidget {
   final bool isLoading;
@@ -79,9 +80,9 @@ class MulatschakBody extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-      child: Column(
+      child: Stack(
         children: [
-          Expanded(
+          Positioned.fill(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 if (ResponsiveUtils.isHandsetWidth(constraints.maxWidth) &&
@@ -93,11 +94,15 @@ class MulatschakBody extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(height: 12),
-          MulatschakControls(
-            multiplier: multiplier,
-            onScoreChanged: onScoreChanged,
-            onMultiplierChanged: onMultiplierChanged,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 12,
+            child: MulatschakControls(
+              multiplier: multiplier,
+              onScoreChanged: onScoreChanged,
+              onMultiplierChanged: onMultiplierChanged,
+            ),
           ),
         ],
       ),
@@ -188,7 +193,7 @@ class MulatschakBody extends StatelessWidget {
           mainAxisSpacing: spacing,
           crossAxisSpacing: spacing,
           childAspectRatio: cellWidth / cellHeight,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.fromLTRB(0, 8, 0, 190),
           children: List.generate(entries.length, (index) {
             final entry = entries[index];
 
@@ -470,87 +475,25 @@ class _PlayerCard extends StatelessWidget {
   }
 
   Widget _scoreCard(BuildContext context, {bool stretch = false}) {
-    return Stack(
-      fit: stretch ? StackFit.expand : StackFit.loose,
-      children: [
-        ScoreCard(
-          title: name,
-          score: score,
-          isSelected: isSelected,
-          compact: compact,
-          stretch: stretch,
-          width: compact ? 148 : 176,
-          constraints: BoxConstraints(minHeight: compact ? 156 : 204),
-          padding: stretch
-              ? const EdgeInsets.fromLTRB(16, 48, 16, 0)
-              : (compact
-                    ? const EdgeInsets.fromLTRB(8, 36, 8, 12)
-                    : const EdgeInsets.fromLTRB(16, 48, 16, 14)),
-          titleScoreGap: stretch ? 14 : (compact ? 12 : 14),
-          onTap: () {
-            FocusScope.of(context).unfocus();
-            onSelected(playerId);
-          },
-        ),
-        if (isWinner)
-          const Positioned(right: 12, top: 8, child: _MulatschakWinnerBadge())
-        else if (isLoser)
-          const Positioned(right: 12, top: 8, child: _MulatschakLoserBadge()),
-      ],
-    );
-  }
-}
-
-class _MulatschakWinnerBadge extends StatelessWidget {
-  const _MulatschakWinnerBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _MulatschakStatusBadge(label: 'Gewinner', color: Colors.green);
-  }
-}
-
-class _MulatschakLoserBadge extends StatelessWidget {
-  const _MulatschakLoserBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _MulatschakStatusBadge(
-      label: 'X',
-      color: Colors.red,
-      fontSize: 16,
-    );
-  }
-}
-
-class _MulatschakStatusBadge extends StatelessWidget {
-  final String label;
-  final Color color;
-  final double fontSize;
-
-  const _MulatschakStatusBadge({
-    required this.label,
-    required this.color,
-    this.fontSize = 13,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.65)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
+    return PlayerScoreCard(
+      title: name,
+      score: score,
+      isSelected: isSelected,
+      compact: compact,
+      stretch: stretch,
+      onTap: () {
+        FocusScope.of(context).unfocus();
+        onSelected(playerId);
+      },
+      badge: isWinner
+          ? const ScoreCardBadge(label: 'Gewinner', color: Colors.green)
+          : isLoser
+          ? const ScoreCardBadge(
+              label: 'X',
+              color: Colors.red,
+              fontSize: 16,
+            )
+          : null,
     );
   }
 }

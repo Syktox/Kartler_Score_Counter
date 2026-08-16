@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/responsive_utils.dart';
+import '../../widgets/player_score_card.dart';
 import '../../widgets/score_button.dart';
-import '../../widgets/score_card.dart';
+import '../../widgets/score_card_badge.dart';
 
 class HosnObeBody extends StatelessWidget {
   final bool isLoading;
@@ -248,88 +249,26 @@ class _PlayerCard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final stretch = constraints.hasBoundedHeight;
-        return Stack(
-          fit: stretch ? StackFit.expand : StackFit.loose,
-          children: [
-            ScoreCard(
-              title: name,
-              score: score,
-              isSelected: isSelected,
-              compact: compact,
-              stretch: stretch,
-              width: compact ? 148 : 204,
-              constraints: BoxConstraints(minHeight: compact ? 156 : 204),
-              padding: stretch
-                  ? const EdgeInsets.fromLTRB(16, 48, 16, 0)
-                  : (compact
-                        ? const EdgeInsets.fromLTRB(8, 36, 8, 12)
-                        : const EdgeInsets.fromLTRB(16, 48, 16, 14)),
-              titleScoreGap: stretch ? 14 : (compact ? 12 : 14),
-              onTap: () => onSelected(playerId),
-            ),
-            if (isWinner)
-              const Positioned(
-                right: 12,
-                top: 8,
-                child: _HosnObeStatusBadge(
-                  label: 'Gewinner',
-                  color: Colors.green,
-                ),
-              )
-            else if (isLoser || score <= 0)
-              const Positioned(
-                right: 12,
-                top: 8,
-                child: _HosnObeStatusBadge(
+        return PlayerScoreCard(
+          title: name,
+          score: score,
+          isSelected: isSelected,
+          compact: compact,
+          stretch: stretch,
+          onTap: () => onSelected(playerId),
+          badge: isWinner
+              ? const ScoreCardBadge(label: 'Gewinner', color: Colors.green)
+              : isLoser || score <= 0
+              ? const ScoreCardBadge(
                   label: 'X',
                   color: Colors.red,
                   fontSize: 16,
-                ),
-              )
-            else if (score == 1)
-              const Positioned(
-                right: 12,
-                top: 8,
-                child: _HosnObeStatusBadge(
-                  label: 'Schwimmt',
-                  color: Colors.amber,
-                ),
-              ),
-          ],
+                )
+              : score == 1
+              ? const ScoreCardBadge(label: 'Schwimmt', color: Colors.amber)
+              : null,
         );
       },
-    );
-  }
-}
-
-class _HosnObeStatusBadge extends StatelessWidget {
-  final String label;
-  final Color color;
-  final double fontSize;
-
-  const _HosnObeStatusBadge({
-    required this.label,
-    required this.color,
-    this.fontSize = 12,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.65)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
     );
   }
 }

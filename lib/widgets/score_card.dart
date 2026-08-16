@@ -13,7 +13,6 @@ class ScoreCard extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final BoxConstraints? constraints;
   final EdgeInsetsGeometry? padding;
-  final double? titleScoreGap;
 
   const ScoreCard({
     super.key,
@@ -27,7 +26,6 @@ class ScoreCard extends StatelessWidget {
     this.margin,
     this.constraints,
     this.padding,
-    this.titleScoreGap,
   });
 
   @override
@@ -36,7 +34,6 @@ class ScoreCard extends StatelessWidget {
     final borderRadius = BorderRadius.circular(compact ? 16 : 20);
     final titleSize = compact ? 18.0 : 22.0;
     final scoreSize = compact ? 32.0 : 28.0;
-    final gapSize = titleScoreGap ?? (compact ? 10 : 18);
 
     final nameStyle = TextStyle(
       fontSize: titleSize,
@@ -55,45 +52,65 @@ class ScoreCard extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: nameStyle,
     );
-    final scoreBox = FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Text('$score', style: scoreStyle),
-    );
-
     Widget content() {
-      if (!stretch) {
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [name, SizedBox(height: gapSize), scoreBox],
-        );
-      }
-
       return LayoutBuilder(
         builder: (context, constraints) {
           final innerWidth = constraints.maxWidth;
-          final innerHeight = constraints.maxHeight;
+          final isTight =
+              constraints.hasBoundedHeight &&
+              constraints.minHeight == constraints.maxHeight;
+
+          final effectiveNameStyle =
+              DefaultTextStyle.of(context).style.merge(nameStyle);
 
           final namePainter = TextPainter(
-            text: TextSpan(text: title, style: nameStyle),
+            text: TextSpan(text: title, style: effectiveNameStyle),
             maxLines: 2,
             textDirection: TextDirection.ltr,
           )..layout(maxWidth: innerWidth);
+          final nameHeight = namePainter.height;
+
+          final oneLinePainter = TextPainter(
+            text: TextSpan(text: 'Ag', style: effectiveNameStyle),
+            textDirection: TextDirection.ltr,
+          )..layout();
+          final lineHeight = oneLinePainter.height;
 
           final scorePainter = TextPainter(
             text: TextSpan(text: '$score', style: scoreStyle),
             textDirection: TextDirection.ltr,
           )..layout();
-          final scoreScale = scorePainter.width <= 0
-              ? 1.0
-              : math.min(1.0, innerWidth / scorePainter.width);
-          final scoreHeight = scorePainter.height * scoreScale;
-
-          final targetScoreCenter = innerHeight * 0.55;
-          final gap = math.max(
-            gapSize,
-            targetScoreCenter - namePainter.height - scoreHeight / 2,
+          final scoreHeight = scorePainter.height;
+          final scoreBox = SizedBox(
+            height: scoreHeight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('$score', style: scoreStyle),
+            ),
           );
+
+          // Es wird immer Platz für einen zweizeiligen Namen reserviert,
+          // damit die Score-Position nie von der Zeilenanzahl abhängt.
+          const minNameScoreGap = 12.0;
+          final reservedContent = lineHeight * 2 + minNameScoreGap + scoreHeight;
+          final availableHeight = isTight
+              ? constraints.maxHeight
+              : (constraints.minHeight.isFinite &&
+                      constraints.minHeight > 0)
+                  ? math.max(
+                      constraints.minHeight - (padding?.vertical ?? 0),
+                      reservedContent,
+                    )
+                  : reservedContent;
+
+          // Fester Anker: Der Score sitzt immer an derselben Stelle und wird
+          // nur nach unten ausweichen, wenn der Name den Abstand einnimmt.
+          final anchorScoreTop = availableHeight * 0.70 - scoreHeight / 2;
+          final scoreTop = math.min(
+            math.max(anchorScoreTop, nameHeight + minNameScoreGap),
+            math.max(nameHeight + minNameScoreGap, availableHeight - scoreHeight),
+          );
+          final gap = scoreTop - nameHeight;
 
           return Column(
             mainAxisAlignment: MainAxisAlignment.start,

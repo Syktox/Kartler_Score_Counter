@@ -57,7 +57,7 @@ void main() {
       await pumpApp(tester, prefs: wattenPrefs());
 
       final cardSize = tester.getSize(find.widgetWithText(ScoreCard, 'Ich'));
-      expect(cardSize.width, greaterThan(650));
+      expect(cardSize.width, 176);
       expect(
         cardSize.height,
         lessThanOrEqualTo(270),

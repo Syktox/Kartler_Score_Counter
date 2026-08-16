@@ -55,13 +55,13 @@ void main() {
       expect(tester.widget<Text>(find.text('Schwimmt')).style?.color, Colors.amber);
     });
 
-    testWidgets('uses larger cards so status labels have enough space', (
+    testWidgets('uses the same uniform cards as the other modes', (
       tester,
     ) async {
       await pumpApp(tester, prefs: hosnObePrefs());
 
       final cardSize = tester.getSize(find.widgetWithText(ScoreCard, 'Anna'));
-      expect(cardSize.width, 204);
+      expect(cardSize.width, 176);
       expect(cardSize.height, greaterThanOrEqualTo(204));
     });
 
