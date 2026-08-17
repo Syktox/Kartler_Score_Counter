@@ -121,11 +121,61 @@ void main() {
 
       await tester.tap(find.byKey(const Key('mulatschakMultiplierButton')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('2x'));
-      await tester.pumpAndSettle();
       await tester.tap(find.text('+1'));
       await tester.pumpAndSettle();
       expect(find.text('24'), findsOneWidget);
+    });
+
+    testWidgets('multiplier button doubles the multiplier and supports '
+        'long-press reset, undo and redo', (tester) async {
+      await pumpApp(tester, prefs: mulatschakPrefs());
+
+      expect(find.text('1x'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('mulatschakMultiplierButton')));
+      await tester.pumpAndSettle();
+      expect(find.text('2x'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('mulatschakMultiplierButton')));
+      await tester.pumpAndSettle();
+      expect(find.text('4x'), findsOneWidget);
+
+      await tester.longPress(
+        find.byKey(const Key('mulatschakMultiplierButton')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('1x'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('mulatschakMultiplierButton')));
+      await tester.pumpAndSettle();
+      expect(find.text('2x'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Rückgängig'));
+      await tester.pumpAndSettle();
+      expect(find.text('1x'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Wiederholen'));
+      await tester.pumpAndSettle();
+      expect(find.text('2x'), findsOneWidget);
+    });
+
+    testWidgets('resets the multiplier to 1x when a new round completes', (
+      tester,
+    ) async {
+      await pumpApp(tester, prefs: mulatschakPrefs());
+
+      await tester.tap(find.byKey(const Key('mulatschakMultiplierButton')));
+      await tester.pumpAndSettle();
+      expect(find.text('2x'), findsOneWidget);
+
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ben'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-1'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1x'), findsOneWidget);
     });
 
     testWidgets('reorders players directly on the score screen', (
@@ -288,8 +338,6 @@ void main() {
       );
 
       await tester.tap(find.byKey(const Key('mulatschakMultiplierButton')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('2x'));
       await tester.pumpAndSettle();
 
       for (var index = 0; index < 3; index++) {
@@ -679,11 +727,9 @@ void main() {
 
       await tester.tap(find.byKey(const Key('mulatschakMultiplierButton')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('4x'));
-      await tester.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('mulatschak_multiplier'), 4);
+      expect(prefs.getInt('mulatschak_multiplier'), 2);
     });
 
     testWidgets('new game records the finished game and restarts at the '

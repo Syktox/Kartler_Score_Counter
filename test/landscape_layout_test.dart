@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -157,6 +158,54 @@ void main() {
       firstCard.right,
       lessThan(multiplier.left),
       reason: 'player cards stay left of the controls',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('mulatschak landscape caps the player cards at four per row', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 360);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues(
+      mulatschakPrefs(
+        lineup: {
+          'p1': 21,
+          'p2': 21,
+          'p3': 21,
+          'p4': 21,
+          'p5': 21,
+          'p6': 21,
+        },
+      ),
+    );
+    await tester.pumpWidget(const KartlerApp());
+    await tester.pumpAndSettle();
+    await dismissStartScreen(tester);
+
+    final cards = [
+      for (var i = 1; i <= 6; i++)
+        tester.getRect(
+          find.byKey(ValueKey('mulatschak-score-player-p$i')),
+        ),
+    ];
+    final firstRowTop = cards.map((rect) => rect.top).reduce(
+      math.min,
+    );
+    final firstRow = cards.where((rect) => rect.top == firstRowTop).toList();
+
+    expect(
+      firstRow.length,
+      4,
+      reason: 'at most four cards per row in landscape',
+    );
+    expect(
+      cards[4].top,
+      greaterThan(firstRowTop),
+      reason: 'the fifth card starts in a new row',
     );
     expect(tester.takeException(), isNull);
   });

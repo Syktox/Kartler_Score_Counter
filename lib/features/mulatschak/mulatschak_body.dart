@@ -164,32 +164,44 @@ class MulatschakBody extends StatelessWidget {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        child: Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 12,
-          runSpacing: 12,
-          children: List.generate(entries.length, (index) {
-            final entry = entries[index];
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const spacing = 12.0;
+            final columns = math.min(4, entries.length);
+            final stretchWidth =
+                (constraints.maxWidth - spacing * (columns - 1)) / columns;
+            final cardWidth = stretchWidth >= 100
+                ? math.min(PlayerScoreCard.compactWidth, stretchWidth)
+                : PlayerScoreCard.compactWidth;
 
-            return SizedBox(
-              width: 148,
-              child: _PlayerCard(
-                key: ValueKey('mulatschak-score-player-${entry.key}'),
-                index: index,
-                playerId: entry.key,
-                name: nameOf(entry.key),
-                score: entry.value,
-                isSelected: entry.key == currentPlayerId,
-                isWinner: entry.key == winnerPlayerId,
-                isLoser: _hasWinner && entry.key != winnerPlayerId,
-                compact: true,
-                onSelected: onPlayerSelected,
-                onReordered: onPlayersReordered,
-                onDroppedOutside: () =>
-                    onPlayersReordered(index, entries.length),
-              ),
+            return Wrap(
+              alignment: WrapAlignment.center,
+              spacing: spacing,
+              runSpacing: spacing,
+              children: List.generate(entries.length, (index) {
+                final entry = entries[index];
+
+                return SizedBox(
+                  width: cardWidth,
+                  child: _PlayerCard(
+                    key: ValueKey('mulatschak-score-player-${entry.key}'),
+                    index: index,
+                    playerId: entry.key,
+                    name: nameOf(entry.key),
+                    score: entry.value,
+                    isSelected: entry.key == currentPlayerId,
+                    isWinner: entry.key == winnerPlayerId,
+                    isLoser: _hasWinner && entry.key != winnerPlayerId,
+                    compact: true,
+                    onSelected: onPlayerSelected,
+                    onReordered: onPlayersReordered,
+                    onDroppedOutside: () =>
+                        onPlayersReordered(index, entries.length),
+                  ),
+                );
+              }),
             );
-          }),
+          },
         ),
       ),
     );
@@ -416,7 +428,7 @@ class MulatschakControls extends StatelessWidget {
 }
 
 class _MultiplierButton extends StatelessWidget {
-  static const multipliers = [1, 2, 4, 8, 16, 32, 64, 128];
+  static const maxMultiplier = 128;
 
   final int multiplier;
   final ValueChanged<int> onChanged;
@@ -432,53 +444,35 @@ class _MultiplierButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return PopupMenuButton<int>(
-      key: const Key('mulatschakMultiplierButton'),
-      tooltip: 'Multiplikator',
-      initialValue: multipliers.contains(multiplier) ? multiplier : null,
-      constraints: const BoxConstraints(),
-      position: PopupMenuPosition.over,
-      onSelected: onChanged,
-      itemBuilder: (context) => multipliers
-          .map(
-            (value) => PopupMenuItem<int>(
-              value: value,
-              height: 44,
-              child: Center(child: Text('${value}x')),
-            ),
-          )
-          .toList(),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 18 : 22,
-          vertical: compact ? 4 : 10,
+    return Material(
+      color: colorScheme.surface,
+      elevation: 0,
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: colorScheme.outline.withValues(alpha: 0.45),
+          width: 1.5,
         ),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: colorScheme.outline.withValues(alpha: 0.45),
-            width: 1.5,
+      ),
+      child: InkWell(
+        key: const Key('mulatschakMultiplierButton'),
+        customBorder: const StadiumBorder(),
+        onTap: () => onChanged(
+          math.min(multiplier * 2, maxMultiplier),
+        ),
+        onLongPress: () => onChanged(1),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 18 : 22,
+            vertical: compact ? 4 : 10,
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${multiplier}x',
-              style: TextStyle(
-                fontSize: compact ? 15 : 17,
-                fontWeight: FontWeight.w800,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(width: 2),
-            Icon(
-              Icons.arrow_drop_down,
-              size: compact ? 20 : 24,
+          child: Text(
+            '${multiplier}x',
+            style: TextStyle(
+              fontSize: compact ? 15 : 17,
+              fontWeight: FontWeight.w800,
               color: colorScheme.onSurface,
             ),
-          ],
+          ),
         ),
       ),
     );

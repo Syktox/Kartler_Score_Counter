@@ -131,7 +131,11 @@ class MulatschakController extends FeatureController {
     if (multiplier == value) {
       return;
     }
-    _mutate(() => multiplier = value);
+    final oldMultiplier = multiplier;
+    _pushUndoable(
+      () => _mutate(() => multiplier = value),
+      revert: () => _mutate(() => multiplier = oldMultiplier),
+    );
     unawaited(_haptics.light());
   }
 
@@ -140,10 +144,12 @@ class MulatschakController extends FeatureController {
     if (lineup.values.every(
           (value) => value == _profile.mulatschakStartingScore,
         ) &&
-        (!clearHistory || !hasHistory)) {
+        (!clearHistory || !hasHistory) &&
+        multiplier == MulatschakRepository.defaultMultiplier) {
       return;
     }
     final changeTime = DateTime.now();
+    final oldMultiplier = multiplier;
     final oldLineup = Map<String, int>.from(lineup);
     final oldHistory = List<String>.from(historyEntries);
     final oldRound = historyRound;
@@ -152,6 +158,7 @@ class MulatschakController extends FeatureController {
     final oldRoundAutoSuppressed = _roundAutoCompletionSuppressed;
     _pushUndoable(
       () {
+        multiplier = MulatschakRepository.defaultMultiplier;
         if (clearHistory) {
           lineup = Map<String, int>.from(lineup)
             ..updateAll((key, value) => _profile.mulatschakStartingScore);
@@ -180,6 +187,7 @@ class MulatschakController extends FeatureController {
         unawaited(_persist());
       },
       revert: () {
+        multiplier = oldMultiplier;
         lineup = oldLineup;
         historyEntries = oldHistory;
         historyRound = oldRound;
@@ -326,6 +334,7 @@ class MulatschakController extends FeatureController {
   ) {
     final previousRound = historyRound;
     final previousRoundPlayers = Set<String>.from(roundPlayerIds);
+    final previousMultiplier = multiplier;
     final points = deltaFor(playerId);
     lineup = Map<String, int>.from(lineup)..[playerId] = newValue;
 
@@ -341,6 +350,7 @@ class MulatschakController extends FeatureController {
         nextRound += 1;
         nextRoundPlayers = {};
         completedRound = true;
+        multiplier = MulatschakRepository.defaultMultiplier;
       }
       final entry = MulatschakHistoryEntry(
         round: historyRound,
@@ -362,6 +372,7 @@ class MulatschakController extends FeatureController {
       addedEntry: addedEntry,
       previousRound: previousRound,
       previousRoundPlayers: previousRoundPlayers,
+      previousMultiplier: previousMultiplier,
       completedRound: completedRound,
     );
   }
@@ -378,6 +389,7 @@ class MulatschakController extends FeatureController {
     }
     historyRound = record.previousRound;
     roundPlayerIds = Set<String>.from(record.previousRoundPlayers);
+    multiplier = record.previousMultiplier;
     notifyListeners();
     unawaited(_persist());
   }
@@ -492,6 +504,7 @@ class MulatschakController extends FeatureController {
     roundPlayerIds: Set<String>.from(roundPlayerIds),
     roundTricksByPlayer: Map<String, int>.from(_roundTricksByPlayer),
     roundAutoCompletionSuppressed: _roundAutoCompletionSuppressed,
+    multiplier: multiplier,
   );
 
   void _restore(_MulatschakSnapshot snapshot) {
@@ -501,6 +514,7 @@ class MulatschakController extends FeatureController {
     roundPlayerIds = Set<String>.from(snapshot.roundPlayerIds);
     _roundTricksByPlayer = Map<String, int>.from(snapshot.roundTricksByPlayer);
     _roundAutoCompletionSuppressed = snapshot.roundAutoCompletionSuppressed;
+    multiplier = snapshot.multiplier;
     notifyListeners();
     unawaited(_persist());
   }
@@ -538,12 +552,14 @@ class _ScoreRecord {
     required this.addedEntry,
     required this.previousRound,
     required this.previousRoundPlayers,
+    required this.previousMultiplier,
     required this.completedRound,
   });
 
   final String? addedEntry;
   final int previousRound;
   final Set<String> previousRoundPlayers;
+  final int previousMultiplier;
   final bool completedRound;
 }
 
@@ -555,6 +571,7 @@ class _MulatschakSnapshot {
     required this.roundPlayerIds,
     required this.roundTricksByPlayer,
     required this.roundAutoCompletionSuppressed,
+    required this.multiplier,
   });
 
   final Map<String, int> lineup;
@@ -563,6 +580,7 @@ class _MulatschakSnapshot {
   final Set<String> roundPlayerIds;
   final Map<String, int> roundTricksByPlayer;
   final bool roundAutoCompletionSuppressed;
+  final int multiplier;
 }
 
 class _ScoreChanged implements UndoableCommand {

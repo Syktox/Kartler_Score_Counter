@@ -36,7 +36,7 @@ This repository contains the source code, assets, and configuration. Generated F
 ### Mulatschak
 
 - Players selected directly from the player cards
-- Score controls for `-5`, `-1`, `+1`, `+5`, plus a `2x`–`16x` multiplier
+- Score controls for `-5`, `-1`, `+1`, `+5`, plus a multiplier that doubles (`1x` → `2x` → `4x` …) per tap, resets to `1x` on long press or when a new round starts (undoable)
 - History grouped per completed round, undoable
 - Optional Muleqack reset: a player is automatically reset to a configurable value once a threshold is reached
 - Winner banner when a player reaches `0` points
