@@ -84,7 +84,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('mulatschak landscape puts the portrait controls at the bottom', (
+  testWidgets('mulatschak landscape stacks the buttons beside the multiplier', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -99,7 +99,6 @@ void main() {
     await tester.pumpAndSettle();
     await dismissStartScreen(tester);
 
-    final screenHeight = tester.view.physicalSize.height;
     final minusFive = tester.getRect(
       find.ancestor(of: find.text('-5'), matching: find.byType(ElevatedButton)),
     );
@@ -112,24 +111,53 @@ void main() {
     final firstCard = tester.getRect(
       find.byKey(const ValueKey('mulatschak-score-player-p1')),
     );
+    final panelCenter = (62.0 + (360.0 - 6.0)) / 2;
 
     expect(
-      (minusFive.top - plusFive.top).abs(),
-      lessThan(2),
-      reason: '-5 and +5 sit on the same line',
+      multiplier.center.dx,
+      greaterThan(400),
+      reason: 'controls sit on the right half',
     );
     expect(
-      multiplier.bottom,
-      lessThan(minusFive.top),
-      reason: 'multiplier sits above the buttons',
+      minusFive.top,
+      lessThan(plusFive.top),
+      reason: '-5 sits above +5',
     );
     expect(
-      (multiplier.center.dx - 400).abs(),
-      lessThan(30),
-      reason: 'multiplier is horizontally centered',
+      minusFive.bottom,
+      lessThan(plusFive.top),
+      reason: 'buttons are stacked vertically',
     );
-    expect(plusFive.bottom, greaterThan(screenHeight - 40));
-    expect(firstCard.top, lessThan(multiplier.top));
+    expect(
+      multiplier.right,
+      lessThan(minusFive.left),
+      reason: 'multiplier sits beside the buttons',
+    );
+    expect(
+      (multiplier.center.dy - panelCenter).abs(),
+      lessThan(40),
+      reason: 'multiplier is vertically centered',
+    );
+    expect(
+      plusFive.bottom,
+      greaterThan(360 - 40),
+      reason: 'buttons fill the height down to the bottom edge',
+    );
+    expect(
+      minusFive.top,
+      lessThan(56 + 40),
+      reason: 'buttons start right below the app bar',
+    );
+    expect(
+      plusFive.right,
+      lessThan(tester.view.physicalSize.width - 10),
+      reason: 'buttons stay inside the right safe area',
+    );
+    expect(
+      firstCard.right,
+      lessThan(multiplier.left),
+      reason: 'player cards stay left of the controls',
+    );
     expect(tester.takeException(), isNull);
   });
 

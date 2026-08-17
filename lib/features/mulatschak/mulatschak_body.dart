@@ -62,16 +62,19 @@ class MulatschakBody extends StatelessWidget {
 
     if (isLandscape) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        padding: const EdgeInsets.fromLTRB(14, 6, 18, 6),
+        child: Row(
           children: [
             Expanded(child: _buildCompactPlayerWrap(entries)),
-            const SizedBox(height: 10),
-            MulatschakControls(
-              multiplier: multiplier,
-              onScoreChanged: onScoreChanged,
-              onMultiplierChanged: onMultiplierChanged,
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 200,
+              child: MulatschakControls(
+                compact: true,
+                multiplier: multiplier,
+                onScoreChanged: onScoreChanged,
+                onMultiplierChanged: onMultiplierChanged,
+              ),
             ),
           ],
         ),
@@ -284,18 +287,79 @@ class _EmptyLineup extends StatelessWidget {
 
 class MulatschakControls extends StatelessWidget {
   final int multiplier;
+  final bool compact;
   final ValueChanged<int> onScoreChanged;
   final ValueChanged<int> onMultiplierChanged;
 
   const MulatschakControls({
     super.key,
     required this.multiplier,
+    this.compact = false,
     required this.onScoreChanged,
     required this.onMultiplierChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (compact) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Center(
+            child: _MultiplierButton(
+              compact: true,
+              multiplier: multiplier,
+              onChanged: onMultiplierChanged,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            children: [
+              Expanded(
+                child: ScoreButton(
+                  label: '-5',
+                  onPressed: () => onScoreChanged(-5),
+                  minimumSize: const Size(96, 48),
+                  fontSize: 20,
+                  width: 96,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: ScoreButton(
+                  label: '-1',
+                  onPressed: () => onScoreChanged(-1),
+                  minimumSize: const Size(96, 48),
+                  fontSize: 20,
+                  width: 96,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: ScoreButton(
+                  label: '+1',
+                  onPressed: () => onScoreChanged(1),
+                  minimumSize: const Size(96, 48),
+                  fontSize: 20,
+                  width: 96,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: ScoreButton(
+                  label: '+5',
+                  onPressed: () => onScoreChanged(5),
+                  minimumSize: const Size(96, 48),
+                  fontSize: 20,
+                  width: 96,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -356,8 +420,13 @@ class _MultiplierButton extends StatelessWidget {
 
   final int multiplier;
   final ValueChanged<int> onChanged;
+  final bool compact;
 
-  const _MultiplierButton({required this.multiplier, required this.onChanged});
+  const _MultiplierButton({
+    required this.multiplier,
+    required this.onChanged,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -380,7 +449,10 @@ class _MultiplierButton extends StatelessWidget {
           )
           .toList(),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 18 : 22,
+          vertical: compact ? 4 : 10,
+        ),
         decoration: BoxDecoration(
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
@@ -395,13 +467,17 @@ class _MultiplierButton extends StatelessWidget {
             Text(
               '${multiplier}x',
               style: TextStyle(
-                fontSize: 17,
+                fontSize: compact ? 15 : 17,
                 fontWeight: FontWeight.w800,
                 color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(width: 2),
-            Icon(Icons.arrow_drop_down, color: colorScheme.onSurface),
+            Icon(
+              Icons.arrow_drop_down,
+              size: compact ? 20 : 24,
+              color: colorScheme.onSurface,
+            ),
           ],
         ),
       ),

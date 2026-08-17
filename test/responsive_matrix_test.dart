@@ -54,11 +54,18 @@ Future<void> _pumpMulatschak(
     bottom: viewPadding.bottom,
     left: viewPadding.left,
   );
+  tester.view.padding = FakeViewPadding(
+    top: viewPadding.top,
+    right: viewPadding.right,
+    bottom: viewPadding.bottom,
+    left: viewPadding.left,
+  );
   tester.view.viewInsets = FakeViewPadding(bottom: viewInsets.bottom);
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetViewPadding);
   addTearDown(tester.view.resetViewInsets);
+  addTearDown(tester.view.resetPadding);
 
   SharedPreferences.setMockInitialValues(mulatschakPrefs(lineup: lineup));
   await tester.pumpWidget(const SizedBox.shrink());
@@ -113,7 +120,16 @@ void main() {
           expect(_plusFiveButton(), findsOneWidget);
           expect(
             tester.getRect(_plusFiveButton()).bottom,
-            greaterThan(size.height - 40),
+            greaterThanOrEqualTo(size.height - bottom - 40),
+            reason:
+                '$size $top/$bottom: controls stay near the bottom safe edge',
+          );
+          expect(
+            tester.getRect(_plusFiveButton()).bottom,
+            lessThanOrEqualTo(size.height - bottom),
+            reason:
+                '$size $top/$bottom: controls stay above the gesture safe '
+                'area',
           );
           expect(tester.takeException(), isNull);
         }
@@ -144,7 +160,7 @@ void main() {
     }
   });
 
-  testWidgets('mulatschak landscape: controls fill the page on every phone', (
+  testWidgets('mulatschak landscape: buttons fill the right side on every phone', (
     tester,
   ) async {
     for (final portrait in _portraitSizes) {
@@ -169,40 +185,82 @@ void main() {
           find.byKey(const ValueKey('mulatschak-score-player-p1')),
         );
         final screenHeight = size.height;
-        final safeBottom = bottom;
+        final safeLeft = left;
+        final safeRight = size.width - right;
+        final safeBottom = screenHeight - bottom;
         final bodyCenter = left + (size.width - left - right) / 2;
+        final contentCenter = (62.0 + (safeBottom - 6.0)) / 2;
 
         expect(
-          (minusFive.top - plusFive.top).abs(),
-          lessThan(2),
-          reason: '$size $left/$right/$bottom: buttons sit on one line',
+          minusFive.center.dx,
+          greaterThan(bodyCenter),
+          reason: '$size $left/$right/$bottom: controls sit on the right',
         );
         expect(
-          multiplier.bottom,
-          lessThan(minusFive.top),
+          minusFive.top,
+          lessThan(plusFive.top),
+          reason: '$size $left/$right/$bottom: -5 sits above +5',
+        );
+        expect(
+          minusFive.bottom,
+          lessThan(plusFive.top),
           reason:
-              '$size $left/$right/$bottom: multiplier sits above the '
+              '$size $left/$right/$bottom: buttons are stacked vertically',
+        );
+        expect(
+          multiplier.right,
+          lessThan(minusFive.left),
+          reason:
+              '$size $left/$right/$bottom: multiplier sits beside the '
               'buttons',
         );
         expect(
-          (multiplier.center.dx - bodyCenter).abs(),
-          lessThan(60),
+          (multiplier.center.dy - contentCenter).abs(),
+          lessThan(40),
           reason:
-              '$size $left/$right/$bottom: multiplier is horizontally '
+              '$size $left/$right/$bottom: multiplier is vertically '
               'centered',
         );
         expect(
           plusFive.bottom,
-          greaterThan(screenHeight - safeBottom - 24),
-          reason: '$size $left/$right/$bottom: buttons reach the bottom edge',
-        );
-        expect(minusFive.height, greaterThan(60));
-        expect(plusFive.height, greaterThan(60));
-        expect(
-          firstCard.top,
-          lessThan(multiplier.top),
+          lessThanOrEqualTo(safeBottom),
           reason:
-              '$size $left/$right/$bottom: player cards stay above the '
+              '$size $left/$right/$bottom: buttons stay above the bottom '
+              'safe area',
+        );
+        expect(
+          plusFive.bottom,
+          greaterThan(safeBottom - 20),
+          reason:
+              '$size $left/$right/$bottom: buttons fill the height down to '
+              'the bottom edge',
+        );
+        expect(
+          minusFive.top,
+          lessThanOrEqualTo(56 + 40),
+          reason:
+              '$size $left/$right/$bottom: buttons start right below the '
+              'app bar',
+        );
+        expect(
+          plusFive.right,
+          lessThanOrEqualTo(safeRight - 10),
+          reason:
+              '$size $left/$right/$bottom: buttons stay inside the right '
+              'safe area',
+        );
+        expect(
+          multiplier.left,
+          greaterThanOrEqualTo(safeLeft + 10),
+          reason:
+              '$size $left/$right/$bottom: multiplier stays inside the left '
+              'safe area',
+        );
+        expect(
+          firstCard.right,
+          lessThan(multiplier.left),
+          reason:
+              '$size $left/$right/$bottom: player cards stay left of the '
               'controls',
         );
         expect(tester.takeException(), isNull);
